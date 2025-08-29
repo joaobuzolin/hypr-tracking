@@ -31,12 +31,10 @@ const Index = () => {
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <Link to="/reports">
-                <Button variant="outline" className="w-full sm:w-auto gap-2">
-                  <FileText className="w-4 h-4" />
-                  Ver Relatórios
-                </Button>
-              </Link>
+              <Button variant="outline" className="w-full sm:w-auto gap-2" disabled>
+                <FileText className="w-4 h-4" />
+                Ver Relatórios (Em breve)
+              </Button>
             </div>
           </div>
         </div>
