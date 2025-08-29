@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Copy, BarChart3, MousePointer, FileText } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, Copy, BarChart3, MousePointer, FileText, Search, CalendarIcon, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import type { DateRange } from "react-day-picker";
 
 // Types
 interface Tag {
@@ -272,38 +277,135 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campa
 
 const Campaigns = () => {
   const [campaigns, setCampaigns] = useState(initialCampaigns);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   
-  const totalCampaigns = campaigns.length;
-  const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
-  const totalClicks = campaigns.reduce((sum, c) => sum + c.metrics.cta_clicks + c.metrics.pin_clicks, 0);
+  // Filtered campaigns based on search and date range
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter(campaign => {
+      // Search filter
+      const matchesSearch = 
+        campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        campaign.description.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Date range filter
+      const campaignDate = new Date(campaign.created_at);
+      const matchesDateRange = 
+        (!dateRange?.from || campaignDate >= dateRange.from) &&
+        (!dateRange?.to || campaignDate <= dateRange.to);
+      
+      return matchesSearch && matchesDateRange;
+    });
+  }, [campaigns, searchTerm, dateRange]);
+  
+  const totalCampaigns = filteredCampaigns.length;
+  const activeCampaigns = filteredCampaigns.filter(c => c.status === 'active').length;
+  const totalClicks = filteredCampaigns.reduce((sum, c) => sum + c.metrics.cta_clicks + c.metrics.pin_clicks, 0);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setDateRange(undefined);
+  };
 
   const handleCampaignCreated = (newCampaign: any) => {
     setCampaigns(prev => [...prev, newCampaign]);
   };
 
+  const DateRangePicker = () => (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "justify-start text-left font-normal",
+            !dateRange?.from && !dateRange?.to && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {dateRange?.from ? (
+            dateRange.to ? (
+              <>
+                {format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}
+              </>
+            ) : (
+              format(dateRange.from, "dd/MM/yyyy")
+            )
+          ) : (
+            <span>Filtrar por data</span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          initialFocus
+          mode="range"
+          defaultMonth={dateRange?.from}
+          selected={dateRange}
+          onSelect={setDateRange}
+          numberOfMonths={2}
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header simples */}
       <div className="border-b bg-white">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground mb-1">
-                Campanhas
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Gerencie suas campanhas e acompanhe métricas de tracking
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" className="gap-2" disabled>
-                <FileText className="w-4 h-4" />
-                Relatórios (Em breve)
-              </Button>
-              <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
-            </div>
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground mb-1">
+              Campanhas
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Gerencie suas campanhas e acompanhe métricas de tracking
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" className="gap-2" disabled>
+              <FileText className="w-4 h-4" />
+              Relatórios (Em breve)
+            </Button>
+            <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
           </div>
         </div>
+
+        {/* Filters Section */}
+        <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar campanhas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <DateRangePicker />
+            </div>
+            
+            {(searchTerm || dateRange?.from || dateRange?.to) && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {filteredCampaigns.length} resultado{filteredCampaigns.length !== 1 ? 's' : ''}
+                </Badge>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-xs h-8"
+                >
+                  Limpar filtros
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
       </div>
 
       <div className="container mx-auto px-4 py-6">
@@ -353,31 +455,50 @@ const Campaigns = () => {
         </div>
 
         {/* Campaigns List */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium">Suas Campanhas</h2>
-            <Badge variant="outline" className="text-xs">
-              {campaigns.length} campanha{campaigns.length !== 1 ? 's' : ''}
-            </Badge>
-          </div>
-
-          {campaigns.length === 0 ? (
-            <Card className="border shadow-sm">
-              <CardContent className="p-8 text-center">
-                <div className="text-muted-foreground mb-4">
-                  <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                  <p>Nenhuma campanha criada ainda</p>
-                </div>
-                <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {campaigns.map((campaign) => (
-                <CampaignCard key={campaign.id} campaign={campaign} />
-              ))}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-medium">Suas Campanhas</h2>
+              <Badge variant="outline" className="text-xs">
+                {filteredCampaigns.length} campanha{filteredCampaigns.length !== 1 ? 's' : ''}
+                {filteredCampaigns.length !== campaigns.length && (
+                  <span className="text-muted-foreground ml-1">de {campaigns.length}</span>
+                )}
+              </Badge>
             </div>
-          )}
+
+            {filteredCampaigns.length === 0 ? (
+              <Card className="border shadow-sm">
+                <CardContent className="p-8 text-center">
+                  <div className="text-muted-foreground mb-4">
+                    {searchTerm || dateRange?.from || dateRange?.to ? (
+                      <>
+                        <Filter className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                        <p>Nenhuma campanha encontrada com os filtros aplicados</p>
+                        <Button 
+                          variant="link" 
+                          onClick={clearFilters}
+                          className="text-sm mt-2"
+                        >
+                          Limpar filtros
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                        <p>Nenhuma campanha criada ainda</p>
+                        <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {filteredCampaigns.map((campaign) => (
+                  <CampaignCard key={campaign.id} campaign={campaign} />
+                ))}
+              </div>
+            )}
         </div>
       </div>
     </div>
