@@ -24,13 +24,13 @@ interface Tag {
 
 // Mock data para métricas detalhadas por dia
 const mockDailyMetrics = [
-  { date: "2024-01-15", cta_clicks: 45, pin_clicks: 32, impressions: 1250 },
-  { date: "2024-01-14", cta_clicks: 38, pin_clicks: 29, impressions: 1180 },
-  { date: "2024-01-13", cta_clicks: 52, pin_clicks: 35, impressions: 1320 },
-  { date: "2024-01-12", cta_clicks: 41, pin_clicks: 28, impressions: 1150 },
-  { date: "2024-01-11", cta_clicks: 48, pin_clicks: 31, impressions: 1280 },
-  { date: "2024-01-10", cta_clicks: 35, pin_clicks: 25, impressions: 1080 },
-  { date: "2024-01-09", cta_clicks: 43, pin_clicks: 30, impressions: 1200 },
+  { date: "2024-01-15", cta_clicks: 45, pin_clicks: 32, page_views: 1250 },
+  { date: "2024-01-14", cta_clicks: 38, pin_clicks: 29, page_views: 1180 },
+  { date: "2024-01-13", cta_clicks: 52, pin_clicks: 35, page_views: 1320 },
+  { date: "2024-01-12", cta_clicks: 41, pin_clicks: 28, page_views: 1150 },
+  { date: "2024-01-11", cta_clicks: 48, pin_clicks: 31, page_views: 1280 },
+  { date: "2024-01-10", cta_clicks: 35, pin_clicks: 25, page_views: 1080 },
+  { date: "2024-01-09", cta_clicks: 43, pin_clicks: 30, page_views: 1200 },
 ];
 
 // Mock data das campanhas
@@ -46,8 +46,8 @@ const mockCampaigns = [
     metrics: {
       cta_clicks: 245,
       pin_clicks: 189,
-      total_7d: 67,
-      impressions: 8460
+      page_views: 8460,
+      total_7d: 67
     },
     tags: [
       {
@@ -77,8 +77,8 @@ const mockCampaigns = [
     metrics: {
       cta_clicks: 156,
       pin_clicks: 98,
-      total_7d: 23,
-      impressions: 3420
+      page_views: 3420,
+      total_7d: 23
     },
     tags: [
       {
@@ -96,8 +96,8 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('pt-BR');
 };
 
-const calculateCTR = (clicks: number, impressions: number) => {
-  return impressions > 0 ? ((clicks / impressions) * 100).toFixed(2) : "0.00";
+const calculateCTR = (clicks: number, pageViews: number) => {
+  return pageViews > 0 ? ((clicks / pageViews) * 100).toFixed(2) : "0.00";
 };
 
 const generateTag = (campaignName: string, title: string, type: string): string => {
@@ -175,23 +175,23 @@ const CampaignDetails = () => {
     });
   };
 
-  // Cálculos de métricas
+  // Cálculos de métricas (CTR = total clicks / page views)
   const totalClicks = campaign.metrics.cta_clicks + campaign.metrics.pin_clicks;
-  const ctaCTR = calculateCTR(campaign.metrics.cta_clicks, campaign.metrics.impressions);
-  const pinCTR = calculateCTR(campaign.metrics.pin_clicks, campaign.metrics.impressions);
-  const overallCTR = calculateCTR(totalClicks, campaign.metrics.impressions);
+  const ctaCTR = calculateCTR(campaign.metrics.cta_clicks, campaign.metrics.page_views);
+  const pinCTR = calculateCTR(campaign.metrics.pin_clicks, campaign.metrics.page_views);
+  const overallCTR = calculateCTR(totalClicks, campaign.metrics.page_views);
 
   const exportToCSV = () => {
-    const headers = ['Data', 'CTA Clicks', 'PIN Clicks', 'Impressões', 'CTR CTA (%)', 'CTR PIN (%)'];
+    const headers = ['Data', 'Click Button', 'PIN Clicks', 'Page Views', 'CTR Click Button (%)', 'CTR PIN (%)'];
     const csvContent = [
       headers.join(','),
       ...dailyMetrics.map(row => [
         formatDate(row.date),
         row.cta_clicks,
         row.pin_clicks,
-        row.impressions,
-        calculateCTR(row.cta_clicks, row.impressions),
-        calculateCTR(row.pin_clicks, row.impressions)
+        row.page_views,
+        calculateCTR(row.cta_clicks, row.page_views),
+        calculateCTR(row.pin_clicks, row.page_views)
       ].join(','))
     ].join('\n');
     
@@ -259,7 +259,7 @@ const CampaignDetails = () => {
                 </div>
                 <div>
                   <div className="text-2xl font-semibold">{campaign.metrics.cta_clicks}</div>
-                  <div className="text-sm text-neutral-600">CTA Clicks</div>
+                  <div className="text-sm text-neutral-600">Click Button</div>
                   <div className="text-xs text-muted-foreground">CTR: {ctaCTR}%</div>
                 </div>
               </div>
@@ -303,9 +303,9 @@ const CampaignDetails = () => {
                   <Eye className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-semibold">{campaign.metrics.impressions?.toLocaleString()}</div>
-                  <div className="text-sm text-neutral-600">Impressões</div>
-                  <div className="text-xs text-muted-foreground">Últimos 7 dias</div>
+                  <div className="text-2xl font-semibold">{campaign.metrics.page_views?.toLocaleString()}</div>
+                  <div className="text-sm text-neutral-600">Page Views</div>
+                  <div className="text-xs text-muted-foreground">Base para CTR</div>
                 </div>
               </div>
             </CardContent>
@@ -416,10 +416,10 @@ const CampaignDetails = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[120px]">Data</TableHead>
-                    <TableHead className="text-right">CTA Clicks</TableHead>
+                    <TableHead className="text-right">Click Button</TableHead>
                     <TableHead className="text-right">PIN Clicks</TableHead>
-                    <TableHead className="text-right">Impressões</TableHead>
-                    <TableHead className="text-right">CTR CTA</TableHead>
+                    <TableHead className="text-right">Page Views</TableHead>
+                    <TableHead className="text-right">CTR Click Button</TableHead>
                     <TableHead className="text-right">CTR PIN</TableHead>
                     <TableHead className="text-right">CTR Total</TableHead>
                   </TableRow>
@@ -427,9 +427,9 @@ const CampaignDetails = () => {
                 <TableBody>
                   {dailyMetrics.map((day, index) => {
                     const totalDayClicks = day.cta_clicks + day.pin_clicks;
-                    const dayCtaCTR = calculateCTR(day.cta_clicks, day.impressions);
-                    const dayPinCTR = calculateCTR(day.pin_clicks, day.impressions);
-                    const dayTotalCTR = calculateCTR(totalDayClicks, day.impressions);
+                    const dayCtaCTR = calculateCTR(day.cta_clicks, day.page_views);
+                    const dayPinCTR = calculateCTR(day.pin_clicks, day.page_views);
+                    const dayTotalCTR = calculateCTR(totalDayClicks, day.page_views);
                     
                     return (
                       <TableRow key={index}>
@@ -443,7 +443,7 @@ const CampaignDetails = () => {
                           {day.pin_clicks}
                         </TableCell>
                         <TableCell className="text-right">
-                          {day.impressions.toLocaleString()}
+                          {day.page_views.toLocaleString()}
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-sm">{dayCtaCTR}%</span>

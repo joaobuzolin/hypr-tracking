@@ -38,6 +38,7 @@ const initialCampaigns = [
     metrics: {
       cta_clicks: 245,
       pin_clicks: 189,
+      page_views: 8460,
       total_7d: 67
     },
     tags: [
@@ -68,6 +69,7 @@ const initialCampaigns = [
     metrics: {
       cta_clicks: 156,
       pin_clicks: 98,
+      page_views: 3420,
       total_7d: 23
     },
     tags: [
@@ -82,6 +84,9 @@ const initialCampaigns = [
   }
 ];
 
+const calculateCTR = (clicks: number, pageViews: number) => {
+  return pageViews > 0 ? ((clicks / pageViews) * 100).toFixed(2) : "0.00";
+};
 const generateTag = (campaignName: string, title: string, type: string): string => {
   const cleanCampaign = campaignName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
   const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
@@ -91,6 +96,10 @@ const generateTag = (campaignName: string, title: string, type: string): string 
 
 const CampaignCard = ({ campaign }: { campaign: any }) => {
   const { toast } = useToast();
+  
+  // Calculate CTR based on total clicks vs page views
+  const totalClicks = campaign.metrics.cta_clicks + campaign.metrics.pin_clicks;
+  const ctr = calculateCTR(totalClicks, campaign.metrics.page_views);
   
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -136,15 +145,15 @@ const CampaignCard = ({ campaign }: { campaign: any }) => {
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center p-3 bg-neutral-50 rounded border">
                 <div className="text-lg font-semibold">{campaign.metrics.cta_clicks}</div>
-                <div className="text-xs text-neutral-600">CTA Clicks</div>
+                <div className="text-xs text-neutral-600">Click Button</div>
               </div>
               <div className="text-center p-3 bg-neutral-50 rounded border">
                 <div className="text-lg font-semibold">{campaign.metrics.pin_clicks}</div>
                 <div className="text-xs text-neutral-600">PIN Clicks</div>
               </div>
               <div className="text-center p-3 bg-neutral-50 rounded border">
-                <div className="text-lg font-semibold">{campaign.metrics.total_7d}</div>
-                <div className="text-xs text-neutral-600">Últimos 7d</div>
+                <div className="text-lg font-semibold">{ctr}%</div>
+                <div className="text-xs text-neutral-600">CTR</div>
               </div>
             </div>
 
@@ -208,6 +217,7 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campa
       metrics: {
         cta_clicks: 0,
         pin_clicks: 0,
+        page_views: 0,
         total_7d: 0
       },
       tags: [] as Tag[]
