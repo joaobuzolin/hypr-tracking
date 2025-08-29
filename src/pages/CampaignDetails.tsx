@@ -15,16 +15,13 @@ import AddTagDialog from "@/components/AddTagDialog";
 import { useCampaigns, type Tag } from "@/hooks/useCampaigns";
 import { supabase } from "@/integrations/supabase/client";
 
-// Dados de exemplo para métricas diárias - será substituído por dados reais
-const exampleDailyMetrics = [
-  { date: "2024-01-15", cta_clicks: 0, pin_clicks: 0, page_views: 0 },
-  { date: "2024-01-14", cta_clicks: 0, pin_clicks: 0, page_views: 0 },
-  { date: "2024-01-13", cta_clicks: 0, pin_clicks: 0, page_views: 0 },
-  { date: "2024-01-12", cta_clicks: 0, pin_clicks: 0, page_views: 0 },
-  { date: "2024-01-11", cta_clicks: 0, pin_clicks: 0, page_views: 0 },
-  { date: "2024-01-10", cta_clicks: 0, pin_clicks: 0, page_views: 0 },
-  { date: "2024-01-09", cta_clicks: 0, pin_clicks: 0, page_views: 0 },
-];
+
+interface DailyMetric {
+  date: string;
+  cta_clicks: number;
+  pin_clicks: number;
+  page_views: number;
+}
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('pt-BR');
@@ -38,7 +35,8 @@ const CampaignDetails = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const { campaigns, loading, createTag, fetchCampaigns } = useCampaigns();
-  const [dailyMetrics] = useState(exampleDailyMetrics);
+  const [dailyMetrics, setDailyMetrics] = useState<DailyMetric[]>([]);
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
   
   // Encontrar a campanha pelo ID
   const campaign = campaigns.find(c => c.id === id);
@@ -48,6 +46,81 @@ const CampaignDetails = () => {
       fetchCampaigns();
     }
   }, [loading, campaigns.length, fetchCampaigns]);
+
+  useEffect(() => {
+    const fetchDailyMetrics = async () => {
+      if (!campaign) return;
+      
+      setLoadingMetrics(true);
+      try {
+        const tagIds = campaign.tags.map(tag => tag.id);
+        
+        if (tagIds.length === 0) {
+          setDailyMetrics([]);
+          return;
+        }
+
+        // Buscar eventos dos últimos 7 dias
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const { data: events, error } = await supabase
+          .from('events')
+          .select('event_type, created_at')
+          .in('tag_id', tagIds)
+          .gte('created_at', sevenDaysAgo.toISOString())
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Agrupar eventos por data
+        const groupedByDate = (events || []).reduce((acc, event) => {
+          const date = new Date(event.created_at).toISOString().split('T')[0];
+          
+          if (!acc[date]) {
+            acc[date] = { cta_clicks: 0, pin_clicks: 0, page_views: 0 };
+          }
+
+          switch (event.event_type) {
+            case 'click_button':
+            case 'cta_click':
+              acc[date].cta_clicks++;
+              break;
+            case 'pin_click':
+            case 'map_pin':
+              acc[date].pin_clicks++;
+              break;
+            case 'page_view':
+              acc[date].page_views++;
+              break;
+          }
+
+          return acc;
+        }, {} as Record<string, { cta_clicks: number; pin_clicks: number; page_views: number }>);
+
+        // Converter para array e ordenar por data
+        const metricsArray = Object.entries(groupedByDate)
+          .map(([date, metrics]) => ({
+            date,
+            ...metrics
+          }))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        setDailyMetrics(metricsArray);
+      } catch (error) {
+        console.error('Error fetching daily metrics:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar as métricas diárias.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingMetrics(false);
+      }
+    };
+
+    fetchDailyMetrics();
+  }, [campaign, toast]);
   
   if (loading) {
     return (
@@ -347,64 +420,79 @@ const CampaignDetails = () => {
                   Métricas Diárias
                 </CardTitle>
                 <CardDescription>
-                  Entrega por dia e performance detalhada
+                  Performance dos últimos dias baseada em eventos reais
                 </CardDescription>
               </div>
               <Badge variant="outline" className="text-xs">
-                Últimos {dailyMetrics.length} dias
+                {dailyMetrics.length > 0 ? `Últimos ${dailyMetrics.length} dias` : 'Sem dados'}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[120px]">Data</TableHead>
-                    <TableHead className="text-right">Click Button</TableHead>
-                    <TableHead className="text-right">PIN Clicks</TableHead>
-                    <TableHead className="text-right">Page Views</TableHead>
-                    <TableHead className="text-right">CTR Click Button</TableHead>
-                    <TableHead className="text-right">CTR PIN</TableHead>
-                    <TableHead className="text-right">CTR Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {dailyMetrics.map((day, index) => {
-                    const totalDayClicks = day.cta_clicks + day.pin_clicks;
-                    const dayCtaCTR = calculateCTR(day.cta_clicks, day.page_views);
-                    const dayPinCTR = calculateCTR(day.pin_clicks, day.page_views);
-                    const dayTotalCTR = calculateCTR(totalDayClicks, day.page_views);
-                    
-                    return (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">
-                          {formatDate(day.date)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {day.cta_clicks}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {day.pin_clicks}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {day.page_views.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-sm">{dayCtaCTR}%</span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-sm">{dayPinCTR}%</span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-sm font-medium">{dayTotalCTR}%</span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            {loadingMetrics ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-3"></div>
+                <span className="text-muted-foreground">Carregando métricas...</span>
+              </div>
+            ) : dailyMetrics.length === 0 ? (
+              <div className="text-center p-8">
+                <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-medium mb-2">Nenhum evento registrado</h3>
+                <p className="text-muted-foreground">
+                  Quando houver eventos nas tags desta campanha, as métricas aparecerão aqui.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[120px]">Data</TableHead>
+                      <TableHead className="text-right">Click Button</TableHead>
+                      <TableHead className="text-right">PIN Clicks</TableHead>
+                      <TableHead className="text-right">Page Views</TableHead>
+                      <TableHead className="text-right">CTR Click Button</TableHead>
+                      <TableHead className="text-right">CTR PIN</TableHead>
+                      <TableHead className="text-right">CTR Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {dailyMetrics.map((day, index) => {
+                      const totalDayClicks = day.cta_clicks + day.pin_clicks;
+                      const dayCtaCTR = calculateCTR(day.cta_clicks, day.page_views);
+                      const dayPinCTR = calculateCTR(day.pin_clicks, day.page_views);
+                      const dayTotalCTR = calculateCTR(totalDayClicks, day.page_views);
+                      
+                      return (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">
+                            {formatDate(day.date)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {day.cta_clicks}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {day.pin_clicks}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {day.page_views.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-sm">{dayCtaCTR}%</span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-sm">{dayPinCTR}%</span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-sm font-medium">{dayTotalCTR}%</span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
