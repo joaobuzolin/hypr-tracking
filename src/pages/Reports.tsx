@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useCampaigns } from "@/hooks/useCampaigns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,25 @@ import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
 import * as XLSX from 'xlsx';
+
+// Available metrics and dimensions
+const availableMetrics = [
+  { id: 'page_views', label: 'Page Views', icon: Eye },
+  { id: 'cta_clicks', label: 'Click Buttons', icon: MousePointer },
+  { id: 'pin_clicks', label: 'Map Pins', icon: MapPin },
+  { id: 'ctr', label: 'CTR (%)', icon: Target },
+  { id: 'total_clicks', label: 'Total Clicks', icon: MousePointer },
+];
+
+const availableDimensions = [
+  { id: 'campaign_name', label: 'Nome da Campanha' },
+  { id: 'campaign_status', label: 'Status da Campanha' },
+  { id: 'campaign_description', label: 'Descrição' },
+  { id: 'start_date', label: 'Data de Início' },
+  { id: 'end_date', label: 'Data de Fim' },
+  { id: 'created_at', label: 'Data de Criação' },
+];
+
 interface Campaign {
   id: string;
   name: string;
@@ -42,59 +62,8 @@ interface ReportConfig {
   groupBy: 'day' | 'week' | 'month';
 }
 
-// Mock data (same as other pages)
-const mockCampaigns: Campaign[] = [
-  {
-    id: "1",
-    name: "Campanha Black Friday",
-    description: "Promoção especial para Black Friday",
-    status: "active",
-    start_date: "2024-01-15",
-    end_date: "2024-02-15",
-    created_at: "2024-01-10",
-    metrics: {
-      cta_clicks: 245,
-      pin_clicks: 189,
-      page_views: 8460,
-      total_7d: 67
-    }
-  },
-  {
-    id: "2", 
-    name: "Campanha Natal",
-    description: "Campanha para período natalino",
-    status: "paused",
-    start_date: "2024-12-01",
-    end_date: "2024-12-31",
-    created_at: "2024-11-20",
-    metrics: {
-      cta_clicks: 156,
-      pin_clicks: 98,
-      page_views: 3420,
-      total_7d: 23
-    }
-  }
-];
-
-// Available metrics and dimensions
-const availableMetrics = [
-  { id: 'page_views', label: 'Page Views', icon: Eye },
-  { id: 'cta_clicks', label: 'Click Buttons', icon: MousePointer },
-  { id: 'pin_clicks', label: 'Map Pins', icon: MapPin },
-  { id: 'ctr', label: 'CTR (%)', icon: Target },
-  { id: 'total_clicks', label: 'Total Clicks', icon: MousePointer },
-];
-
-const availableDimensions = [
-  { id: 'campaign_name', label: 'Nome da Campanha' },
-  { id: 'campaign_status', label: 'Status da Campanha' },
-  { id: 'campaign_description', label: 'Descrição' },
-  { id: 'start_date', label: 'Data de Início' },
-  { id: 'end_date', label: 'Data de Fim' },
-  { id: 'created_at', label: 'Data de Criação' },
-];
-
 const Reports = () => {
+  const { campaigns, loading } = useCampaigns();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [reportConfig, setReportConfig] = useState<ReportConfig>({
@@ -106,19 +75,19 @@ const Reports = () => {
 
   // Filter campaigns based on search
   const filteredCampaigns = useMemo(() => {
-    return mockCampaigns.filter(campaign => 
+    return campaigns.filter(campaign => 
       campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (campaign.description && campaign.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [searchTerm]);
+  }, [campaigns, searchTerm]);
 
   // Get selected campaigns data
   const selectedCampaignsData = useMemo(() => {
     if (reportConfig.selectedCampaigns.length === 0) return [];
-    return mockCampaigns.filter(campaign => 
+    return campaigns.filter(campaign => 
       reportConfig.selectedCampaigns.includes(campaign.id)
     );
-  }, [reportConfig.selectedCampaigns]);
+  }, [campaigns, reportConfig.selectedCampaigns]);
 
   // Generate report data
   const reportData = useMemo(() => {
@@ -140,7 +109,7 @@ const Reports = () => {
             row['Status'] = campaign.status === 'active' ? 'Ativa' : 'Pausada';
             break;
           case 'campaign_description':
-            row['Descrição'] = campaign.description;
+            row['Descrição'] = campaign.description || '';
             break;
           case 'start_date':
             row['Data de Início'] = format(new Date(campaign.start_date), 'dd/MM/yyyy');

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { UserMenu } from "@/components/UserMenu";
+import { useCampaigns, type CampaignWithTags } from "@/hooks/useCampaigns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Copy, BarChart3, MousePointer, FileText, Search, CalendarIcon, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
@@ -17,85 +19,11 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
-// Types
-interface Tag {
-  id: string;
-  type: 'click-button' | 'pin' | 'page-view';
-  title: string;
-  code: string;
-  created_at: string;
-}
-
-// Mock data - será substituído por queries do Supabase
-const initialCampaigns = [
-  {
-    id: "1",
-    name: "Campanha Black Friday",
-    description: "Promoção especial para Black Friday",
-    status: "active",
-    start_date: "2024-01-15",
-    end_date: "2024-02-15",
-    created_at: "2024-01-10",
-    metrics: {
-      cta_clicks: 245,
-      pin_clicks: 189,
-      page_views: 8460,
-      total_7d: 67
-    },
-    tags: [
-      {
-        id: "1",
-        type: "click-button" as const,
-        title: "Botão Principal",
-        code: "bf2024_cta_x9k2m",
-        created_at: "2024-01-10"
-      },
-      {
-        id: "2",
-        type: "pin" as const,
-        title: "Pin Localização",
-        code: "bf2024_pin_h7n4j",
-        created_at: "2024-01-10"
-      }
-    ] as Tag[]
-  },
-  {
-    id: "2", 
-    name: "Campanha Natal",
-    description: "Campanha para período natalino",
-    status: "paused",
-    start_date: "2024-12-01",
-    end_date: "2024-12-31",
-    created_at: "2024-11-20",
-    metrics: {
-      cta_clicks: 156,
-      pin_clicks: 98,
-      page_views: 3420,
-      total_7d: 23
-    },
-    tags: [
-      {
-        id: "3",
-        type: "click-button" as const,
-        title: "Banner Natalino",
-        code: "natal24_cta_k8j5l",
-        created_at: "2024-11-20"
-      }
-    ] as Tag[]
-  }
-];
-
 const calculateCTR = (clicks: number, pageViews: number) => {
   return pageViews > 0 ? ((clicks / pageViews) * 100).toFixed(2) : "0.00";
 };
-const generateTag = (campaignName: string, title: string, type: string): string => {
-  const cleanCampaign = campaignName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
-  const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
-  const random = Math.random().toString(36).slice(2, 5);
-  return `${cleanCampaign}-${cleanTitle}-${type}-${random}`;
-};
 
-const CampaignCard = ({ campaign }: { campaign: any }) => {
+const CampaignCard = ({ campaign }: { campaign: CampaignWithTags }) => {
   const { toast } = useToast();
   
   // Calculate CTR based on total clicks vs page views
@@ -109,20 +37,6 @@ const CampaignCard = ({ campaign }: { campaign: any }) => {
       description: `${type} copiado para a área de transferência`,
     });
   };
-
-  const getPixelUrl = (tag: string) => 
-    `https://seu-project-id.functions.supabase.co/track-event?tag=${tag}&cb=` + "${timestamp}";
-
-  const getJsSnippet = (tag: string) => 
-    `fetch("https://seu-project-id.functions.supabase.co/track-event", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  mode: "no-cors",
-  body: JSON.stringify({
-    tag: "${tag}",
-    metadata: { ua: navigator.userAgent }
-  })
-})`;
 
   return (
     <Link to={`/campaigns/${campaign.id}`} className="block">
@@ -196,44 +110,45 @@ const CampaignCard = ({ campaign }: { campaign: any }) => {
   );
 };
 
-const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campaign: any) => void }) => {
+const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: () => void }) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { createCampaign } = useCampaigns();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    // Criar nova campanha sem tags automáticas
-    const newCampaign = {
-      id: Date.now().toString(),
-      name: name,
-      description: description,
-      status: "active" as const,
-      start_date: new Date().toISOString().split('T')[0],
-      end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      created_at: new Date().toISOString().split('T')[0],
-      metrics: {
-        cta_clicks: 0,
-        pin_clicks: 0,
-        page_views: 0,
-        total_7d: 0
-      },
-      tags: [] as Tag[]
-    };
-    
-    toast({
-      title: "Campanha criada!",
-      description: "Acesse os detalhes da campanha para adicionar tags de tracking.",
+    setLoading(true);
+
+    const { error } = await createCampaign({
+      name: name.trim(),
+      description: description.trim()
     });
-    
-    // Reset form
-    setName("");
-    setDescription("");
-    setOpen(false);
-    onCampaignCreated(newCampaign);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar a campanha.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Campanha criada!",
+        description: "Acesse os detalhes da campanha para adicionar tags de tracking.",
+      });
+      
+      // Reset form
+      setName("");
+      setDescription("");
+      setOpen(false);
+      onCampaignCreated();
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -260,6 +175,7 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campa
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
           <div className="space-y-2">
@@ -270,14 +186,15 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campa
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
+              disabled={loading}
             />
           </div>
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1" disabled={loading}>
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
-              Criar Campanha
+            <Button type="submit" className="flex-1" disabled={loading}>
+              {loading ? 'Criando...' : 'Criar Campanha'}
             </Button>
           </div>
         </form>
@@ -287,7 +204,7 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campa
 };
 
 const Campaigns = () => {
-  const [campaigns, setCampaigns] = useState(initialCampaigns);
+  const { campaigns, loading } = useCampaigns();
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   
@@ -318,8 +235,8 @@ const Campaigns = () => {
     setDateRange(undefined);
   };
 
-  const handleCampaignCreated = (newCampaign: any) => {
-    setCampaigns(prev => [...prev, newCampaign]);
+  const handleCampaignCreated = () => {
+    // Campaigns will be refreshed automatically by the hook
   };
 
   const DateRangePicker = () => (
@@ -364,74 +281,86 @@ const Campaigns = () => {
     <div className="min-h-screen bg-background">
       {/* Header simples */}
       <div className="border-b bg-white">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground mb-1">
-              Campanhas
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Gerencie suas campanhas e acompanhe métricas de tracking
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <UserMenu />
-            <Link to="/reports">
-              <Button variant="outline" className="gap-2">
-                <FileText className="w-4 h-4" />
-                Relatórios
-              </Button>
-            </Link>
-            <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground mb-1">
+                Campanhas
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Gerencie suas campanhas e acompanhe métricas de tracking
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <UserMenu />
+              <Link to="/reports">
+                <Button variant="outline" className="gap-2">
+                  <FileText className="w-4 h-4" />
+                  Relatórios
+                </Button>
+              </Link>
+              <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
       <div className="container mx-auto px-4 py-6">
         {/* Stats Overview simples */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="border shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-neutral-100 rounded">
-                  <BarChart3 className="w-5 h-5 text-neutral-600" />
-                </div>
-                <div>
-                  <div className="text-xl font-semibold">{totalCampaigns}</div>
-                  <div className="text-sm text-neutral-600">Total de Campanhas</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-50 rounded">
-                  <BarChart3 className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-xl font-semibold">{activeCampaigns}</div>
-                  <div className="text-sm text-neutral-600">Campanhas Ativas</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 rounded">
-                  <MousePointer className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <div className="text-xl font-semibold">{totalClicks}</div>
-                  <div className="text-sm text-neutral-600">Total de Clicks</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="border shadow-sm">
+                <CardContent className="p-4">
+                  <Skeleton className="h-16 w-full" />
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <>
+              <Card className="border shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-neutral-100 rounded">
+                      <BarChart3 className="w-5 h-5 text-neutral-600" />
+                    </div>
+                    <div>
+                      <div className="text-xl font-semibold">{totalCampaigns}</div>
+                      <div className="text-sm text-neutral-600">Total de Campanhas</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-50 rounded">
+                      <BarChart3 className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <div className="text-xl font-semibold">{activeCampaigns}</div>
+                      <div className="text-sm text-neutral-600">Campanhas Ativas</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded">
+                      <MousePointer className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="text-xl font-semibold">{totalClicks}</div>
+                      <div className="text-sm text-neutral-600">Total de Clicks</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
 
         {/* Filters Section */}
@@ -469,50 +398,60 @@ const Campaigns = () => {
         </div>
 
         {/* Campaigns List */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">Suas Campanhas</h2>
-              <Badge variant="outline" className="text-xs">
-                {filteredCampaigns.length} campanha{filteredCampaigns.length !== 1 ? 's' : ''}
-                {filteredCampaigns.length !== campaigns.length && (
-                  <span className="text-muted-foreground ml-1">de {campaigns.length}</span>
-                )}
-              </Badge>
-            </div>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-medium">Suas Campanhas</h2>
+            <Badge variant="outline" className="text-xs">
+              {filteredCampaigns.length} campanha{filteredCampaigns.length !== 1 ? 's' : ''}
+              {filteredCampaigns.length !== campaigns.length && (
+                <span className="text-muted-foreground ml-1">de {campaigns.length}</span>
+              )}
+            </Badge>
+          </div>
 
-            {filteredCampaigns.length === 0 ? (
-              <Card className="border shadow-sm">
-                <CardContent className="p-8 text-center">
-                  <div className="text-muted-foreground mb-4">
-                    {searchTerm || dateRange?.from || dateRange?.to ? (
-                      <>
-                        <Filter className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                        <p>Nenhuma campanha encontrada com os filtros aplicados</p>
-                        <Button 
-                          variant="link" 
-                          onClick={clearFilters}
-                          className="text-sm mt-2"
-                        >
-                          Limpar filtros
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                        <p>Nenhuma campanha criada ainda</p>
-                        <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4">
-                {filteredCampaigns.map((campaign) => (
-                  <CampaignCard key={campaign.id} campaign={campaign} />
-                ))}
-              </div>
-            )}
+          {loading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Card key={i} className="border shadow-sm">
+                  <CardContent className="p-6">
+                    <Skeleton className="h-32 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredCampaigns.length === 0 ? (
+            <Card className="border shadow-sm">
+              <CardContent className="p-8 text-center">
+                <div className="text-muted-foreground mb-4">
+                  {searchTerm || dateRange?.from || dateRange?.to ? (
+                    <>
+                      <Filter className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                      <p>Nenhuma campanha encontrada com os filtros aplicados</p>
+                      <Button 
+                        variant="link" 
+                        onClick={clearFilters}
+                        className="text-sm mt-2"
+                      >
+                        Limpar filtros
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                      <p className="mb-4">Nenhuma campanha criada ainda</p>
+                      <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {filteredCampaigns.map((campaign) => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
