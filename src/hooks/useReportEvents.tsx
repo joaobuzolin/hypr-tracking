@@ -49,6 +49,10 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy }: Use
       setError(null);
 
       try {
+        console.log('Fetching report data for campaigns:', selectedCampaignIds);
+        console.log('Date range:', effectiveDateRange);
+        console.log('Group by:', groupBy);
+
         // 1. Fetch campaigns with their tags
         const { data: campaignsData, error: campaignError } = await supabase
           .from('campaigns')
@@ -70,6 +74,8 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy }: Use
 
         if (campaignError) throw campaignError;
 
+        console.log('Campaigns data:', campaignsData);
+
         // 2. Get all tag IDs and create mapping
         const tagToCampaignMap = new Map<string, any>();
         const allTagIds: string[] = [];
@@ -80,6 +86,9 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy }: Use
             allTagIds.push(tag.id);
           });
         });
+
+        console.log('Tag IDs:', allTagIds);
+        console.log('Tag to campaign map:', tagToCampaignMap);
 
         if (allTagIds.length === 0) {
           setData([]);
@@ -96,12 +105,20 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy }: Use
 
         if (eventsError) throw eventsError;
 
+        console.log('Events data:', eventsData);
+        console.log('Events count:', eventsData?.length);
+
         // 4. Aggregate events by campaign and time period
         const aggregateMap = new Map<string, ReportEvent>();
 
         eventsData?.forEach(event => {
+          console.log('Processing event:', event.event_type, 'for tag:', event.tag_id);
+          
           const campaign = tagToCampaignMap.get(event.tag_id);
-          if (!campaign) return;
+          if (!campaign) {
+            console.log('No campaign found for tag:', event.tag_id);
+            return;
+          }
 
           const eventDate = new Date(event.created_at);
           let periodStart: Date;
@@ -146,26 +163,45 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy }: Use
 
           const aggregate = aggregateMap.get(key)!;
 
-          // Count events by type
+          // Count events by type  
+          // Note: All clicks are stored as 'click' type, we need to check metadata to differentiate
           switch (event.event_type) {
             case 'page_view':
+            case 'view':
               aggregate.pageViews++;
               break;
+            case 'click':
+              // For now, let's count all clicks as CTA clicks since we can't differentiate
+              // In the future, we could check event.metadata for more specific info
+              aggregate.ctaClicks++;
+              aggregate.totalClicks++;
+              break;
+            case 'click_button':
             case 'cta_click':
               aggregate.ctaClicks++;
               aggregate.totalClicks++;
               break;
+            case 'click_pin':
             case 'pin_click':
               aggregate.pinClicks++;
               aggregate.totalClicks++;
               break;
           }
+          
+          console.log('Event processed:', event.event_type, 'Aggregate after:', {
+            pageViews: aggregate.pageViews,
+            ctaClicks: aggregate.ctaClicks,
+            pinClicks: aggregate.pinClicks,
+            totalClicks: aggregate.totalClicks
+          });
 
           // Recalculate CTR
           aggregate.ctr = aggregate.pageViews > 0 
             ? Number(((aggregate.totalClicks / aggregate.pageViews) * 100).toFixed(2))
             : 0;
         });
+
+        console.log('Final aggregated data:', Array.from(aggregateMap.values()));
 
         // 5. Convert to array and sort
         const resultData = Array.from(aggregateMap.values()).sort((a, b) => {
