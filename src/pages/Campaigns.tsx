@@ -284,8 +284,8 @@ const Campaigns = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header simples */}
-      <div className="border-b bg-white">
+      {/* Fixed Liquid Glass Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg bg-white/70 border-b border-white/20 shadow-lg">
         <div className="container mx-auto px-4 py-6">
           <div className="flex justify-between items-start">
             <div>
@@ -314,153 +314,156 @@ const Campaigns = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Stats Overview simples */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="border shadow-sm">
-                <CardContent className="p-4">
-                  <Skeleton className="h-16 w-full" />
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <>
-              <Card className="border shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-neutral-100 rounded">
-                      <BarChart3 className="w-5 h-5 text-neutral-600" />
+      {/* Content with top padding to account for fixed header */}
+      <div className="pt-32">
+        <div className="container mx-auto px-4 py-6">
+          {/* Stats Overview simples */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="border shadow-sm">
+                  <CardContent className="p-4">
+                    <Skeleton className="h-16 w-full" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <>
+                <Card className="border shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-neutral-100 rounded">
+                        <BarChart3 className="w-5 h-5 text-neutral-600" />
+                      </div>
+                      <div>
+                        <div className="text-xl font-semibold">{totalCampaigns}</div>
+                        <div className="text-sm text-neutral-600">Total de Campanhas</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-xl font-semibold">{totalCampaigns}</div>
-                      <div className="text-sm text-neutral-600">Total de Campanhas</div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-50 rounded">
+                        <BarChart3 className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <div className="text-xl font-semibold">{activeCampaigns}</div>
+                        <div className="text-sm text-neutral-600">Campanhas Ativas</div>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-50 rounded">
-                      <BarChart3 className="w-5 h-5 text-green-600" />
+                  </CardContent>
+                </Card>
+                
+                <Card className="border shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-50 rounded">
+                        <MousePointer className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-xl font-semibold">{totalClicks}</div>
+                        <div className="text-sm text-neutral-600">Total de Clicks</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-xl font-semibold">{activeCampaigns}</div>
-                      <div className="text-sm text-neutral-600">Campanhas Ativas</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded">
-                      <MousePointer className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="text-xl font-semibold">{totalClicks}</div>
-                      <div className="text-sm text-neutral-600">Total de Clicks</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
 
-        {/* Filters Section */}
-        <div className="p-4 bg-muted/50 rounded-lg border mb-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-3 flex-1">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Buscar campanhas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+          {/* Filters Section */}
+          <div className="p-4 bg-muted/50 rounded-lg border mb-6">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Buscar campanhas..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <DateRangePicker />
               </div>
-              <DateRangePicker />
+              
+              {(searchTerm || dateRange?.from || dateRange?.to) && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {filteredCampaigns.length} resultado{filteredCampaigns.length !== 1 ? 's' : ''}
+                  </Badge>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={clearFilters}
+                    className="text-xs h-8"
+                  >
+                    Limpar filtros
+                  </Button>
+                </div>
+              )}
             </div>
-            
-            {(searchTerm || dateRange?.from || dateRange?.to) && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {filteredCampaigns.length} resultado{filteredCampaigns.length !== 1 ? 's' : ''}
-                </Badge>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={clearFilters}
-                  className="text-xs h-8"
-                >
-                  Limpar filtros
-                </Button>
+          </div>
+
+          {/* Campaigns List */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-medium">Suas Campanhas</h2>
+              <Badge variant="outline" className="text-xs">
+                {filteredCampaigns.length} campanha{filteredCampaigns.length !== 1 ? 's' : ''}
+                {filteredCampaigns.length !== campaigns.length && (
+                  <span className="text-muted-foreground ml-1">de {campaigns.length}</span>
+                )}
+              </Badge>
+            </div>
+
+            {loading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <Card key={i} className="border shadow-sm">
+                    <CardContent className="p-6">
+                      <Skeleton className="h-32 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : filteredCampaigns.length === 0 ? (
+              <Card className="border shadow-sm">
+                <CardContent className="p-8 text-center">
+                  <div className="text-muted-foreground mb-4">
+                    {searchTerm || dateRange?.from || dateRange?.to ? (
+                      <>
+                        <Filter className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                        <p>Nenhuma campanha encontrada com os filtros aplicados</p>
+                        <Button 
+                          variant="link" 
+                          onClick={clearFilters}
+                          className="text-sm mt-2"
+                        >
+                          Limpar filtros
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                        <p className="mb-4">Nenhuma campanha criada ainda</p>
+                        <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {filteredCampaigns.map((campaign) => (
+                  <CampaignCard key={campaign.id} campaign={campaign} />
+                ))}
               </div>
             )}
           </div>
-        </div>
-
-        {/* Campaigns List */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium">Suas Campanhas</h2>
-            <Badge variant="outline" className="text-xs">
-              {filteredCampaigns.length} campanha{filteredCampaigns.length !== 1 ? 's' : ''}
-              {filteredCampaigns.length !== campaigns.length && (
-                <span className="text-muted-foreground ml-1">de {campaigns.length}</span>
-              )}
-            </Badge>
-          </div>
-
-          {loading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <Card key={i} className="border shadow-sm">
-                  <CardContent className="p-6">
-                    <Skeleton className="h-32 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : filteredCampaigns.length === 0 ? (
-            <Card className="border shadow-sm">
-              <CardContent className="p-8 text-center">
-                <div className="text-muted-foreground mb-4">
-                  {searchTerm || dateRange?.from || dateRange?.to ? (
-                    <>
-                      <Filter className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                      <p>Nenhuma campanha encontrada com os filtros aplicados</p>
-                      <Button 
-                        variant="link" 
-                        onClick={clearFilters}
-                        className="text-sm mt-2"
-                      >
-                        Limpar filtros
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                      <p className="mb-4">Nenhuma campanha criada ainda</p>
-                      <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {filteredCampaigns.map((campaign) => (
-                <CampaignCard key={campaign.id} campaign={campaign} />
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>
