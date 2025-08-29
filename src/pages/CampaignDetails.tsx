@@ -5,8 +5,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Copy, MousePointer, Eye, Calendar, TrendingUp, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ArrowLeft, Copy, MousePointer, Eye, Calendar, TrendingUp, Download, Tag as TagIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import AddTagDialog from "@/components/AddTagDialog";
+
+// Types
+interface Tag {
+  id: string;
+  type: 'cta' | 'pin';
+  title: string;
+  code: string;
+  created_at: string;
+}
 
 // Mock data para métricas detalhadas por dia
 const mockDailyMetrics = [
@@ -19,7 +33,7 @@ const mockDailyMetrics = [
   { date: "2024-01-09", cta_clicks: 43, pin_clicks: 30, impressions: 1200 },
 ];
 
-// Mock data das campanhas (mesmo do arquivo anterior)
+// Mock data das campanhas
 const mockCampaigns = [
   {
     id: "1",
@@ -35,10 +49,22 @@ const mockCampaigns = [
       total_7d: 67,
       impressions: 8460
     },
-    tags: {
-      cta: "bf2024_cta_x9k2m",
-      pin: "bf2024_pin_h7n4j"
-    }
+    tags: [
+      {
+        id: "1",
+        type: "cta" as const,
+        title: "Botão Principal",
+        code: "bf2024_cta_x9k2m",
+        created_at: "2024-01-10"
+      },
+      {
+        id: "2",
+        type: "pin" as const,
+        title: "Pin Localização",
+        code: "bf2024_pin_h7n4j",
+        created_at: "2024-01-10"
+      }
+    ] as Tag[]
   },
   {
     id: "2", 
@@ -54,10 +80,15 @@ const mockCampaigns = [
       total_7d: 23,
       impressions: 3420
     },
-    tags: {
-      cta: "natal24_cta_k8j5l",
-      pin: "natal24_pin_m9p2q"
-    }
+    tags: [
+      {
+        id: "3",
+        type: "cta" as const,
+        title: "Banner Natalino",
+        code: "natal24_cta_k8j5l",
+        created_at: "2024-11-20"
+      }
+    ] as Tag[]
   }
 ];
 
@@ -69,13 +100,21 @@ const calculateCTR = (clicks: number, impressions: number) => {
   return impressions > 0 ? ((clicks / impressions) * 100).toFixed(2) : "0.00";
 };
 
+const generateTag = (campaignName: string, title: string, type: string): string => {
+  const cleanCampaign = campaignName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
+  const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
+  const random = Math.random().toString(36).slice(2, 5);
+  return `${cleanCampaign}-${cleanTitle}-${type}-${random}`;
+};
+
 const CampaignDetails = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const [dailyMetrics] = useState(mockDailyMetrics);
   
-  // Encontrar a campanha pelo ID
-  const campaign = mockCampaigns.find(c => c.id === id);
+  // Encontrar a campanha pelo ID e configurar estado das tags
+  const campaignData = mockCampaigns.find(c => c.id === id);
+  const [campaign, setCampaign] = useState(campaignData);
   
   if (!campaign) {
     return (
@@ -115,6 +154,26 @@ const CampaignDetails = () => {
     metadata: { ua: navigator.userAgent }
   })
 })`;
+
+  const addTag = (title: string, type: 'cta' | 'pin') => {
+    const newTag: Tag = {
+      id: Date.now().toString(),
+      type,
+      title,
+      code: generateTag(campaign.name, title, type),
+      created_at: new Date().toISOString()
+    };
+    
+    setCampaign(prev => ({
+      ...prev!,
+      tags: [...prev!.tags, newTag]
+    }));
+    
+    toast({
+      title: "Tag criada!",
+      description: `Tag "${title}" (${type.toUpperCase()}) foi adicionada com sucesso.`,
+    });
+  };
 
   // Cálculos de métricas
   const totalClicks = campaign.metrics.cta_clicks + campaign.metrics.pin_clicks;
@@ -256,77 +315,79 @@ const CampaignDetails = () => {
         {/* Tags de Tracking */}
         <Card className="border shadow-sm mb-6">
           <CardHeader>
-            <CardTitle className="text-lg">Tags de Tracking</CardTitle>
-            <CardDescription>
-              URLs e snippets para integração com seu sistema de mapas
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TagIcon className="w-5 h-5" />
+                  Tags de Tracking
+                </CardTitle>
+                <CardDescription>
+                  Gerencie tags para rastreamento e integração com seu sistema
+                </CardDescription>
+              </div>
+              <AddTagDialog onTagAdded={addTag} campaignName={campaign.name} />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* CTA Tag */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    CTA
-                  </Badge>
-                  <code className="text-sm bg-neutral-100 px-2 py-1 rounded font-mono">
-                    {campaign.tags.cta}
-                  </code>
-                </div>
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(getPixelUrl(campaign.tags.cta), "Pixel URL (CTA)")}
-                    className="w-full justify-start text-xs h-8"
-                  >
-                    <Copy className="w-3 h-3 mr-2" />
-                    Copiar Pixel URL
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(getJsSnippet(campaign.tags.cta), "JS Snippet (CTA)")}
-                    className="w-full justify-start text-xs h-8"
-                  >
-                    <Copy className="w-3 h-3 mr-2" />
-                    Copiar JS Snippet
-                  </Button>
-                </div>
+            {campaign.tags.length === 0 ? (
+              <div className="text-center p-8">
+                <TagIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-medium mb-2">Nenhuma tag criada</h3>
+                <p className="text-muted-foreground mb-4">
+                  Crie tags personalizadas para rastrear diferentes elementos da sua campanha
+                </p>
+                <AddTagDialog onTagAdded={addTag} campaignName={campaign.name} />
               </div>
-
-              {/* PIN Tag */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    PIN
-                  </Badge>
-                  <code className="text-sm bg-neutral-100 px-2 py-1 rounded font-mono">
-                    {campaign.tags.pin}
-                  </code>
-                </div>
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(getPixelUrl(campaign.tags.pin), "Pixel URL (PIN)")}
-                    className="w-full justify-start text-xs h-8"
-                  >
-                    <Copy className="w-3 h-3 mr-2" />
-                    Copiar Pixel URL
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(getJsSnippet(campaign.tags.pin), "JS Snippet (PIN)")}
-                    className="w-full justify-start text-xs h-8"
-                  >
-                    <Copy className="w-3 h-3 mr-2" />
-                    Copiar JS Snippet
-                  </Button>
-                </div>
+            ) : (
+              <div className="grid gap-4">
+                {campaign.tags.map((tag) => (
+                  <div key={tag.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <Badge 
+                          variant="outline" 
+                          className={tag.type === 'cta' ? 
+                            "bg-blue-50 text-blue-700 border-blue-200" : 
+                            "bg-green-50 text-green-700 border-green-200"
+                          }
+                        >
+                          {tag.type.toUpperCase()}
+                        </Badge>
+                        <div>
+                          <h4 className="font-medium">{tag.title}</h4>
+                          <code className="text-sm bg-muted px-2 py-1 rounded font-mono">
+                            {tag.code}
+                          </code>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Criada em {formatDate(tag.created_at)}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(getPixelUrl(tag.code), `Pixel URL (${tag.title})`)}
+                        className="justify-start text-xs h-8"
+                      >
+                        <Copy className="w-3 h-3 mr-2" />
+                        Copiar Pixel URL
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(getJsSnippet(tag.code), `JS Snippet (${tag.title})`)}
+                        className="justify-start text-xs h-8"
+                      >
+                        <Copy className="w-3 h-3 mr-2" />
+                        Copiar JS Snippet
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

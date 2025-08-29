@@ -11,6 +11,15 @@ import { Plus, Copy, BarChart3, MousePointer, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
+// Types
+interface Tag {
+  id: string;
+  type: 'cta' | 'pin';
+  title: string;
+  code: string;
+  created_at: string;
+}
+
 // Mock data - será substituído por queries do Supabase
 const initialCampaigns = [
   {
@@ -26,10 +35,22 @@ const initialCampaigns = [
       pin_clicks: 189,
       total_7d: 67
     },
-    tags: {
-      cta: "bf2024_cta_x9k2m",
-      pin: "bf2024_pin_h7n4j"
-    }
+    tags: [
+      {
+        id: "1",
+        type: "cta" as const,
+        title: "Botão Principal",
+        code: "bf2024_cta_x9k2m",
+        created_at: "2024-01-10"
+      },
+      {
+        id: "2",
+        type: "pin" as const,
+        title: "Pin Localização",
+        code: "bf2024_pin_h7n4j",
+        created_at: "2024-01-10"
+      }
+    ] as Tag[]
   },
   {
     id: "2", 
@@ -44,17 +65,23 @@ const initialCampaigns = [
       pin_clicks: 98,
       total_7d: 23
     },
-    tags: {
-      cta: "natal24_cta_k8j5l",
-      pin: "natal24_pin_m9p2q"
-    }
+    tags: [
+      {
+        id: "3",
+        type: "cta" as const,
+        title: "Banner Natalino",
+        code: "natal24_cta_k8j5l",
+        created_at: "2024-11-20"
+      }
+    ] as Tag[]
   }
 ];
 
-const generateTag = (campaignName: string, type: string): string => {
-  const clean = campaignName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
-  const random = Math.random().toString(36).slice(2, 8);
-  return `${clean}_${type}_${random}`;
+const generateTag = (campaignName: string, title: string, type: string): string => {
+  const cleanCampaign = campaignName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
+  const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
+  const random = Math.random().toString(36).slice(2, 5);
+  return `${cleanCampaign}-${cleanTitle}-${type}-${random}`;
 };
 
 const CampaignCard = ({ campaign }: { campaign: any }) => {
@@ -118,81 +145,34 @@ const CampaignCard = ({ campaign }: { campaign: any }) => {
 
             <Separator />
 
-            {/* Tags e URLs */}
+            {/* Tags Preview */}
             <div className="space-y-3">
               <h4 className="font-medium text-sm">Tags de Tracking</h4>
               
-              {/* CTA Tag */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">CTA</Badge>
-                  <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
-                    {campaign.tags.cta}
-                  </code>
+              {campaign.tags.length === 0 ? (
+                <div className="text-xs text-muted-foreground p-3 bg-neutral-50 rounded border text-center">
+                  Nenhuma tag criada. Clique na campanha para adicionar tags.
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyToClipboard(getPixelUrl(campaign.tags.cta), "Pixel URL (CTA)");
-                    }}
-                    className="justify-start text-xs h-8"
-                  >
-                    <Copy className="w-3 h-3" />
-                    Pixel URL
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyToClipboard(getJsSnippet(campaign.tags.cta), "JS Snippet (CTA)");
-                    }}
-                    className="justify-start text-xs h-8"
-                  >
-                    <Copy className="w-3 h-3" />
-                    JS Snippet
-                  </Button>
+              ) : (
+                <div className="space-y-2">
+                  {campaign.tags.slice(0, 2).map((tag) => (
+                    <div key={tag.id} className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {tag.type.toUpperCase()}
+                      </Badge>
+                      <span className="text-xs font-medium">{tag.title}</span>
+                      <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
+                        {tag.code}
+                      </code>
+                    </div>
+                  ))}
+                  {campaign.tags.length > 2 && (
+                    <div className="text-xs text-muted-foreground">
+                      +{campaign.tags.length - 2} tag{campaign.tags.length - 2 !== 1 ? 's' : ''}
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              {/* PIN Tag */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">PIN</Badge>
-                  <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
-                    {campaign.tags.pin}
-                  </code>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyToClipboard(getPixelUrl(campaign.tags.pin), "Pixel URL (PIN)");
-                    }}
-                    className="justify-start text-xs h-8"
-                  >
-                    <Copy className="w-3 h-3" />
-                    Pixel URL
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyToClipboard(getJsSnippet(campaign.tags.pin), "JS Snippet (PIN)");
-                    }}
-                    className="justify-start text-xs h-8"
-                  >
-                    <Copy className="w-3 h-3" />
-                    JS Snippet
-                  </Button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -211,11 +191,7 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campa
     e.preventDefault();
     if (!name.trim()) return;
 
-    // Simulação de criação de campanha
-    const ctaTag = generateTag(name, 'cta');
-    const pinTag = generateTag(name, 'pin');
-    
-    // Criar nova campanha
+    // Criar nova campanha sem tags automáticas
     const newCampaign = {
       id: Date.now().toString(),
       name: name,
@@ -229,15 +205,12 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campa
         pin_clicks: 0,
         total_7d: 0
       },
-      tags: {
-        cta: ctaTag,
-        pin: pinTag
-      }
+      tags: [] as Tag[]
     };
     
     toast({
       title: "Campanha criada!",
-      description: `Tags geradas: ${ctaTag}, ${pinTag}`,
+      description: "Acesse os detalhes da campanha para adicionar tags de tracking.",
     });
     
     // Reset form
@@ -259,7 +232,7 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campa
         <DialogHeader>
           <DialogTitle>Criar Nova Campanha</DialogTitle>
           <DialogDescription>
-            Crie uma nova campanha e gere automaticamente as tags de tracking.
+            Crie uma nova campanha. Você poderá adicionar tags de tracking após a criação.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
