@@ -293,7 +293,7 @@ const Campaigns = () => {
                 <img 
                   src="/lovable-uploads/0fcddc38-83cc-4638-b362-1485d244ceb3.png" 
                   alt="HYPR TRACKING" 
-                  className="h-6 object-contain"
+                  className="h-7 object-contain"
                 />
               </div>
               <p className="text-sm text-muted-foreground">
