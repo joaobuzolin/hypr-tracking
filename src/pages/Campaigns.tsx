@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Copy, ExternalLink, BarChart3, Eye, MousePointer } from "lucide-react";
+import { Plus, Copy, BarChart3, MousePointer, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 // Mock data - será substituído por queries do Supabase
 const mockCampaigns = [
@@ -17,7 +18,6 @@ const mockCampaigns = [
     name: "Campanha Black Friday",
     description: "Promoção especial para Black Friday",
     status: "active",
-    budget: 5000,
     start_date: "2024-01-15",
     end_date: "2024-02-15",
     created_at: "2024-01-10",
@@ -36,7 +36,6 @@ const mockCampaigns = [
     name: "Campanha Natal",
     description: "Campanha para período natalino",
     status: "paused",
-    budget: 3000,
     start_date: "2024-12-01",
     end_date: "2024-12-31",
     created_at: "2024-11-20",
@@ -84,70 +83,65 @@ const CampaignCard = ({ campaign }: { campaign: any }) => {
 })`;
 
   return (
-    <Card className="bg-gradient-card shadow-card-soft hover:shadow-campaign transition-all duration-300 hover:-translate-y-1">
-      <CardHeader>
+    <Card className="border shadow-sm">
+      <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              {campaign.name}
-            </CardTitle>
-            <CardDescription className="mt-1">{campaign.description}</CardDescription>
+            <CardTitle className="text-lg font-semibold">{campaign.name}</CardTitle>
+            <CardDescription className="text-sm">{campaign.description}</CardDescription>
           </div>
-          <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'} className="px-3 py-1">
+          <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'} className="text-xs">
             {campaign.status === 'active' ? 'Ativa' : 'Pausada'}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {/* Métricas */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-muted/30 rounded-lg">
-              <MousePointer className="w-5 h-5 mx-auto mb-2 text-campaign-primary" />
-              <div className="text-2xl font-bold text-campaign-primary">{campaign.metrics.cta_clicks}</div>
-              <div className="text-sm text-muted-foreground">CTA Clicks</div>
+      <CardContent className="pt-0">
+        <div className="space-y-4">
+          {/* Métricas simples */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center p-3 bg-neutral-50 rounded border">
+              <div className="text-lg font-semibold">{campaign.metrics.cta_clicks}</div>
+              <div className="text-xs text-neutral-600">CTA Clicks</div>
             </div>
-            <div className="text-center p-4 bg-muted/30 rounded-lg">
-              <Eye className="w-5 h-5 mx-auto mb-2 text-campaign-secondary" />
-              <div className="text-2xl font-bold text-campaign-secondary">{campaign.metrics.pin_clicks}</div>
-              <div className="text-sm text-muted-foreground">PIN Clicks</div>
+            <div className="text-center p-3 bg-neutral-50 rounded border">
+              <div className="text-lg font-semibold">{campaign.metrics.pin_clicks}</div>
+              <div className="text-xs text-neutral-600">PIN Clicks</div>
             </div>
-            <div className="text-center p-4 bg-muted/30 rounded-lg">
-              <BarChart3 className="w-5 h-5 mx-auto mb-2 text-campaign-success" />
-              <div className="text-2xl font-bold text-campaign-success">{campaign.metrics.total_7d}</div>
-              <div className="text-sm text-muted-foreground">Últimos 7d</div>
+            <div className="text-center p-3 bg-neutral-50 rounded border">
+              <div className="text-lg font-semibold">{campaign.metrics.total_7d}</div>
+              <div className="text-xs text-neutral-600">Últimos 7d</div>
             </div>
           </div>
 
           <Separator />
 
           {/* Tags e URLs */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-lg">Tags de Tracking</h4>
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm">Tags de Tracking</h4>
             
             {/* CTA Tag */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-campaign-primary/10 text-campaign-primary border-campaign-primary/30">
-                  CTA
-                </Badge>
-                <code className="text-xs bg-muted px-2 py-1 rounded">{campaign.tags.cta}</code>
+                <Badge variant="outline" className="text-xs">CTA</Badge>
+                <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
+                  {campaign.tags.cta}
+                </code>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Button
-                  variant="copy"
+                  variant="outline"
                   size="sm"
                   onClick={() => copyToClipboard(getPixelUrl(campaign.tags.cta), "Pixel URL (CTA)")}
-                  className="justify-start"
+                  className="justify-start text-xs h-8"
                 >
                   <Copy className="w-3 h-3" />
                   Pixel URL
                 </Button>
                 <Button
-                  variant="copy"
+                  variant="outline"
                   size="sm"
                   onClick={() => copyToClipboard(getJsSnippet(campaign.tags.cta), "JS Snippet (CTA)")}
-                  className="justify-start"
+                  className="justify-start text-xs h-8"
                 >
                   <Copy className="w-3 h-3" />
                   JS Snippet
@@ -158,26 +152,26 @@ const CampaignCard = ({ campaign }: { campaign: any }) => {
             {/* PIN Tag */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-campaign-secondary/10 text-campaign-secondary border-campaign-secondary/30">
-                  PIN
-                </Badge>
-                <code className="text-xs bg-muted px-2 py-1 rounded">{campaign.tags.pin}</code>
+                <Badge variant="outline" className="text-xs">PIN</Badge>
+                <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
+                  {campaign.tags.pin}
+                </code>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Button
-                  variant="copy"
+                  variant="outline"
                   size="sm"
                   onClick={() => copyToClipboard(getPixelUrl(campaign.tags.pin), "Pixel URL (PIN)")}
-                  className="justify-start"
+                  className="justify-start text-xs h-8"
                 >
                   <Copy className="w-3 h-3" />
                   Pixel URL
                 </Button>
                 <Button
-                  variant="copy"
+                  variant="outline"
                   size="sm"
                   onClick={() => copyToClipboard(getJsSnippet(campaign.tags.pin), "JS Snippet (PIN)")}
-                  className="justify-start"
+                  className="justify-start text-xs h-8"
                 >
                   <Copy className="w-3 h-3" />
                   JS Snippet
@@ -195,7 +189,6 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: () => 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [budget, setBudget] = useState("");
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -214,7 +207,6 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: () => 
     // Reset form
     setName("");
     setDescription("");
-    setBudget("");
     setOpen(false);
     onCampaignCreated();
   };
@@ -222,16 +214,14 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: () => 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="campaign" size="lg" className="w-full sm:w-auto">
-          <Plus className="w-5 h-5" />
+        <Button className="gap-2">
+          <Plus className="w-4 h-4" />
           Nova Campanha
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-xl bg-gradient-primary bg-clip-text text-transparent">
-            Criar Nova Campanha
-          </DialogTitle>
+          <DialogTitle>Criar Nova Campanha</DialogTitle>
           <DialogDescription>
             Crie uma nova campanha e gere automaticamente as tags de tracking.
           </DialogDescription>
@@ -257,23 +247,11 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: () => 
               rows={3}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="budget">Orçamento (R$)</Label>
-            <Input
-              id="budget"
-              type="number"
-              placeholder="0.00"
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-              min="0"
-              step="0.01"
-            />
-          </div>
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
               Cancelar
             </Button>
-            <Button type="submit" variant="campaign" className="flex-1">
+            <Button type="submit" className="flex-1">
               Criar Campanha
             </Button>
           </div>
@@ -292,63 +270,71 @@ const Campaigns = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-gradient-hero border-b">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header simples */}
+      <div className="border-b bg-white">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                Painel de Campanhas
+              <h1 className="text-2xl font-semibold text-foreground mb-1">
+                Campanhas
               </h1>
-              <p className="text-white/80">
+              <p className="text-sm text-muted-foreground">
                 Gerencie suas campanhas e acompanhe métricas de tracking
               </p>
             </div>
-            <CreateCampaignDialog onCampaignCreated={() => window.location.reload()} />
+            <div className="flex gap-3">
+              <Link to="/reports">
+                <Button variant="outline" className="gap-2">
+                  <FileText className="w-4 h-4" />
+                  Relatórios
+                </Button>
+              </Link>
+              <CreateCampaignDialog onCampaignCreated={() => window.location.reload()} />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-gradient-card shadow-card-soft">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-campaign-primary/10 rounded-lg">
-                  <BarChart3 className="w-6 h-6 text-campaign-primary" />
+      <div className="container mx-auto px-4 py-6">
+        {/* Stats Overview simples */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="border shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-neutral-100 rounded">
+                  <BarChart3 className="w-5 h-5 text-neutral-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-campaign-primary">{totalCampaigns}</div>
-                  <div className="text-sm text-muted-foreground">Total de Campanhas</div>
+                  <div className="text-xl font-semibold">{totalCampaigns}</div>
+                  <div className="text-sm text-neutral-600">Total de Campanhas</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-card shadow-card-soft">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-campaign-success/10 rounded-lg">
-                  <ExternalLink className="w-6 h-6 text-campaign-success" />
+          <Card className="border shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-50 rounded">
+                  <BarChart3 className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-campaign-success">{activeCampaigns}</div>
-                  <div className="text-sm text-muted-foreground">Campanhas Ativas</div>
+                  <div className="text-xl font-semibold">{activeCampaigns}</div>
+                  <div className="text-sm text-neutral-600">Campanhas Ativas</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-card shadow-card-soft">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-campaign-secondary/10 rounded-lg">
-                  <MousePointer className="w-6 h-6 text-campaign-secondary" />
+          <Card className="border shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded">
+                  <MousePointer className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-campaign-secondary">{totalClicks}</div>
-                  <div className="text-sm text-muted-foreground">Total de Clicks</div>
+                  <div className="text-xl font-semibold">{totalClicks}</div>
+                  <div className="text-sm text-neutral-600">Total de Clicks</div>
                 </div>
               </div>
             </CardContent>
@@ -356,26 +342,26 @@ const Campaigns = () => {
         </div>
 
         {/* Campaigns List */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Suas Campanhas</h2>
-            <Badge variant="outline" className="px-3 py-1">
+            <h2 className="text-lg font-medium">Suas Campanhas</h2>
+            <Badge variant="outline" className="text-xs">
               {campaigns.length} campanha{campaigns.length !== 1 ? 's' : ''}
             </Badge>
           </div>
 
           {campaigns.length === 0 ? (
-            <Card className="bg-gradient-card shadow-card-soft">
+            <Card className="border shadow-sm">
               <CardContent className="p-8 text-center">
                 <div className="text-muted-foreground mb-4">
-                  <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-40" />
                   <p>Nenhuma campanha criada ainda</p>
                 </div>
                 <CreateCampaignDialog onCampaignCreated={() => window.location.reload()} />
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6">
+            <div className="grid gap-4">
               {campaigns.map((campaign) => (
                 <CampaignCard key={campaign.id} campaign={campaign} />
               ))}
