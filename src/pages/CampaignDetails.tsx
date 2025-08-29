@@ -45,23 +45,23 @@ const CampaignDetails = () => {
   const [eventsLoading, setEventsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('CampaignDetails - checking campaigns:', campaigns?.length, 'looking for:', campaignId);
     if (campaigns && campaignId) {
       const foundCampaign = campaigns.find((c) => c.id === campaignId);
-      console.log('CampaignDetails - found campaign:', foundCampaign ? 'YES' : 'NO', foundCampaign?.name);
       setCampaign(foundCampaign || null);
     }
   }, [campaigns, campaignId]);
 
   useEffect(() => {
-    if (campaignId) {
+    if (campaignId && !loading && campaigns.length === 0) {
       fetchCampaigns();
     }
-  }, [campaignId, fetchCampaigns]);
+  }, [campaignId, loading, campaigns.length]);
 
   useEffect(() => {
-    fetchCampaignEvents();
-  }, [campaign]);
+    if (campaign && campaign.tags.length > 0) {
+      fetchCampaignEvents();
+    }
+  }, [campaign?.id]);
 
   const fetchCampaignEvents = async () => {
     if (!campaign) return;
