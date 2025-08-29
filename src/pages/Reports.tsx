@@ -10,14 +10,14 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Download, Filter, CalendarIcon, FileSpreadsheet, FileText, Search, Eye, MousePointer, MapPin, Target } from "lucide-react";
+import { Download, Filter, CalendarIcon, FileSpreadsheet, FileText, Search, Eye, MousePointer, MapPin, Target, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
-import * as XLSX from 'xlsx';
 
-// Types
+import * as XLSX from 'xlsx';
 interface Campaign {
   id: string;
   name: string;
@@ -307,13 +307,21 @@ const Reports = () => {
       <div className="border-b bg-card">
         <div className="container mx-auto px-4 py-6">
           <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground mb-1">
-                Relatórios
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Customize e exporte relatórios detalhados das suas campanhas
-              </p>
+            <div className="flex items-center gap-4">
+              <Link to="/campaigns">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Voltar
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-semibold text-foreground mb-1">
+                  Relatórios
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Customize e exporte relatórios detalhados das suas campanhas
+                </p>
+              </div>
             </div>
             <div className="flex gap-3">
               <Button 
