@@ -139,6 +139,13 @@ export type Database = {
             foreignKeyName: "tags_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: false
+            referencedRelation: "campaign_metrics_daily"
+            referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "tags_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
             referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
@@ -146,6 +153,18 @@ export type Database = {
       }
     }
     Views: {
+      campaign_metrics_daily: {
+        Row: {
+          campaign_id: string | null
+          campaign_name: string | null
+          cta_clicks: number | null
+          metric_date: string | null
+          page_views: number | null
+          pin_clicks: number | null
+          total_events: number | null
+        }
+        Relationships: []
+      }
       events_with_tags: {
         Row: {
           campaign_id: string | null
@@ -164,6 +183,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tags"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tags_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_metrics_daily"
+            referencedColumns: ["campaign_id"]
           },
           {
             foreignKeyName: "tags_campaign_id_fkey"
