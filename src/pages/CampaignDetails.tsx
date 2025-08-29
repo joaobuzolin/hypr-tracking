@@ -425,7 +425,8 @@ const CampaignDetails = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b bg-white">
+      {/* Fixed Liquid Glass Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg bg-white/50 border-b border-white/20 shadow-lg">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
@@ -467,7 +468,9 @@ const CampaignDetails = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+      {/* Content with top padding to account for fixed header */}
+      <div className="pt-32">
+        <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="border shadow-sm">
             <CardContent className="p-4">
@@ -864,6 +867,7 @@ const CampaignDetails = () => {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
