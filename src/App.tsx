@@ -1,29 +1,22 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import Campaigns from "./pages/Campaigns";
-import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Minimal test component
+const TestPage = () => {
+  return (
+    <div className="min-h-screen bg-white p-8">
+      <h1 className="text-2xl font-bold">Test Page</h1>
+      <p>If you can see this, React is working correctly.</p>
+    </div>
+  );
+};
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/campaigns" element={<Campaigns />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<TestPage />} />
+      <Route path="*" element={<TestPage />} />
+    </Routes>
+  </BrowserRouter>
 );
 
 export default App;
