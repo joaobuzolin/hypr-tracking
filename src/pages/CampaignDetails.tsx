@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Copy, MousePointer, Eye, Calendar, TrendingUp, Download, Tag as TagIcon, Trash2, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Copy, MousePointer, Eye, Calendar, TrendingUp, Download, Tag as TagIcon, Trash2, User, Radio, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AddTagDialog from "@/components/AddTagDialog";
 import { useCampaigns, type Tag } from "@/hooks/useCampaigns";
@@ -20,6 +22,16 @@ interface DailyMetric {
   cta_clicks: number;
   pin_clicks: number;
   page_views: number;
+}
+
+interface RealtimeEvent {
+  id: string;
+  event_type: string;
+  tag_id: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+  metadata: any;
 }
 
 const formatDate = (dateString: string) => {
@@ -43,6 +55,15 @@ const CampaignDetails = () => {
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetric[]>([]);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [isActive, setIsActive] = useState(false);
+  
+  // Real-time log states
+  const [realtimeLogs, setRealtimeLogs] = useState<RealtimeEvent[]>([]);
+  const [liveEnabled, setLiveEnabled] = useState(false);
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterTagId, setFilterTagId] = useState<string>('all');
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [eventCount, setEventCount] = useState(0);
+  const channelRef = useRef<any>(null);
   
   const campaign = campaigns.find(c => c.id === id);
 
@@ -146,6 +167,140 @@ const CampaignDetails = () => {
 
     fetchDailyMetrics();
   }, [campaign, toast]);
+
+  // Real-time logs functionality
+  const loadInitialLogs = async () => {
+    if (!campaign) return;
+    
+    const tagIds = campaign.tags.map(tag => tag.id);
+    if (tagIds.length === 0) return;
+
+    try {
+      const { data: events, error } = await supabase
+        .from('events')
+        .select('id, tag_id, event_type, ip_address, user_agent, metadata, created_at')
+        .in('tag_id', tagIds)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setRealtimeLogs((events || []) as RealtimeEvent[]);
+      setEventCount(events?.length || 0);
+    } catch (error) {
+      console.error('Error loading initial logs:', error);
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    if (!campaign || !liveEnabled) return;
+    
+    const tagIds = campaign.tags.map(tag => tag.id);
+    if (tagIds.length === 0) return;
+
+    setConnectionStatus('connecting');
+    
+    const channel = supabase
+      .channel(`realtime:events:${campaign.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'events',
+          filter: `tag_id=in.(${tagIds.join(',')})`
+        },
+        (payload) => {
+          console.log('Real-time event received:', payload);
+          const newEvent = payload.new as RealtimeEvent;
+          
+          // Verify tag belongs to campaign
+          if (tagIds.includes(newEvent.tag_id)) {
+            setRealtimeLogs(prev => {
+              const updated = [newEvent, ...prev].slice(0, 100);
+              return updated;
+            });
+            setEventCount(prev => prev + 1);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          setConnectionStatus('connected');
+        } else if (status === 'CLOSED') {
+          setConnectionStatus('disconnected');
+        }
+      });
+
+    channelRef.current = channel;
+  };
+
+  const clearRealtimeSubscription = () => {
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+    setConnectionStatus('disconnected');
+  };
+
+  const toggleLive = () => {
+    const newState = !liveEnabled;
+    setLiveEnabled(newState);
+    
+    if (newState) {
+      setupRealtimeSubscription();
+    } else {
+      clearRealtimeSubscription();
+    }
+  };
+
+  const clearLogs = () => {
+    setRealtimeLogs([]);
+    setEventCount(0);
+  };
+
+  const getTagInfo = (tagId: string) => {
+    const tag = campaign?.tags.find(t => t.id === tagId);
+    return tag ? { title: tag.title, code: tag.code, type: tag.type } : null;
+  };
+
+  const getEventTypeBadge = (eventType: string) => {
+    const variants = {
+      'click': 'bg-blue-50 text-blue-700 border-blue-200',
+      'click_button': 'bg-blue-50 text-blue-700 border-blue-200',
+      'cta_click': 'bg-blue-50 text-blue-700 border-blue-200',
+      'page_view': 'bg-purple-50 text-purple-700 border-purple-200',
+      'pin_click': 'bg-green-50 text-green-700 border-green-200',
+      'view': 'bg-green-50 text-green-700 border-green-200',
+      'map_pin': 'bg-green-50 text-green-700 border-green-200'
+    };
+    
+    return variants[eventType as keyof typeof variants] || 'bg-gray-50 text-gray-700 border-gray-200';
+  };
+
+  const filteredLogs = realtimeLogs.filter(log => {
+    if (filterType !== 'all' && log.event_type !== filterType) return false;
+    if (filterTagId !== 'all' && log.tag_id !== filterTagId) return false;
+    return true;
+  });
+
+  useEffect(() => {
+    loadInitialLogs();
+  }, [campaign]);
+
+  useEffect(() => {
+    return () => {
+      clearRealtimeSubscription();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (liveEnabled && campaign) {
+      setupRealtimeSubscription();
+    } else {
+      clearRealtimeSubscription();
+    }
+  }, [liveEnabled, campaign]);
   
   if (loading) {
     return (
@@ -479,6 +634,147 @@ const CampaignDetails = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Real-time Log Section */}
+        <Card className="border shadow-sm mb-6">
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Real-time Log
+                  {eventCount > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {eventCount} eventos
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  Acompanhe em tempo real todos os disparos das suas tags
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Radio className={`w-3 h-3 ${connectionStatus === 'connected' ? 'text-green-500' : connectionStatus === 'connecting' ? 'text-yellow-500' : 'text-gray-400'}`} />
+                  <span className="text-muted-foreground">
+                    {connectionStatus === 'connected' ? 'Conectado' : 
+                     connectionStatus === 'connecting' ? 'Conectando...' : 'Pausado'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-4 mb-4 p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="live-toggle" className="text-sm font-medium">Ao vivo</Label>
+                <Switch
+                  id="live-toggle"
+                  checked={liveEnabled}
+                  onCheckedChange={toggleLive}
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Tipo:</Label>
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="page_view">Page View</SelectItem>
+                    <SelectItem value="click">Click</SelectItem>
+                    <SelectItem value="click_button">Click Button</SelectItem>
+                    <SelectItem value="pin_click">PIN Click</SelectItem>
+                    <SelectItem value="cta_click">CTA Click</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Tag:</Label>
+                <Select value={filterTagId} onValueChange={setFilterTagId}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {campaign.tags.map(tag => (
+                      <SelectItem key={tag.id} value={tag.id}>
+                        {tag.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearLogs}
+                disabled={realtimeLogs.length === 0}
+              >
+                Limpar
+              </Button>
+            </div>
+
+            {filteredLogs.length === 0 ? (
+              <div className="text-center p-8 text-muted-foreground">
+                <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum evento encontrado</p>
+                <p className="text-sm">
+                  {liveEnabled ? 'Aguardando novos eventos...' : 'Ative o modo ao vivo para monitorar eventos'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {filteredLogs.map((log) => {
+                  const tagInfo = getTagInfo(log.tag_id);
+                  return (
+                    <div 
+                      key={log.id} 
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {new Date(log.created_at).toLocaleString('pt-BR', { 
+                            hour12: false,
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                          })}
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className={getEventTypeBadge(log.event_type)}
+                        >
+                          {log.event_type}
+                        </Badge>
+                        {tagInfo && (
+                          <div className="text-sm">
+                            <span className="font-medium">{tagInfo.title}</span>
+                            <code className="ml-2 text-xs bg-muted px-1 py-0.5 rounded font-mono">
+                              {tagInfo.code}
+                            </code>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        <div>IP: {log.ip_address || 'N/A'}</div>
+                        <div className="max-w-48 truncate" title={log.user_agent || 'N/A'}>
+                          UA: {log.user_agent || 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
