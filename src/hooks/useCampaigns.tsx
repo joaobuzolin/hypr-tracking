@@ -1,13 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  classifyEventByTagType, 
-  type TagType, 
-  type EventType 
-} from '@/lib/taxonomy';
 
 export interface Campaign {
   id: string;
@@ -24,7 +18,7 @@ export interface Campaign {
 export interface Tag {
   id: string;
   campaign_id: string;
-  type: TagType;
+  type: 'click-button' | 'pin' | 'page-view';
   title: string;
   code: string;
   created_at: string;
@@ -47,6 +41,31 @@ export interface CampaignWithTags extends Campaign {
     total_7d: number;
   };
 }
+
+// Função utilitária para classificar eventos baseado no tipo da tag
+const classifyEventByTagType = (event: any, tagType: string) => {
+  // Se o event_type já está correto, use ele
+  if (event.event_type === 'page_view' || event.event_type === 'pin_click' || event.event_type === 'click') {
+    return event.event_type;
+  }
+  
+  // Para eventos antigos ou inconsistentes, classifique baseado no tipo da tag
+  if (event.event_type === 'view') {
+    switch (tagType) {
+      case 'page-view':
+        return 'page_view';
+      case 'pin':
+        return 'pin_click';
+      case 'click-button':
+        return 'click';
+      default:
+        return event.event_type;
+    }
+  }
+  
+  // Fallback para outros casos
+  return event.event_type;
+};
 
 export const useCampaigns = () => {
   const [campaigns, setCampaigns] = useState<CampaignWithTags[]>([]);
@@ -115,9 +134,9 @@ export const useCampaigns = () => {
 
               eventsData.forEach((event) => {
                 const eventDate = new Date(event.created_at);
-                const tagType = (event as any).tags?.type as TagType;
+                const tagType = (event as any).tags?.type;
                 
-                // Usa a taxonomia para classificar o evento
+                // Classifica o evento baseado no tipo da tag se necessário
                 const classifiedEventType = classifyEventByTagType(event, tagType);
                 
                 // Count total events in last 7 days
@@ -125,7 +144,7 @@ export const useCampaigns = () => {
                   metrics.total_7d++;
                 }
 
-                // Count by classified event type usando taxonomia
+                // Count by classified event type
                 switch (classifiedEventType) {
                   case 'click':
                     metrics.cta_clicks++;
@@ -218,7 +237,7 @@ export const useCampaigns = () => {
 
   const createTag = async (tagData: {
     campaign_id: string;
-    type: TagType;
+    type: 'click-button' | 'pin' | 'page-view';
     title: string;
   }) => {
     if (!user) return { error: 'Usuário não autenticado' };
@@ -257,7 +276,7 @@ export const useCampaigns = () => {
   };
 
   useEffect(() => {
-    if (user && campaigns.length === 0) {
+    if (user) {
       fetchCampaigns();
     }
   }, [user]);

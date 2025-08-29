@@ -2,11 +2,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay, startOfWeek, startOfMonth, format, subDays } from 'date-fns';
-import { 
-  classifyEventByTagType, 
-  type TagType, 
-  type EventType 
-} from '@/lib/taxonomy';
 
 export interface ReportEvent {
   period: string;
@@ -30,6 +25,31 @@ interface UseReportEventsProps {
   groupBy: 'day' | 'week' | 'month';
   selectedDimensions: string[];
 }
+
+// Função utilitária para classificar eventos baseado no tipo da tag
+const classifyEventByTagType = (event: any, tagType: string) => {
+  // Se o event_type já está correto, use ele
+  if (event.event_type === 'page_view' || event.event_type === 'pin_click' || event.event_type === 'click') {
+    return event.event_type;
+  }
+  
+  // Para eventos antigos ou inconsistentes, classifique baseado no tipo da tag
+  if (event.event_type === 'view') {
+    switch (tagType) {
+      case 'page-view':
+        return 'page_view';
+      case 'pin':
+        return 'pin_click';
+      case 'click-button':
+        return 'click';
+      default:
+        return event.event_type;
+    }
+  }
+  
+  // Fallback para outros casos
+  return event.event_type;
+};
 
 export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selectedDimensions }: UseReportEventsProps) => {
   const [data, setData] = useState<ReportEvent[]>([]);
@@ -139,7 +159,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
 
           // Find the specific tag for this event
           const eventTag = campaign.tags?.find((tag: any) => tag.id === event.tag_id);
-          const tagType = (event as any).tags?.type as TagType;
+          const tagType = (event as any).tags?.type;
           
           let key: string;
           if (shouldBreakByTags && eventTag) {
@@ -170,19 +190,21 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
 
           const aggregate = aggregateMap.get(key)!;
 
-          // Usa a taxonomia para classificar o evento
+          // Classifica o evento baseado no tipo da tag se necessário
           const classifiedEventType = classifyEventByTagType(event, tagType);
 
-          // Count events by classified type usando taxonomia
+          // Count events by classified type  
           switch (classifiedEventType) {
             case 'page_view':
               aggregate.pageViews++;
               break;
             case 'click':
+              // This maps to 'click-button' tags
               aggregate.ctaClicks++;
               aggregate.totalClicks++;
               break;
             case 'pin_click':
+              // This maps to 'pin' tags
               aggregate.pinClicks++;
               aggregate.totalClicks++;
               break;

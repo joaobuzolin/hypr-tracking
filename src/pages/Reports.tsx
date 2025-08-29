@@ -19,17 +19,16 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
-import { METRIC_LABELS } from "@/lib/taxonomy";
 
 import * as XLSX from 'xlsx';
 
-// Available metrics and dimensions usando taxonomia centralizada
+// Available metrics and dimensions
 const availableMetrics = [
-  { id: 'page_views', label: METRIC_LABELS.page_views, icon: Eye },
-  { id: 'cta_clicks', label: METRIC_LABELS.cta_clicks, icon: MousePointer },
-  { id: 'pin_clicks', label: METRIC_LABELS.pin_clicks, icon: MapPin },
-  { id: 'ctr', label: METRIC_LABELS.ctr, icon: Target },
-  { id: 'total_clicks', label: METRIC_LABELS.total_clicks, icon: MousePointer },
+  { id: 'page_views', label: 'Page Views', icon: Eye },
+  { id: 'cta_clicks', label: 'Click Buttons', icon: MousePointer },
+  { id: 'pin_clicks', label: 'Map Pins', icon: MapPin },
+  { id: 'ctr', label: 'CTR (%)', icon: Target },
+  { id: 'total_clicks', label: 'Total Clicks', icon: MousePointer },
 ];
 
 const availableDimensions = [
@@ -99,7 +98,7 @@ const Reports = () => {
     );
   }, [campaigns, reportConfig.selectedCampaigns]);
 
-  // Generate report data from aggregated events usando labels da taxonomia
+  // Generate report data from aggregated events
   const reportData = useMemo(() => {
     return reportEvents.map(event => {
       const row: any = {};
@@ -125,23 +124,23 @@ const Reports = () => {
         }
       });
 
-      // Add metrics usando labels da taxonomia
+      // Add metrics
       reportConfig.metrics.forEach(metric => {
         switch (metric) {
           case 'page_views':
-            row[METRIC_LABELS.page_views] = event.pageViews;
+            row['Page Views'] = event.pageViews;
             break;
           case 'cta_clicks':
-            row[METRIC_LABELS.cta_clicks] = event.ctaClicks;
+            row['Click Buttons'] = event.ctaClicks;
             break;
           case 'pin_clicks':
-            row[METRIC_LABELS.pin_clicks] = event.pinClicks;
+            row['Map Pins'] = event.pinClicks;
             break;
           case 'ctr':
-            row[METRIC_LABELS.ctr] = event.ctr;
+            row['CTR (%)'] = event.ctr;
             break;
           case 'total_clicks':
-            row[METRIC_LABELS.total_clicks] = event.totalClicks;
+            row['Total Clicks'] = event.totalClicks;
             break;
         }
       });
