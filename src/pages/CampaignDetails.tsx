@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Tag, TrendingUp, Eye, MousePointer, MapPin, Copy, ExternalLink, Trash2, CheckCircle, AlertCircle, Pause, Play } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Tag as TagIcon, TrendingUp, Eye, MousePointer, MapPin, Copy, ExternalLink, Trash2, CheckCircle, AlertCircle, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { AddTagDialog } from '@/components/AddTagDialog';
+import AddTagDialog from '@/components/AddTagDialog';
 import { useToast } from '@/hooks/use-toast';
 import { useCampaigns, type CampaignWithTags, type Tag } from '@/hooks/useCampaigns';
 import { supabase } from '@/integrations/supabase/client';
@@ -95,8 +95,8 @@ const CampaignDetails = () => {
         id: event.id,
         event_type: classifyEventByTagType(event, (event as any).tags.type),
         created_at: event.created_at,
-        user_agent: event.user_agent,
-        ip_address: event.ip_address,
+        user_agent: event.user_agent || '',
+        ip_address: (event.ip_address as string) || '',
         tag: {
           id: (event as any).tags.id,
           title: (event as any).tags.title,
@@ -317,7 +317,7 @@ const CampaignDetails = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Tag className="h-5 w-5" />
+                  <TagIcon className="h-5 w-5" />
                   Tags de Rastreamento
                 </CardTitle>
                 <CardDescription>
@@ -372,16 +372,10 @@ const CampaignDetails = () => {
                     </div>
                   ))}
                   
-                  <AddTagDialog 
-                    campaignId={campaign.id} 
-                    onTagCreated={handleTagCreated}
-                    trigger={
-                      <Button variant="outline" className="w-full">
-                        <Tag className="h-4 w-4 mr-2" />
-                        Adicionar Tag
-                      </Button>
-                    }
-                  />
+                  <Button variant="outline" className="w-full">
+                    <TagIcon className="h-4 w-4 mr-2" />
+                    Adicionar Tag
+                  </Button>
                 </div>
               </CardContent>
             </Card>
