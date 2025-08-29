@@ -35,9 +35,7 @@ const availableDimensions = [
   { id: 'campaign_name', label: 'Nome da Campanha' },
   { id: 'campaign_status', label: 'Status da Campanha' },
   { id: 'campaign_description', label: 'Descrição' },
-  { id: 'start_date', label: 'Data de Início' },
-  { id: 'end_date', label: 'Data de Fim' },
-  { id: 'created_at', label: 'Data de Criação' },
+  { id: 'campaign_tags', label: 'Tags' },
 ];
 
 interface Campaign {
@@ -119,11 +117,8 @@ const Reports = () => {
           case 'campaign_description':
             row['Descrição'] = event.campaignDescription;
             break;
-          case 'start_date':
-            row['Data de Início'] = format(new Date(event.campaignStartDate), 'dd/MM/yyyy');
-            break;
-          case 'end_date':
-            row['Data de Fim'] = format(new Date(event.campaignEndDate), 'dd/MM/yyyy');
+          case 'campaign_tags':
+            row['Tags'] = event.campaignTags;
             break;
         }
       });

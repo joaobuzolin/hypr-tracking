@@ -8,8 +8,7 @@ export interface ReportEvent {
   campaignName: string;
   campaignStatus: string;
   campaignDescription: string;
-  campaignStartDate: string;
-  campaignEndDate: string;
+  campaignTags: string;
   pageViews: number;
   ctaClicks: number;
   pinClicks: number;
@@ -134,8 +133,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy }: Use
               campaignName: campaign.name,
               campaignStatus: campaign.status || 'active',
               campaignDescription: campaign.description || '',
-              campaignStartDate: campaign.start_date,
-              campaignEndDate: campaign.end_date,
+              campaignTags: campaign.tags?.map((tag: any) => tag.title).join(', ') || '',
               pageViews: 0,
               ctaClicks: 0,
               pinClicks: 0,
