@@ -97,6 +97,7 @@ export const useCampaigns = () => {
                     metrics.cta_clicks++;
                     break;
                   case 'pin_click':
+                  case 'view':
                   case 'map_pin':
                     metrics.pin_clicks++;
                     break;
