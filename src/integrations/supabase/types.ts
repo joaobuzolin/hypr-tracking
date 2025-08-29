@@ -146,10 +146,40 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      events_with_tags: {
+        Row: {
+          campaign_id: string | null
+          created_at: string | null
+          event_label: string | null
+          event_type: string | null
+          id: string | null
+          tag_id: string | null
+          tag_title: string | null
+          tag_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tags_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      normalize_event_type: {
+        Args: { provided_type: string; tag_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
