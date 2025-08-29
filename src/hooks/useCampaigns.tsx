@@ -91,6 +91,7 @@ export const useCampaigns = () => {
 
                 // Count by event type
                 switch (event.event_type) {
+                  case 'click':
                   case 'click_button':
                   case 'cta_click':
                     metrics.cta_clicks++;
