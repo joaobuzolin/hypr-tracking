@@ -83,105 +83,121 @@ const CampaignCard = ({ campaign }: { campaign: any }) => {
 })`;
 
   return (
-    <Card className="border shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg font-semibold">{campaign.name}</CardTitle>
-            <CardDescription className="text-sm">{campaign.description}</CardDescription>
+    <Link to={`/campaigns/${campaign.id}`} className="block">
+      <Card className="border shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                {campaign.name}
+              </CardTitle>
+              <CardDescription className="text-sm">{campaign.description}</CardDescription>
+            </div>
+            <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+              {campaign.status === 'active' ? 'Ativa' : 'Pausada'}
+            </Badge>
           </div>
-          <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-            {campaign.status === 'active' ? 'Ativa' : 'Pausada'}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-4">
-          {/* Métricas simples */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center p-3 bg-neutral-50 rounded border">
-              <div className="text-lg font-semibold">{campaign.metrics.cta_clicks}</div>
-              <div className="text-xs text-neutral-600">CTA Clicks</div>
-            </div>
-            <div className="text-center p-3 bg-neutral-50 rounded border">
-              <div className="text-lg font-semibold">{campaign.metrics.pin_clicks}</div>
-              <div className="text-xs text-neutral-600">PIN Clicks</div>
-            </div>
-            <div className="text-center p-3 bg-neutral-50 rounded border">
-              <div className="text-lg font-semibold">{campaign.metrics.total_7d}</div>
-              <div className="text-xs text-neutral-600">Últimos 7d</div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Tags e URLs */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-sm">Tags de Tracking</h4>
-            
-            {/* CTA Tag */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">CTA</Badge>
-                <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
-                  {campaign.tags.cta}
-                </code>
+        </CardHeader>
+        <CardContent className="pt-0" onClick={(e) => e.preventDefault()}>
+          <div className="space-y-4">
+            {/* Métricas simples */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center p-3 bg-neutral-50 rounded border">
+                <div className="text-lg font-semibold">{campaign.metrics.cta_clicks}</div>
+                <div className="text-xs text-neutral-600">CTA Clicks</div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(getPixelUrl(campaign.tags.cta), "Pixel URL (CTA)")}
-                  className="justify-start text-xs h-8"
-                >
-                  <Copy className="w-3 h-3" />
-                  Pixel URL
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(getJsSnippet(campaign.tags.cta), "JS Snippet (CTA)")}
-                  className="justify-start text-xs h-8"
-                >
-                  <Copy className="w-3 h-3" />
-                  JS Snippet
-                </Button>
+              <div className="text-center p-3 bg-neutral-50 rounded border">
+                <div className="text-lg font-semibold">{campaign.metrics.pin_clicks}</div>
+                <div className="text-xs text-neutral-600">PIN Clicks</div>
+              </div>
+              <div className="text-center p-3 bg-neutral-50 rounded border">
+                <div className="text-lg font-semibold">{campaign.metrics.total_7d}</div>
+                <div className="text-xs text-neutral-600">Últimos 7d</div>
               </div>
             </div>
 
-            {/* PIN Tag */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">PIN</Badge>
-                <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
-                  {campaign.tags.pin}
-                </code>
+            <Separator />
+
+            {/* Tags e URLs */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Tags de Tracking</h4>
+              
+              {/* CTA Tag */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">CTA</Badge>
+                  <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
+                    {campaign.tags.cta}
+                  </code>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyToClipboard(getPixelUrl(campaign.tags.cta), "Pixel URL (CTA)");
+                    }}
+                    className="justify-start text-xs h-8"
+                  >
+                    <Copy className="w-3 h-3" />
+                    Pixel URL
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyToClipboard(getJsSnippet(campaign.tags.cta), "JS Snippet (CTA)");
+                    }}
+                    className="justify-start text-xs h-8"
+                  >
+                    <Copy className="w-3 h-3" />
+                    JS Snippet
+                  </Button>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(getPixelUrl(campaign.tags.pin), "Pixel URL (PIN)")}
-                  className="justify-start text-xs h-8"
-                >
-                  <Copy className="w-3 h-3" />
-                  Pixel URL
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(getJsSnippet(campaign.tags.pin), "JS Snippet (PIN)")}
-                  className="justify-start text-xs h-8"
-                >
-                  <Copy className="w-3 h-3" />
-                  JS Snippet
-                </Button>
+
+              {/* PIN Tag */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">PIN</Badge>
+                  <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
+                    {campaign.tags.pin}
+                  </code>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyToClipboard(getPixelUrl(campaign.tags.pin), "Pixel URL (PIN)");
+                    }}
+                    className="justify-start text-xs h-8"
+                  >
+                    <Copy className="w-3 h-3" />
+                    Pixel URL
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyToClipboard(getJsSnippet(campaign.tags.pin), "JS Snippet (PIN)");
+                    }}
+                    className="justify-start text-xs h-8"
+                  >
+                    <Copy className="w-3 h-3" />
+                    JS Snippet
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
 
