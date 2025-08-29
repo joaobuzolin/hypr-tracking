@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Copy, MousePointer, Eye, Calendar, TrendingUp, Download, Tag as TagIcon } from "lucide-react";
+import { ArrowLeft, Copy, MousePointer, Eye, Calendar, TrendingUp, Download, Tag as TagIcon, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AddTagDialog from "@/components/AddTagDialog";
 import { useCampaigns, type Tag } from "@/hooks/useCampaigns";
@@ -34,7 +34,7 @@ const calculateCTR = (clicks: number, pageViews: number) => {
 const CampaignDetails = () => {
   const { id } = useParams();
   const { toast } = useToast();
-  const { campaigns, loading, createTag, fetchCampaigns } = useCampaigns();
+  const { campaigns, loading, createTag, deleteTag, fetchCampaigns } = useCampaigns();
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetric[]>([]);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   
@@ -189,6 +189,23 @@ const CampaignDetails = () => {
       toast({
         title: "Tag criada!",
         description: `Tag "${title}" (${type.toUpperCase()}) foi adicionada com sucesso.`,
+      });
+    }
+  };
+
+  const handleDeleteTag = async (tagId: string, tagTitle: string) => {
+    const result = await deleteTag(tagId);
+    
+    if (result.error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível deletar a tag.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Tag deletada!",
+        description: `Tag "${tagTitle}" foi removida com sucesso.`,
       });
     }
   };
@@ -379,8 +396,38 @@ const CampaignDetails = () => {
                           </code>
                         </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Criada em {formatDate(tag.created_at)}
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-muted-foreground">
+                          Criada em {formatDate(tag.created_at)}
+                        </div>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Deletar Tag</DialogTitle>
+                              <DialogDescription>
+                                Tem certeza que deseja deletar a tag "{tag.title}"? Esta ação não pode ser desfeita.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="flex justify-end gap-2 mt-4">
+                              <DialogTrigger asChild>
+                                <Button variant="outline">Cancelar</Button>
+                              </DialogTrigger>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="destructive" 
+                                  onClick={() => handleDeleteTag(tag.id, tag.title)}
+                                >
+                                  Deletar
+                                </Button>
+                              </DialogTrigger>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

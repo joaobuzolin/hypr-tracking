@@ -227,11 +227,32 @@ export const useCampaigns = () => {
     }
   }, [user]);
 
+  const deleteTag = async (tagId: string) => {
+    if (!user) return { error: 'Not authenticated' };
+
+    try {
+      const { error } = await supabase
+        .from('tags')
+        .delete()
+        .eq('id', tagId);
+
+      if (error) throw error;
+
+      // Atualizar a lista de campanhas após deletar a tag
+      await fetchCampaigns();
+      return { error: null };
+    } catch (error) {
+      console.error('Error deleting tag:', error);
+      return { error };
+    }
+  };
+
   return {
     campaigns,
     loading,
     fetchCampaigns,
     createCampaign,
-    createTag
+    createTag,
+    deleteTag
   };
 };
