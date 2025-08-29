@@ -374,10 +374,12 @@ const Campaigns = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" className="gap-2" disabled>
-              <FileText className="w-4 h-4" />
-              Relatórios (Em breve)
-            </Button>
+            <Link to="/reports">
+              <Button variant="outline" className="gap-2">
+                <FileText className="w-4 h-4" />
+                Relatórios
+              </Button>
+            </Link>
             <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
           </div>
         </div>

@@ -69,10 +69,12 @@ const Index = () => {
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <Button variant="outline" className="w-full sm:w-auto gap-2" disabled>
-                <FileText className="w-4 h-4" />
-                Ver Relatórios (Em breve)
-              </Button>
+              <Link to="/reports">
+                <Button variant="outline" className="w-full sm:w-auto gap-2">
+                  <FileText className="w-4 h-4" />
+                  Ver Relatórios
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
