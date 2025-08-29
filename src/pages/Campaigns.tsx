@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
 // Mock data - será substituído por queries do Supabase
-const mockCampaigns = [
+const initialCampaigns = [
   {
     id: "1",
     name: "Campanha Black Friday",
@@ -282,7 +282,7 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: (campa
 };
 
 const Campaigns = () => {
-  const [campaigns, setCampaigns] = useState(mockCampaigns);
+  const [campaigns, setCampaigns] = useState(initialCampaigns);
   
   const totalCampaigns = campaigns.length;
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
