@@ -381,42 +381,8 @@ const Campaigns = () => {
             <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
           </div>
         </div>
-
-        {/* Filters Section */}
-        <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-3 flex-1">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Buscar campanhas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <DateRangePicker />
-            </div>
-            
-            {(searchTerm || dateRange?.from || dateRange?.to) && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {filteredCampaigns.length} resultado{filteredCampaigns.length !== 1 ? 's' : ''}
-                </Badge>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={clearFilters}
-                  className="text-xs h-8"
-                >
-                  Limpar filtros
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
-      </div>
+    </div>
 
       <div className="container mx-auto px-4 py-6">
         {/* Stats Overview simples */}
@@ -462,6 +428,40 @@ const Campaigns = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Filters Section */}
+        <div className="p-4 bg-muted/50 rounded-lg border mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar campanhas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <DateRangePicker />
+            </div>
+            
+            {(searchTerm || dateRange?.from || dateRange?.to) && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {filteredCampaigns.length} resultado{filteredCampaigns.length !== 1 ? 's' : ''}
+                </Badge>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-xs h-8"
+                >
+                  Limpar filtros
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Campaigns List */}
