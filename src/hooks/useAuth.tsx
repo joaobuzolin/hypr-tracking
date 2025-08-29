@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Clean up existing state
       cleanupAuthState();
 
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth/callback`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
