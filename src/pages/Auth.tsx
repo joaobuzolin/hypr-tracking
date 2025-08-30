@@ -75,7 +75,7 @@ const Auth = () => {
       <div className="hidden lg:flex lg:w-1/2 bg-cover bg-center bg-no-repeat flex-col justify-center items-center p-12 relative" style={{backgroundImage: "url('/lovable-uploads/d997ec22-d44b-4dee-8de9-b5127af19e1a.png')"}}>
         <div className="absolute inset-0 bg-black/20"></div>
         <img 
-          src="/lovable-uploads/0fcddc38-83cc-4638-b362-1485d244ceb3.png" 
+          src="/lovable-uploads/6bbb35ef-f702-4718-b5c3-d8180d317be4.png" 
           alt="HYPR TRACKING" 
           className="h-8 object-contain relative z-10"
         />
