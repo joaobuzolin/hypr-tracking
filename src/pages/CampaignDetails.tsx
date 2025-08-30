@@ -84,11 +84,14 @@ const CampaignDetails = () => {
   // Real-time log states
   const [realtimeLogs, setRealtimeLogs] = useState<RealtimeEvent[]>([]);
   const [liveEnabled, setLiveEnabled] = useState(false);
-  const [filterType, setFilterType] = useState<string>('all');
+  const [filterType, setFilterType] = useState<string>('click');
   const [filterTagId, setFilterTagId] = useState<string>('all');
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [eventCount, setEventCount] = useState(0);
+  const [includePageViews, setIncludePageViews] = useState(false);
+  const [pendingEvents, setPendingEvents] = useState<RealtimeEvent[]>([]);
   const channelRef = useRef<any>(null);
+  const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const campaign = campaigns.find(c => c.id === id);
 
@@ -197,6 +200,30 @@ const CampaignDetails = () => {
     fetchDailyMetrics();
   }, [campaign, toast]);
 
+  // Batch processing for real-time events
+  const processPendingEvents = () => {
+    if (pendingEvents.length === 0) return;
+    
+    setRealtimeLogs(prev => {
+      const updated = [...pendingEvents, ...prev].slice(0, 200);
+      return updated;
+    });
+    setEventCount(prev => prev + pendingEvents.length);
+    setPendingEvents([]);
+  };
+
+  const addEventToBatch = (event: RealtimeEvent) => {
+    setPendingEvents(prev => [...prev, event]);
+    
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+    }
+    
+    batchTimeoutRef.current = setTimeout(() => {
+      processPendingEvents();
+    }, 300);
+  };
+
   // Real-time logs functionality
   const loadInitialLogs = async () => {
     if (!campaign) return;
@@ -205,12 +232,20 @@ const CampaignDetails = () => {
     if (tagIds.length === 0) return;
 
     try {
-      const { data: events, error } = await supabase
+      // Build the query with event type filtering
+      let query = supabase
         .from('events')
         .select('id, tag_id, event_type, ip_address, user_agent, metadata, created_at')
         .in('tag_id', tagIds)
         .order('created_at', { ascending: false })
         .limit(50);
+
+      // Apply event type filter
+      if (!includePageViews) {
+        query = query.in('event_type', ['click', 'pin_click', 'cta_click', 'click_button']);
+      }
+
+      const { data: events, error } = await query;
 
       if (error) throw error;
       setRealtimeLogs((events || []) as RealtimeEvent[]);
@@ -228,6 +263,12 @@ const CampaignDetails = () => {
 
     setConnectionStatus('connecting');
     
+    // Build filter for event types
+    let eventTypeFilter = 'tag_id=in.(' + tagIds.join(',') + ')';
+    if (!includePageViews) {
+      eventTypeFilter += '.and.event_type=in.(click,pin_click,cta_click,click_button)';
+    }
+    
     const channel = supabase
       .channel(`realtime:events:${campaign.id}`)
       .on(
@@ -236,19 +277,20 @@ const CampaignDetails = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'events',
-          filter: `tag_id=in.(${tagIds.join(',')})`
+          filter: eventTypeFilter
         },
         (payload) => {
           console.log('Real-time event received:', payload);
           const newEvent = payload.new as RealtimeEvent;
           
-          // Verify tag belongs to campaign
+          // Verify tag belongs to campaign and event type matches filter
           if (tagIds.includes(newEvent.tag_id)) {
-            setRealtimeLogs(prev => {
-              const updated = [newEvent, ...prev].slice(0, 100);
-              return updated;
-            });
-            setEventCount(prev => prev + 1);
+            const eventTypeMatches = includePageViews || 
+              ['click', 'pin_click', 'cta_click', 'click_button'].includes(newEvent.event_type);
+            
+            if (eventTypeMatches) {
+              addEventToBatch(newEvent);
+            }
           }
         }
       )
@@ -269,6 +311,10 @@ const CampaignDetails = () => {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+      batchTimeoutRef.current = null;
+    }
     setConnectionStatus('disconnected');
   };
 
@@ -285,7 +331,12 @@ const CampaignDetails = () => {
 
   const clearLogs = () => {
     setRealtimeLogs([]);
+    setPendingEvents([]);
     setEventCount(0);
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+      batchTimeoutRef.current = null;
+    }
   };
 
   const getTagInfo = (tagId: string) => {
@@ -308,6 +359,10 @@ const CampaignDetails = () => {
   };
 
   const filteredLogs = realtimeLogs.filter(log => {
+    // Apply include page views filter
+    if (!includePageViews && log.event_type === 'page_view') return false;
+    
+    // Apply other filters
     if (filterType !== 'all' && log.event_type !== filterType) return false;
     if (filterTagId !== 'all' && log.tag_id !== filterTagId) return false;
     return true;
@@ -329,7 +384,11 @@ const CampaignDetails = () => {
     } else {
       clearRealtimeSubscription();
     }
-  }, [liveEnabled, campaign]);
+  }, [liveEnabled, campaign, includePageViews]);
+
+  useEffect(() => {
+    loadInitialLogs();
+  }, [campaign, includePageViews]);
   
   if (loading) {
     return (
@@ -708,6 +767,15 @@ const CampaignDetails = () => {
                   id="live-toggle"
                   checked={liveEnabled}
                   onCheckedChange={toggleLive}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Label htmlFor="page-views-toggle" className="text-sm font-medium">Incluir Page Views</Label>
+                <Switch
+                  id="page-views-toggle"
+                  checked={includePageViews}
+                  onCheckedChange={setIncludePageViews}
                 />
               </div>
               
