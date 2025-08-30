@@ -110,7 +110,7 @@ const Auth = () => {
           )}
 
           <Tabs defaultValue="signin" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2 bg-transparent border border-white/20 backdrop-blur-sm">
+            <TabsList className="grid w-full grid-cols-2 bg-transparent border border-white/20 backdrop-blur-sm h-12">
               <TabsTrigger value="signin" className="flex items-center gap-2 text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
                 <LogIn className="w-4 h-4" />
                 Entrar
