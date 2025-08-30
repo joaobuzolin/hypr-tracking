@@ -49,8 +49,8 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={campaignGroup.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-              {campaignGroup.status === 'active' ? 'Ativa' : 'Pausada'}
+            <Badge variant={campaignGroup.derivedStatus === 'active' ? 'default' : 'secondary'} className="text-xs">
+              {campaignGroup.derivedStatus === 'active' ? 'Ativa' : 'Pausada'}
             </Badge>
             
             {/* Menu de ações */}

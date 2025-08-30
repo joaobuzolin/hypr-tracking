@@ -48,14 +48,14 @@ const Campanhas = () => {
       // Status filter
       const matchesStatus = 
         statusFilter === "all" || 
-        group.status === statusFilter;
+        group.derivedStatus === statusFilter;
       
       return matchesSearch && matchesStatus;
     });
   }, [relevantCampaignGroups, searchTerm, statusFilter]);
   
   const totalCampaignGroups = filteredCampaignGroups.length;
-  const activeCampaignGroups = filteredCampaignGroups.filter(g => g.status === 'active').length;
+  const activeCampaignGroups = filteredCampaignGroups.filter(g => g.derivedStatus === 'active').length;
   const totalCriativos = filteredCampaignGroups.reduce((sum, g) => sum + (g.campaigns_count || 0), 0);
   const totalClicks = filteredCampaignGroups.reduce((sum, g) => sum + (g.total_clicks || 0), 0);
 

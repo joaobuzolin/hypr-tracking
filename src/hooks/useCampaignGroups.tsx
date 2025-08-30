@@ -21,6 +21,7 @@ export interface CampaignGroup {
   campaigns_count?: number;
   total_clicks?: number;
   total_page_views?: number;
+  derivedStatus: 'active' | 'paused';
 }
 
 export interface CreateCampaignGroupData {
@@ -55,22 +56,55 @@ export const useCampaignGroups = () => {
     try {
       setLoading(true);
       
-      // Fetch campaign groups with insertion order info and campaign count
+      // Fetch campaign groups with insertion order info and campaigns with their tags
       const { data: groups, error } = await supabase
         .from('campaign_groups')
         .select(`
           *,
           insertion_orders!inner(id, client_name, description),
-          campaigns!campaigns_campaign_group_id_fkey(id)
+          campaigns!campaigns_campaign_group_id_fkey(
+            id,
+            tags(id)
+          )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-        // Process the data to include aggregated metrics
-        const processedGroups: CampaignGroup[] = (groups || []).map(group => {
+      // Process the data to include aggregated metrics and derived status
+      const processedGroups: CampaignGroup[] = await Promise.all(
+        (groups || []).map(async (group) => {
           const campaigns = group.campaigns || [];
           const campaignsCount = campaigns.length;
+          
+          // Collect all tag IDs from campaigns in this group
+          const allTagIds: string[] = [];
+          campaigns.forEach((campaign: any) => {
+            if (campaign.tags) {
+              campaign.tags.forEach((tag: any) => {
+                allTagIds.push(tag.id);
+              });
+            }
+          });
+
+          let hasRecentActivity = false;
+
+          // Check for activity in last 24 hours if there are tags
+          if (allTagIds.length > 0) {
+            const twentyFourHoursAgo = new Date();
+            twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+            const { data: recentEvents, error: recentError } = await supabase
+              .from('events')
+              .select('id')
+              .in('tag_id', allTagIds)
+              .gte('created_at', twentyFourHoursAgo.toISOString())
+              .limit(1);
+
+            if (!recentError) {
+              hasRecentActivity = (recentEvents?.length || 0) > 0;
+            }
+          }
           
           // For now, set metrics to 0 - we can add this back later
           const totalClicks = 0;
@@ -82,9 +116,11 @@ export const useCampaignGroups = () => {
             insertion_order: group.insertion_orders,
             campaigns_count: campaignsCount,
             total_clicks: totalClicks,
-            total_page_views: totalPageViews
-          };
-        });
+            total_page_views: totalPageViews,
+            derivedStatus: hasRecentActivity ? 'active' : 'paused'
+          } as CampaignGroup;
+        })
+      );
 
         setCampaignGroups(processedGroups);
     } catch (error) {
