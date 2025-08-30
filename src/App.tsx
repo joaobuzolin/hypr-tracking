@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Criativos from "./pages/Criativos";
+import Campanhas from "./pages/Campanhas";
 import CriativoDetails from "./pages/CriativoDetails";
 import Reports from "./pages/Reports";
 import Auth from "./pages/Auth";
@@ -23,7 +24,8 @@ const App = () => (
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/" element={<ProtectedRoute><InsertionOrders /></ProtectedRoute>} />
           <Route path="/insertion-orders" element={<ProtectedRoute><InsertionOrders /></ProtectedRoute>} />
-          <Route path="/insertion-orders/:insertionOrderId/criativos" element={<ProtectedRoute><Criativos /></ProtectedRoute>} />
+          <Route path="/insertion-orders/:insertionOrderId/campanhas" element={<ProtectedRoute><Campanhas /></ProtectedRoute>} />
+          <Route path="/campanhas/:campaignGroupId/criativos" element={<ProtectedRoute><Criativos /></ProtectedRoute>} />
           <Route path="/insertion-orders/:insertionOrderId/criativos/new" element={<ProtectedRoute><CriativoDetails /></ProtectedRoute>} />
           <Route path="/criativos" element={<ProtectedRoute><Criativos /></ProtectedRoute>} />
           <Route path="/criativos/:id" element={<ProtectedRoute><CriativoDetails /></ProtectedRoute>} />

@@ -42,10 +42,12 @@ const IAB_FORMATS = [
 const CreateCriativoDialog = ({ 
   onCriativoCreated,
   insertionOrderId,
+  campaignGroupId,
   createCampaign
 }: { 
   onCriativoCreated: () => void;
   insertionOrderId?: string;
+  campaignGroupId?: string;
   createCampaign: (data: any) => Promise<any>;
 }) => {
   const [open, setOpen] = useState(false);
@@ -65,6 +67,7 @@ const CreateCriativoDialog = ({
       name: name.trim(),
       description: description.trim(),
       insertion_order_id: insertionOrderId,
+      campaign_group_id: campaignGroupId,
       creative_format: iabFormat
     });
 
@@ -161,7 +164,7 @@ const CreateCriativoDialog = ({
 const Criativos = () => {
   const { campaigns, loading, createCampaign } = useCampaigns();
   const { insertionOrders } = useInsertionOrders();
-  const { insertionOrderId } = useParams();
+  const { insertionOrderId, campaignGroupId } = useParams();
   const { generateBreadcrumbs } = useBreadcrumbs();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -177,11 +180,11 @@ const Criativos = () => {
     return insertionOrders.find(io => io.id === insertionOrderId);
   }, [insertionOrderId, insertionOrders]);
 
-  // Filter campaigns by insertion order if specified in URL
+  // Filter campaigns by campaign group if specified in URL
   const relevantCampaigns = useMemo(() => {
-    if (!insertionOrderId) return campaigns;
-    return campaigns.filter(campaign => campaign.insertion_order_id === insertionOrderId);
-  }, [campaigns, insertionOrderId]);
+    if (!campaignGroupId) return campaigns;
+    return campaigns.filter(campaign => campaign.campaign_group_id === campaignGroupId);
+  }, [campaigns, campaignGroupId]);
 
   // Get unique insertion orders for filter
   const uniqueInsertionOrders = useMemo(() => {
@@ -357,6 +360,7 @@ const Criativos = () => {
             <CreateCriativoDialog 
               onCriativoCreated={handleCriativoCreated} 
               insertionOrderId={insertionOrderId}
+              campaignGroupId={campaignGroupId}
               createCampaign={createCampaign}
             />
           </div>
@@ -587,6 +591,7 @@ const Criativos = () => {
                         <CreateCriativoDialog 
                           onCriativoCreated={handleCriativoCreated} 
                           insertionOrderId={insertionOrderId}
+                          campaignGroupId={campaignGroupId}
                           createCampaign={createCampaign}
                         />
                       </>
