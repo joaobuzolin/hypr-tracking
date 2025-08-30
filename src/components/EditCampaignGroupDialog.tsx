@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Settings, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCampaignGroups, type CampaignGroup } from "@/hooks/useCampaignGroups";
+import { useInsertionOrders } from "@/hooks/useInsertionOrders";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
@@ -24,6 +25,7 @@ export const EditCampaignGroupDialog = ({ campaignGroup, children }: EditCampaig
   const [name, setName] = useState(campaignGroup.name);
   const [description, setDescription] = useState(campaignGroup.description || "");
   const [status, setStatus] = useState(campaignGroup.status);
+  const [insertionOrderId, setInsertionOrderId] = useState(campaignGroup.insertion_order_id);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     if (campaignGroup.start_date || campaignGroup.end_date) {
       return {
@@ -36,12 +38,14 @@ export const EditCampaignGroupDialog = ({ campaignGroup, children }: EditCampaig
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { updateCampaignGroup } = useCampaignGroups();
+  const { insertionOrders } = useInsertionOrders();
 
   useEffect(() => {
     if (open) {
       setName(campaignGroup.name);
       setDescription(campaignGroup.description || "");
       setStatus(campaignGroup.status);
+      setInsertionOrderId(campaignGroup.insertion_order_id);
       setDateRange(() => {
         if (campaignGroup.start_date || campaignGroup.end_date) {
           return {
@@ -64,6 +68,7 @@ export const EditCampaignGroupDialog = ({ campaignGroup, children }: EditCampaig
       name: name.trim(),
       description: description.trim(),
       status,
+      insertion_order_id: insertionOrderId,
       start_date: dateRange?.from?.toISOString().split('T')[0],
       end_date: dateRange?.to?.toISOString().split('T')[0]
     });
@@ -139,6 +144,25 @@ export const EditCampaignGroupDialog = ({ campaignGroup, children }: EditCampaig
                 <SelectItem value="paused">Pausada</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="insertionOrder">Insertion Order *</Label>
+            <Select value={insertionOrderId} onValueChange={setInsertionOrderId} disabled={loading}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma insertion order" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-md">
+                {insertionOrders.map((io) => (
+                  <SelectItem key={io.id} value={io.id}>
+                    {io.client_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              A insertion order organiza suas campanhas por cliente/projeto
+            </p>
           </div>
 
           <div className="space-y-2">

@@ -39,6 +39,7 @@ export interface UpdateCampaignGroupData {
   start_date?: string;
   end_date?: string;
   status?: 'active' | 'paused';
+  insertion_order_id?: string;
 }
 
 export const useCampaignGroups = () => {
