@@ -110,12 +110,12 @@ const Auth = () => {
           )}
 
           <Tabs defaultValue="signin" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2 bg-transparent border border-white/20 backdrop-blur-sm p-2 gap-1">
-              <TabsTrigger value="signin" className="flex items-center gap-2 text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
+            <TabsList className="grid w-full grid-cols-2 bg-transparent border border-white/20 backdrop-blur-sm overflow-hidden rounded-md h-10">
+              <TabsTrigger value="signin" className="flex-1 flex items-center justify-center gap-2 text-white h-10 rounded-none data-[state=active]:bg-white/20 data-[state=active]:text-white border-0 focus-visible:ring-0">
                 <LogIn className="w-4 h-4" />
                 Entrar
               </TabsTrigger>
-              <TabsTrigger value="signup" className="flex items-center gap-2 text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
+              <TabsTrigger value="signup" className="flex-1 flex items-center justify-center gap-2 text-white h-10 rounded-none data-[state=active]:bg-white/20 data-[state=active]:text-white border-0 focus-visible:ring-0">
                 <UserPlus className="w-4 h-4" />
                 Cadastrar
               </TabsTrigger>
