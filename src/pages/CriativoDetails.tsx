@@ -8,12 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Breadcrumb, useBreadcrumbs } from "@/components/Breadcrumb";
 import { UserMenu } from "@/components/UserMenu";
-import { ArrowLeft, Copy, MousePointer, Eye, Calendar, TrendingUp, Download, Tag as TagIcon, Trash2, User, Radio, Activity, Settings, BarChart3 } from "lucide-react";
+import { ArrowLeft, Copy, MousePointer, Eye, Calendar, TrendingUp, Download, Tag as TagIcon, Trash2, User, Activity, Settings, BarChart3, RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AddTagDialog from "@/components/AddTagDialog";
 import { EditCampaignDialog } from "@/components/EditCampaignDialog";
@@ -89,16 +87,13 @@ const CampaignDetails = () => {
   
   // Real-time log states
   const [realtimeLogs, setRealtimeLogs] = useState<RealtimeEvent[]>([]);
-  const [liveEnabled, setLiveEnabled] = useState(false);
   const [filterType, setFilterType] = useState<string>('click');
   const [filterTagId, setFilterTagId] = useState<string>('all');
-  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [eventCount, setEventCount] = useState(0);
   const [includePageViews, setIncludePageViews] = useState(false);
-  const [pendingEvents, setPendingEvents] = useState<RealtimeEvent[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const channelRef = useRef<any>(null);
-  const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isReloading, setIsReloading] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   
   const campaign = campaigns.find(c => c.id === id);
   const currentInsertionOrder = useMemo(() => {
@@ -211,28 +206,12 @@ const CampaignDetails = () => {
     fetchDailyMetrics();
   }, [campaign, toast]);
 
-  // Batch processing for real-time events
-  const processPendingEvents = () => {
-    if (pendingEvents.length === 0) return;
-    
-    setRealtimeLogs(prev => {
-      const updated = [...pendingEvents, ...prev].slice(0, 200);
-      return updated;
-    });
-    setEventCount(prev => prev + pendingEvents.length);
-    setPendingEvents([]);
-  };
-
-  const addEventToBatch = (event: RealtimeEvent) => {
-    setPendingEvents(prev => [...prev, event]);
-    
-    if (batchTimeoutRef.current) {
-      clearTimeout(batchTimeoutRef.current);
-    }
-    
-    batchTimeoutRef.current = setTimeout(() => {
-      processPendingEvents();
-    }, 300);
+  // Refresh logs functionality
+  const refreshLogs = async () => {
+    setIsReloading(true);
+    await loadInitialLogs();
+    setLastUpdatedAt(new Date().toLocaleTimeString('pt-BR', { hour12: false }));
+    setIsReloading(false);
   };
 
   // Real-time logs functionality
@@ -266,88 +245,11 @@ const CampaignDetails = () => {
     }
   };
 
-  const setupRealtimeSubscription = () => {
-    if (!campaign || !liveEnabled) return;
-    
-    const tagIds = campaign.tags.map(tag => tag.id);
-    if (tagIds.length === 0) return;
-
-    setConnectionStatus('connecting');
-    
-    // Build filter for event types
-    let eventTypeFilter = 'tag_id=in.(' + tagIds.join(',') + ')';
-    if (!includePageViews) {
-      eventTypeFilter += '.and.event_type=in.(click,pin_click,cta_click,click_button)';
-    }
-    
-    const channel = supabase
-      .channel(`realtime:events:${campaign.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'events',
-          filter: eventTypeFilter
-        },
-        (payload) => {
-          console.log('Real-time event received:', payload);
-          const newEvent = payload.new as RealtimeEvent;
-          
-          // Verify tag belongs to campaign and event type matches filter
-          if (tagIds.includes(newEvent.tag_id)) {
-            const eventTypeMatches = includePageViews || 
-              ['click', 'pin_click', 'cta_click', 'click_button'].includes(newEvent.event_type);
-            
-            if (eventTypeMatches) {
-              addEventToBatch(newEvent);
-            }
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          setConnectionStatus('connected');
-        } else if (status === 'CLOSED') {
-          setConnectionStatus('disconnected');
-        }
-      });
-
-    channelRef.current = channel;
-  };
-
-  const clearRealtimeSubscription = () => {
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-    if (batchTimeoutRef.current) {
-      clearTimeout(batchTimeoutRef.current);
-      batchTimeoutRef.current = null;
-    }
-    setConnectionStatus('disconnected');
-  };
-
-  const toggleLive = () => {
-    const newState = !liveEnabled;
-    setLiveEnabled(newState);
-    
-    if (newState) {
-      setupRealtimeSubscription();
-    } else {
-      clearRealtimeSubscription();
-    }
-  };
 
   const clearLogs = () => {
     setRealtimeLogs([]);
-    setPendingEvents([]);
     setEventCount(0);
-    if (batchTimeoutRef.current) {
-      clearTimeout(batchTimeoutRef.current);
-      batchTimeoutRef.current = null;
-    }
+    setLastUpdatedAt(null);
   };
 
   const getTagInfo = (tagId: string) => {
@@ -383,19 +285,6 @@ const CampaignDetails = () => {
     loadInitialLogs();
   }, [campaign]);
 
-  useEffect(() => {
-    return () => {
-      clearRealtimeSubscription();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (liveEnabled && campaign) {
-      setupRealtimeSubscription();
-    } else {
-      clearRealtimeSubscription();
-    }
-  }, [liveEnabled, campaign, includePageViews]);
 
   useEffect(() => {
     loadInitialLogs();
@@ -785,38 +674,35 @@ const CampaignDetails = () => {
                     </Badge>
                   )}
                 </CardTitle>
-                <CardDescription>
-                  Acompanhe em tempo real todos os disparos das suas tags
+                <CardDescription className="flex items-center justify-between">
+                  <span>Últimos eventos das suas tags</span>
+                  <span className="text-xs">
+                    {lastUpdatedAt ? `Atualizado às ${lastUpdatedAt}` : 'Clique em Atualizar'}
+                  </span>
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Radio className={`w-3 h-3 ${connectionStatus === 'connected' ? 'text-green-500' : connectionStatus === 'connecting' ? 'text-yellow-500' : 'text-gray-400'}`} />
-                  <span className="text-muted-foreground">
-                    {connectionStatus === 'connected' ? 'Conectado' : 
-                     connectionStatus === 'connecting' ? 'Conectando...' : 'Pausado'}
-                  </span>
-                </div>
-              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refreshLogs} 
+                disabled={isReloading}
+                className="gap-2"
+              >
+                <RefreshCcw className={isReloading ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
+                Atualizar
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-center gap-4 mb-4 p-4 bg-muted/30 rounded-lg">
               <div className="flex items-center gap-2">
-                <Label htmlFor="live-toggle" className="text-sm font-medium">Ao vivo</Label>
-                <Switch
-                  id="live-toggle"
-                  checked={liveEnabled}
-                  onCheckedChange={toggleLive}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
                 <Label htmlFor="page-views-toggle" className="text-sm font-medium">Incluir Page Views</Label>
-                <Switch
+                <input
                   id="page-views-toggle"
+                  type="checkbox"
                   checked={includePageViews}
-                  onCheckedChange={setIncludePageViews}
+                  onChange={(e) => setIncludePageViews(e.target.checked)}
+                  className="rounded border border-input"
                 />
               </div>
               
@@ -869,7 +755,7 @@ const CampaignDetails = () => {
                 <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Nenhum evento encontrado</p>
                 <p className="text-sm">
-                  {liveEnabled ? 'Aguardando novos eventos...' : 'Ative o modo ao vivo para monitorar eventos'}
+                  Clique em 'Atualizar' para carregar os últimos eventos
                 </p>
               </div>
             ) : (
