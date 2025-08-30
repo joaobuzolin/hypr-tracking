@@ -376,7 +376,6 @@ const Criativos = () => {
 
   return (
     <AppLayout
-      title="Criativos"
       subtitle="Gerencie seus criativos e acompanhe métricas de tracking"
       breadcrumbs={breadcrumbItems}
       actions={actions}
