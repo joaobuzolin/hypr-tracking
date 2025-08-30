@@ -31,7 +31,7 @@ export const EditCampaignDialog = ({ campaign, open, onOpenChange }: EditCampaig
       setName(campaign.name);
       setDescription(campaign.description || "");
       setStatus(campaign.status);
-      setInsertionOrderId(campaign.insertion_order_id || "");
+      setInsertionOrderId(campaign.insertion_order_id || "none");
     }
   }, [campaign, open]);
 
@@ -66,7 +66,7 @@ export const EditCampaignDialog = ({ campaign, open, onOpenChange }: EditCampaig
       name: name.trim(),
       description: description.trim() || null,
       status: status,
-      insertion_order_id: insertionOrderId || null,
+      insertion_order_id: insertionOrderId === "none" ? null : insertionOrderId,
       updated_at: new Date().toISOString()
     };
 
@@ -136,7 +136,7 @@ export const EditCampaignDialog = ({ campaign, open, onOpenChange }: EditCampaig
                 <SelectValue placeholder="Selecione uma insertion order (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma insertion order</SelectItem>
+                <SelectItem value="none">Nenhuma insertion order</SelectItem>
                 {insertionOrders.map((io) => (
                   <SelectItem key={io.id} value={io.id}>
                     {io.client_name} {io.project_name && `- ${io.project_name}`}
