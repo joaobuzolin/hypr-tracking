@@ -7,7 +7,6 @@ export interface InsertionOrder {
   id: string;
   user_id: string;
   client_name: string;
-  project_name?: string;
   description?: string;
   status: 'active' | 'paused' | 'completed';
   start_date?: string;
@@ -88,7 +87,7 @@ export const useInsertionOrders = () => {
           campaigns_count,
           total_tags,
           total_clicks,
-          profile: io.profiles
+          profile: Array.isArray(io.profiles) ? io.profiles[0] : io.profiles
         };
       });
 
@@ -107,7 +106,6 @@ export const useInsertionOrders = () => {
 
   const createInsertionOrder = async (orderData: {
     client_name: string;
-    project_name?: string;
     description?: string;
     start_date?: string;
     end_date?: string;
