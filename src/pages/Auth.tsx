@@ -92,13 +92,13 @@ const Auth = () => {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative z-10 backdrop-blur-sm bg-background/5 border-l border-white/5 shadow-2xl">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center space-y-2">
-            <div className="lg:hidden w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Target className="w-6 h-6 text-primary-foreground" />
+            <div className="lg:hidden w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center mx-auto mb-4 border border-white/20">
+              <Target className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">
+            <h2 className="text-2xl font-bold text-white">
               HYPR Tracking
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/80">
               Acesse sua conta para gerenciar campanhas
             </p>
           </div>
@@ -110,28 +110,28 @@ const Auth = () => {
           )}
 
           <Tabs defaultValue="signin" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-2 bg-white/10 border border-white/20 backdrop-blur-sm">
+              <TabsTrigger value="signin" className="flex items-center gap-2 text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
                 <LogIn className="w-4 h-4" />
                 Entrar
               </TabsTrigger>
-              <TabsTrigger value="signup" className="flex items-center gap-2">
+              <TabsTrigger value="signup" className="flex items-center gap-2 text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
                 <UserPlus className="w-4 h-4" />
                 Cadastrar
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin">
-              <Card>
+              <Card className="bg-white/10 border border-white/20 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Fazer Login</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-white">Fazer Login</CardTitle>
+                  <CardDescription className="text-white/80">
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signin-email">Email</Label>
+                      <Label htmlFor="signin-email" className="text-white">Email</Label>
                       <Input
                         id="signin-email"
                         name="email"
@@ -139,10 +139,11 @@ const Auth = () => {
                         placeholder="seu-email@hypr.mobi"
                         required
                         disabled={loading}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="signin-password">Senha</Label>
+                      <Label htmlFor="signin-password" className="text-white">Senha</Label>
                       <Input
                         id="signin-password"
                         name="password"
@@ -150,9 +151,10 @@ const Auth = () => {
                         placeholder="Digite sua senha"
                         required
                         disabled={loading}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button type="submit" className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30" disabled={loading}>
                       {loading ? 'Entrando...' : 'Entrar'}
                     </Button>
                   </form>
@@ -161,17 +163,17 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <Card>
+              <Card className="bg-white/10 border border-white/20 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Criar Conta</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-white">Criar Conta</CardTitle>
+                  <CardDescription className="text-white/80">
                     Cadastre-se com seu email @hypr.mobi
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
+                      <Label htmlFor="signup-email" className="text-white">Email</Label>
                       <Input
                         id="signup-email"
                         name="email"
@@ -179,10 +181,11 @@ const Auth = () => {
                         placeholder="seu-email@hypr.mobi"
                         required
                         disabled={loading}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="signup-password">Senha</Label>
+                      <Label htmlFor="signup-password" className="text-white">Senha</Label>
                       <Input
                         id="signup-password"
                         name="password"
@@ -191,10 +194,11 @@ const Auth = () => {
                         required
                         disabled={loading}
                         minLength={6}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
+                      <Label htmlFor="signup-confirm-password" className="text-white">Confirmar Senha</Label>
                       <Input
                         id="signup-confirm-password"
                         name="confirmPassword"
@@ -203,9 +207,10 @@ const Auth = () => {
                         required
                         disabled={loading}
                         minLength={6}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button type="submit" className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30" disabled={loading}>
                       {loading ? 'Criando conta...' : 'Criar Conta'}
                     </Button>
                   </form>
@@ -215,8 +220,8 @@ const Auth = () => {
           </Tabs>
 
           <div className="text-center">
-            <Separator className="mb-4" />
-            <p className="text-xs text-muted-foreground">
+            <Separator className="mb-4 bg-white/20" />
+            <p className="text-xs text-white/70">
               Apenas colaboradores HYPR com email @hypr.mobi podem acessar o sistema
             </p>
           </div>
