@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
-import { UserMenu } from "@/components/UserMenu";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { InsertionOrderCard } from "@/components/InsertionOrderCard";
 import { EditInsertionOrderDialog } from "@/components/EditInsertionOrderDialog";
 import { MetricsCard } from "@/components/MetricsCard";
-import { Breadcrumb, useBreadcrumbs } from "@/components/Breadcrumb";
+import { useBreadcrumbs } from "@/components/Breadcrumb";
 import { useInsertionOrders, type InsertionOrderWithMetrics } from "@/hooks/useInsertionOrders";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,9 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Building, FolderOpen, MousePointer, Search, Filter, User, Activity, FileText } from "lucide-react";
+import { Plus, Building, FolderOpen, MousePointer, Search, Filter, User, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
 
 const CreateInsertionOrderDialog = ({ onCreated }: { onCreated: () => void }) => {
   const [open, setOpen] = useState(false);
@@ -221,49 +220,14 @@ const InsertionOrders = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg bg-white/50 border-b border-white/20 shadow-lg">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="mb-1">
-                <img 
-                  src="/lovable-uploads/0fcddc38-83cc-4638-b362-1485d244ceb3.png" 
-                  alt="HYPR TRACKING" 
-                  className="h-7 object-contain"
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Gerencie suas insertion orders e organize criativos por cliente
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Link to="/reports">
-                <Button variant="outline" className="gap-2">
-                  <FileText className="w-4 h-4" />
-                  Relatórios
-                </Button>
-              </Link>
-              <UserMenu />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="pt-32">
-        <div className="container mx-auto px-4 py-6">
-          {/* Breadcrumb Navigation */}
-          <Breadcrumb items={breadcrumbs} />
+    <AppLayout 
+      subtitle="Gerencie suas insertion orders e organize criativos por cliente"
+      breadcrumbs={breadcrumbs}
+      actions={<CreateInsertionOrderDialog onCreated={handleCreated} />}
+    >
           
-          {/* Actions Bar */}
-          <div className="flex justify-end gap-3 mb-6">
-            <CreateInsertionOrderDialog onCreated={handleCreated} />
-          </div>
-          
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="border shadow-sm">
@@ -284,7 +248,7 @@ const InsertionOrders = () => {
                   icon={Activity}
                   value={activeOrders}
                   label="Ativas"
-                  className="bg-green-50"
+                  className="bg-muted"
                   iconColor="text-green-600"
                 />
                 
@@ -292,15 +256,15 @@ const InsertionOrders = () => {
                   icon={FolderOpen}
                    value={totalCampaigns}
                    label="Total de Criativos"
-                  className="bg-blue-50"
+                  className="bg-muted"
                   iconColor="text-blue-600"
                 />
               </>
             )}
           </div>
 
-          {/* Filters Section */}
-          <div className="p-4 bg-muted/50 rounded-lg border mb-6">
+        {/* Filters Section */}
+        <div className="p-4 bg-muted/30 rounded-lg border mb-6">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1 max-w-sm">
@@ -360,8 +324,8 @@ const InsertionOrders = () => {
             </div>
           </div>
 
-          {/* Insertion Orders List */}
-          <div className="space-y-4">
+        {/* Insertion Orders List */}
+        <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-medium">Insertion Orders</h2>
               <Badge variant="outline" className="text-xs">
@@ -420,9 +384,7 @@ const InsertionOrders = () => {
                 ))}
               </div>
             )}
-          </div>
         </div>
-      </div>
 
       {/* Edit Dialog */}
       <EditInsertionOrderDialog 
@@ -451,7 +413,7 @@ const InsertionOrders = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AppLayout>
   );
 };
 

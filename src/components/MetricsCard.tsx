@@ -15,12 +15,12 @@ export const MetricsCard = memo(({ icon: Icon, value, label, className, iconColo
     <Card className="border shadow-sm">
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded ${className || 'bg-neutral-100'}`}>
-            <Icon className={`w-5 h-5 ${iconColor || 'text-neutral-600'}`} />
+          <div className={`p-2 rounded ${className || 'bg-muted'}`}>
+            <Icon className={`w-5 h-5 ${iconColor || 'text-muted-foreground'}`} />
           </div>
           <div>
             <div className="text-xl font-semibold">{value}</div>
-            <div className="text-sm text-neutral-600">{label}</div>
+            <div className="text-sm text-muted-foreground">{label}</div>
           </div>
         </div>
       </CardContent>

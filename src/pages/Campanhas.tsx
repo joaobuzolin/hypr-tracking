@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
-import { UserMenu } from "@/components/UserMenu";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { CampaignGroupCard } from "@/components/CampaignGroupCard";
 import { MetricsCard } from "@/components/MetricsCard";
-import { Breadcrumb, useBreadcrumbs } from "@/components/Breadcrumb";
+import { useBreadcrumbs } from "@/components/Breadcrumb";
 import { useCampaignGroups } from "@/hooks/useCampaignGroups";
 import { useInsertionOrders } from "@/hooks/useInsertionOrders";
 import { CreateCampaignGroupDialog } from "@/components/CreateCampaignGroupDialog";
@@ -13,8 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, Users, MousePointer, FileText, Search, Filter, Calendar, Building } from "lucide-react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { BarChart3, Users, MousePointer, Search, Filter, Calendar, Building } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
 
 const Campanhas = () => {
   const { campaignGroups, loading } = useCampaignGroups();
@@ -67,85 +67,48 @@ const Campanhas = () => {
   // Generate breadcrumbs based on current context
   const breadcrumbItems = generateBreadcrumbs();
 
+  const contextBar = currentInsertionOrder && (
+    <div className="flex items-center gap-2">
+      <Building className="w-4 h-4 text-muted-foreground" />
+      <Select
+        value={insertionOrderId}
+        onValueChange={(value) => {
+          if (value !== insertionOrderId) {
+            // Reset local filters when switching
+            setSearchTerm("");
+            setStatusFilter("all");
+            
+            navigate(`/insertion-orders/${value}/campanhas`);
+          }
+        }}
+      >
+        <SelectTrigger className="w-auto border-none shadow-none p-0 h-auto text-lg font-semibold bg-transparent hover:bg-muted/50 focus:ring-0">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="z-50 bg-background border shadow-md">
+          {insertionOrders.map((io) => (
+            <SelectItem key={io.id} value={io.id}>
+              {io.client_name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {currentInsertionOrder.description && (
+        <p className="text-sm text-muted-foreground ml-2">{currentInsertionOrder.description}</p>
+      )}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Fixed Liquid Glass Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg bg-white/50 border-b border-white/20 shadow-lg">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="mb-1">
-                <img 
-                  src="/lovable-uploads/0fcddc38-83cc-4638-b362-1485d244ceb3.png" 
-                  alt="HYPR TRACKING" 
-                  className="h-7 object-contain"
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Gerencie suas campanhas e organize seus criativos
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Link to="/reports">
-                <Button variant="outline" className="gap-2">
-                  <FileText className="w-4 h-4" />
-                  Relatórios
-                </Button>
-              </Link>
-              <UserMenu />
-            </div>
-          </div>
-        </div>
-      </div>
+    <AppLayout 
+      subtitle="Gerencie suas campanhas e organize seus criativos"
+      breadcrumbs={breadcrumbItems}
+      actions={<CreateCampaignGroupDialog insertionOrderId={insertionOrderId} />}
+      contextBar={contextBar}
+    >
 
-      {/* Content with top padding to account for fixed header */}
-      <div className="pt-32">
-        <div className="container mx-auto px-4 py-6">
-          {/* Breadcrumb */}
-          <Breadcrumb items={breadcrumbItems} />
-          
-          {/* Actions Bar */}
-          <div className="flex justify-end gap-3 mb-6">
-            <CreateCampaignGroupDialog insertionOrderId={insertionOrderId} />
-          </div>
-
-          {/* Header with IO context */}
-          {currentInsertionOrder && (
-            <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
-              <div className="flex items-center gap-2 mb-1">
-                <Building className="w-4 h-4 text-muted-foreground" />
-                <Select
-                  value={insertionOrderId}
-                  onValueChange={(value) => {
-                    if (value !== insertionOrderId) {
-                      // Reset local filters when switching
-                      setSearchTerm("");
-                      setStatusFilter("all");
-                      
-                      navigate(`/insertion-orders/${value}/campanhas`);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-auto border-none shadow-none p-0 h-auto text-lg font-semibold bg-transparent hover:bg-muted/50 focus:ring-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-50 bg-background border shadow-md">
-                    {insertionOrders.map((io) => (
-                      <SelectItem key={io.id} value={io.id}>
-                        {io.client_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {currentInsertionOrder.description && (
-                <p className="text-sm text-muted-foreground">{currentInsertionOrder.description}</p>
-              )}
-            </div>
-          )}
-
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <Card key={i} className="border shadow-sm">
@@ -166,7 +129,7 @@ const Campanhas = () => {
                   icon={Users}
                   value={activeCampaignGroups}
                   label="Campanhas Ativas"
-                  className="bg-green-50"
+                  className="bg-muted"
                   iconColor="text-green-600"
                 />
                 
@@ -174,7 +137,7 @@ const Campanhas = () => {
                   icon={BarChart3}
                   value={totalCriativos}
                   label="Total de Criativos"
-                  className="bg-blue-50"
+                  className="bg-muted"
                   iconColor="text-blue-600"
                 />
                 
@@ -182,15 +145,15 @@ const Campanhas = () => {
                   icon={MousePointer}
                   value={totalClicks}
                   label="Total de Clicks"
-                  className="bg-purple-50"
+                  className="bg-muted"
                   iconColor="text-purple-600"
                 />
               </>
             )}
           </div>
 
-          {/* Filters Section */}
-          <div className="p-4 bg-muted/50 rounded-lg border mb-6">
+        {/* Filters Section */}
+        <div className="p-4 bg-muted/30 rounded-lg border mb-6">
             <div className="space-y-4">
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row gap-3">
@@ -235,8 +198,8 @@ const Campanhas = () => {
             </div>
           </div>
 
-          {/* Campaign Groups List */}
-          <div className="space-y-4">
+        {/* Campaign Groups List */}
+        <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-medium">
                 Suas Campanhas {currentInsertionOrder ? `- ${currentInsertionOrder.client_name}` : ''}
@@ -292,10 +255,8 @@ const Campanhas = () => {
                 ))}
               </div>
             )}
-          </div>
         </div>
-      </div>
-    </div>
+    </AppLayout>
   );
 };
 
