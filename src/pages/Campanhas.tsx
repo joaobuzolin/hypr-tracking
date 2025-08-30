@@ -64,7 +64,7 @@ const Campanhas = () => {
   };
 
   // Generate breadcrumbs based on current context
-  const breadcrumbItems = generateBreadcrumbs(currentInsertionOrder?.client_name);
+  const breadcrumbItems = generateBreadcrumbs();
 
   return (
     <div className="min-h-screen bg-background">

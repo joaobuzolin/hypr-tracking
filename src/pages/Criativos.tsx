@@ -279,11 +279,7 @@ const Criativos = () => {
   }, []);
 
   // Generate breadcrumbs based on current context
-  const breadcrumbItems = generateBreadcrumbs(
-    undefined, // insertionOrderName - we don't have it in this context
-    currentCampaignGroup?.name, // campaignGroupName
-    undefined // campaignName
-  );
+  const breadcrumbItems = generateBreadcrumbs();
 
   const DateRangePicker = () => (
     <Popover>
