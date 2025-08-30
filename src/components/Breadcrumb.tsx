@@ -71,7 +71,7 @@ export const useBreadcrumbs = () => {
       icon: Building
     });
 
-    // Se estivermos em qualquer página de campanhas, adicionar Campanhas
+    // Se estivermos em campanhas de uma IO específica ou campanhas gerais
     if (pathname.includes('/campaigns') || pathname.startsWith('/campaigns')) {
       items.push({
         label: 'Campanhas',
