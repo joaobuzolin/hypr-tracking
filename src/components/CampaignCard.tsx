@@ -31,8 +31,8 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
 
   return (
     <Link to={`/criativos/${campaign.id}`} className="block">
-      <Card className="border shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-        <CardHeader className="pb-3">
+      <Card className="border shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
+        <CardHeader className="pb-3 px-4 md:px-6 py-4 md:py-6">
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-lg font-semibold hover:text-blue-600 transition-colors">
@@ -60,43 +60,43 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="pt-0" onClick={(e) => e.preventDefault()}>
-          <div className="space-y-4">
+        <CardContent className="pt-0 px-4 md:px-6 pb-4 md:pb-6" onClick={(e) => e.preventDefault()}>
+          <div className="space-y-3 md:space-y-4">
             {/* Métricas simples */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="text-center p-3 bg-neutral-50 rounded border">
-                <div className="text-lg font-semibold">{campaign.metrics.cta_clicks}</div>
-                <div className="text-xs text-neutral-600">Click Button</div>
+            <div className="grid grid-cols-3 gap-2 md:gap-3">
+              <div className="text-center p-2 md:p-3 bg-muted/50 rounded border">
+                <div className="text-sm md:text-lg font-semibold">{campaign.metrics.cta_clicks}</div>
+                <div className="text-xs text-muted-foreground">Click Button</div>
               </div>
-              <div className="text-center p-3 bg-neutral-50 rounded border">
-                <div className="text-lg font-semibold">{campaign.metrics.pin_clicks}</div>
-                <div className="text-xs text-neutral-600">PIN Clicks</div>
+              <div className="text-center p-2 md:p-3 bg-muted/50 rounded border">
+                <div className="text-sm md:text-lg font-semibold">{campaign.metrics.pin_clicks}</div>
+                <div className="text-xs text-muted-foreground">PIN Clicks</div>
               </div>
-              <div className="text-center p-3 bg-neutral-50 rounded border">
-                <div className="text-lg font-semibold">{ctr}%</div>
-                <div className="text-xs text-neutral-600">CTR</div>
+              <div className="text-center p-2 md:p-3 bg-muted/50 rounded border">
+                <div className="text-sm md:text-lg font-semibold">{ctr}%</div>
+                <div className="text-xs text-muted-foreground">CTR</div>
               </div>
             </div>
 
             <Separator />
 
             {/* Tags Preview */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">Tags de Tracking</h4>
+            <div className="space-y-2 md:space-y-3">
+              <h4 className="font-medium text-xs md:text-sm">Tags de Tracking</h4>
               
               {campaign.tags.length === 0 ? (
-                <div className="text-xs text-muted-foreground p-3 bg-neutral-50 rounded border text-center">
+                <div className="text-xs text-muted-foreground p-2 md:p-3 bg-muted/30 rounded border text-center">
                   Nenhuma tag criada. Clique na campanha para adicionar tags.
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5 md:space-y-2">
                   {campaign.tags.slice(0, 2).map((tag) => (
-                    <div key={tag.id} className="flex items-center gap-2">
+                    <div key={tag.id} className="flex items-center gap-1.5 md:gap-2 flex-wrap">
                       <Badge variant="outline" className="text-xs">
                         {tag.type.toUpperCase()}
                       </Badge>
-                      <span className="text-xs font-medium">{tag.title}</span>
-                      <code className="text-xs bg-neutral-100 px-2 py-1 rounded font-mono">
+                      <span className="text-xs font-medium truncate flex-1 min-w-0">{tag.title}</span>
+                      <code className="text-xs bg-muted px-1.5 md:px-2 py-1 rounded font-mono truncate max-w-[80px] md:max-w-none">
                         {tag.code}
                       </code>
                     </div>
