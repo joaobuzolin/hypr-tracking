@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Building, FolderOpen, MousePointer, Search, Filter, User, Activity } from "lucide-react";
+import { Plus, Building, FolderOpen, MousePointer, Search, Filter, User, Activity, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
@@ -242,10 +242,10 @@ const InsertionOrders = () => {
             </div>
             <div className="flex gap-3">
               <UserMenu />
-              <Link to="/campaigns">
+              <Link to="/reports">
                 <Button variant="outline" className="gap-2">
-                  <FolderOpen className="w-4 h-4" />
-                  Campanhas
+                  <FileText className="w-4 h-4" />
+                  Relatórios
                 </Button>
               </Link>
               <CreateInsertionOrderDialog onCreated={handleCreated} />

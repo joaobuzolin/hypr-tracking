@@ -278,12 +278,6 @@ const Campaigns = () => {
             </div>
             <div className="flex gap-3">
               <UserMenu />
-              <Link to="/insertion-orders">
-                <Button variant="outline" className="gap-2">
-                  <Building className="w-4 h-4" />
-                  Insertion Orders
-                </Button>
-              </Link>
               <Link to="/reports">
                 <Button variant="outline" className="gap-2">
                   <FileText className="w-4 h-4" />

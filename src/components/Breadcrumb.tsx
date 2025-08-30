@@ -14,7 +14,6 @@ interface BreadcrumbProps {
 }
 
 export const Breadcrumb = ({ items }: BreadcrumbProps) => {
-  if (items.length <= 1) return null;
 
   return (
     <nav className="flex items-center space-x-1 text-sm text-muted-foreground mb-4">
