@@ -72,11 +72,12 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-neutral-50 to-neutral-100 flex-col justify-center items-center p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-cover bg-center bg-no-repeat flex-col justify-center items-center p-12 relative" style={{backgroundImage: "url('/lovable-uploads/d997ec22-d44b-4dee-8de9-b5127af19e1a.png')"}}>
+        <div className="absolute inset-0 bg-black/20"></div>
         <img 
           src="/lovable-uploads/0fcddc38-83cc-4638-b362-1485d244ceb3.png" 
           alt="HYPR TRACKING" 
-          className="h-8 object-contain"
+          className="h-8 object-contain relative z-10"
         />
       </div>
 
