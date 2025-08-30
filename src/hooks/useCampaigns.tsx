@@ -221,8 +221,6 @@ export const useCampaigns = () => {
     name: string;
     description: string;
     insertion_order_id?: string;
-    campaign_group_id: string;
-    iab_format?: string;
     start_date?: string;
     end_date?: string;
   }) => {
@@ -238,10 +236,8 @@ export const useCampaigns = () => {
           {
             user_id: user.id,
             insertion_order_id: campaignData.insertion_order_id,
-            campaign_group_id: campaignData.campaign_group_id,
             name: campaignData.name,
             description: campaignData.description,
-            iab_format: campaignData.iab_format,
             start_date: startDate,
             end_date: endDate,
             status: 'active'

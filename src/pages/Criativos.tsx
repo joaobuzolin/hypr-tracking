@@ -25,23 +25,18 @@ import type { DateRange } from "react-day-picker";
 
 // Componentes otimizados agora estão em arquivos separados
 
-interface CreateCriativoDialogProps {
-  onCriativoCreated: () => void;
-  insertionOrderId?: string;
-  campaignGroupId?: string;
-  createCampaign: (data: { name: string; description: string; insertion_order_id?: string; campaign_group_id: string; iab_format?: string }) => Promise<{ error: any }>;
-}
-
 const CreateCriativoDialog = ({ 
   onCriativoCreated,
   insertionOrderId,
-  campaignGroupId,
   createCampaign
-}: CreateCriativoDialogProps) => {
+}: { 
+  onCriativoCreated: () => void;
+  insertionOrderId?: string;
+  createCampaign: (data: any) => Promise<any>;
+}) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [iabFormat, setIabFormat] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -51,21 +46,10 @@ const CreateCriativoDialog = ({
 
     setLoading(true);
 
-    if (!campaignGroupId) {
-      toast({
-        title: "Erro",
-        description: "ID da campanha não encontrado.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const { error } = await createCampaign({
       name: name.trim(),
       description: description.trim(),
-      iab_format: iabFormat,
-      insertion_order_id: insertionOrderId,
-      campaign_group_id: campaignGroupId
+      insertion_order_id: insertionOrderId
     });
 
     if (error) {
@@ -83,7 +67,6 @@ const CreateCriativoDialog = ({
       // Reset form
       setName("");
       setDescription("");
-      setIabFormat("");
       setOpen(false);
       onCriativoCreated();
     }
@@ -119,28 +102,6 @@ const CreateCriativoDialog = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="iabFormat">Formato IAB *</Label>
-            <Select value={iabFormat} onValueChange={setIabFormat} disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o formato IAB" />
-              </SelectTrigger>
-              <SelectContent className="z-50 bg-background border shadow-md">
-                <SelectItem value="300x250">300x250 - Medium Rectangle</SelectItem>
-                <SelectItem value="300x600">300x600 - Half Page</SelectItem>
-                <SelectItem value="970x250">970x250 - Billboard</SelectItem>
-                <SelectItem value="728x90">728x90 - Leaderboard</SelectItem>
-                <SelectItem value="320x50">320x50 - Mobile Banner</SelectItem>
-                <SelectItem value="300x50">300x50 - Mobile Banner</SelectItem>
-                <SelectItem value="320x100">320x100 - Large Mobile Banner</SelectItem>
-                <SelectItem value="160x600">160x600 - Wide Skyscraper</SelectItem>
-                <SelectItem value="970x90">970x90 - Super Banner</SelectItem>
-                <SelectItem value="320x480">320x480 - Mobile Full Screen</SelectItem>
-                <SelectItem value="300x300">300x300 - Square</SelectItem>
-                <SelectItem value="250x250">250x250 - Square</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
             <Textarea
               id="description"
@@ -155,7 +116,7 @@ const CreateCriativoDialog = ({
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1" disabled={loading}>
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading || !name.trim() || !iabFormat}>
+            <Button type="submit" className="flex-1" disabled={loading}>
               {loading ? 'Criando...' : 'Criar Criativo'}
             </Button>
           </div>

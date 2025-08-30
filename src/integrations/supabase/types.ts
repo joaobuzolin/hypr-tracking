@@ -14,58 +14,9 @@ export type Database = {
   }
   public: {
     Tables: {
-      campaign_groups: {
-        Row: {
-          created_at: string
-          description: string | null
-          end_date: string | null
-          id: string
-          insertion_order_id: string
-          name: string
-          start_date: string | null
-          status: string | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          end_date?: string | null
-          id?: string
-          insertion_order_id: string
-          name: string
-          start_date?: string | null
-          status?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          end_date?: string | null
-          id?: string
-          insertion_order_id?: string
-          name?: string
-          start_date?: string | null
-          status?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_campaign_groups_insertion_order"
-            columns: ["insertion_order_id"]
-            isOneToOne: false
-            referencedRelation: "insertion_orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       campaigns: {
         Row: {
-          campaign_group_id: string
           created_at: string
-          creative_format: string | null
           description: string | null
           end_date: string
           id: string
@@ -77,9 +28,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          campaign_group_id: string
           created_at?: string
-          creative_format?: string | null
           description?: string | null
           end_date: string
           id?: string
@@ -91,9 +40,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          campaign_group_id?: string
           created_at?: string
-          creative_format?: string | null
           description?: string | null
           end_date?: string
           id?: string
@@ -110,13 +57,6 @@ export type Database = {
             columns: ["insertion_order_id"]
             isOneToOne: false
             referencedRelation: "insertion_orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_campaigns_campaign_group"
-            columns: ["campaign_group_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_groups"
             referencedColumns: ["id"]
           },
         ]
