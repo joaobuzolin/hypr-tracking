@@ -69,7 +69,16 @@ export default {
 					600: 'hsl(var(--blue-600))'
 				},
 				green: {
-					500: 'hsl(var(--green-500))'
+					500: 'hsl(var(--green-500))',
+					600: 'hsl(var(--green-600))'
+				},
+				purple: {
+					500: 'hsl(var(--purple-500))',
+					600: 'hsl(var(--purple-600))'
+				},
+				orange: {
+					500: 'hsl(var(--orange-500))',
+					600: 'hsl(var(--orange-600))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { UserMenu } from "@/components/UserMenu";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useReportEvents } from "@/hooks/useReportEvents";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Download, Filter, CalendarIcon, FileSpreadsheet, FileText, Search, Eye, MousePointer, MapPin, Target, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Download, Filter, CalendarIcon, FileSpreadsheet, FileText, Search, Eye, MousePointer, MapPin, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -277,57 +276,32 @@ const Reports = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg bg-white/50 border-b border-white/20 shadow-lg">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-4">
-              <Link to="/criativos">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Voltar
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-semibold text-foreground mb-1">
-                  Relatórios
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Customize e exporte relatórios detalhados das suas campanhas
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <UserMenu />
-            </div>
-          </div>
+    <AppLayout 
+      title="Relatórios"
+      subtitle="Customize e exporte relatórios detalhados das suas campanhas"
+      showReportsButton={false}
+      backButton={{ href: "/criativos", label: "← Voltar" }}
+    >
+        {/* Actions Bar */}
+        <div className="flex justify-end gap-3 mb-6">
+          <Button 
+            variant="outline" 
+            onClick={exportToCSV}
+            disabled={reportData.length === 0}
+            className="gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Exportar CSV
+          </Button>
+          <Button 
+            onClick={exportToExcel}
+            disabled={reportData.length === 0}
+            className="gap-2"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Exportar Excel
+          </Button>
         </div>
-      </div>
-
-      {/* Content with top padding to account for fixed header */}
-      <div className="pt-32">
-        <div className="container mx-auto px-4 py-6">
-          {/* Actions Bar */}
-          <div className="flex justify-end gap-3 mb-6">
-            <Button 
-              variant="outline" 
-              onClick={exportToCSV}
-              disabled={reportData.length === 0}
-              className="gap-2"
-            >
-              <FileText className="w-4 h-4" />
-              Exportar CSV
-            </Button>
-            <Button 
-              onClick={exportToExcel}
-              disabled={reportData.length === 0}
-              className="gap-2"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              Exportar Excel
-            </Button>
-          </div>
           
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Configuration Panel */}
@@ -557,9 +531,7 @@ const Reports = () => {
             </Card>
           </div>
         </div>
-        </div>
-      </div>
-    </div>
+    </AppLayout>
   );
 };
 
