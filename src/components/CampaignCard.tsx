@@ -44,8 +44,15 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
                   <span>Criado por: {campaign.profile.email}</span>
                 </div>
               )}
-              <div className="text-xs text-muted-foreground mt-1">
-                Criado em: {new Date(campaign.created_at).toLocaleDateString('pt-BR')}
+              <div className="flex items-center gap-2 mt-1">
+                <div className="text-xs text-muted-foreground">
+                  Criado em: {new Date(campaign.created_at).toLocaleDateString('pt-BR')}
+                </div>
+                {campaign.creative_format && (
+                  <Badge variant="outline" className="text-xs">
+                    {campaign.creative_format}
+                  </Badge>
+                )}
               </div>
             </div>
             <Badge variant={campaign.derivedStatus === 'active' ? 'default' : 'secondary'} className="text-xs">
