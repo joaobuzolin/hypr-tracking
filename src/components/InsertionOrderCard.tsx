@@ -42,32 +42,34 @@ const getStatusLabel = (status: string) => {
 
 export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: InsertionOrderCardProps) => {
   return (
-    <Card className="border shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Building className="w-4 h-4 text-muted-foreground" />
-              <CardTitle className="text-lg font-semibold">
-                {insertionOrder.client_name}
-              </CardTitle>
-              <Badge variant={getStatusColor(insertionOrder.status)} className="text-xs">
+    <Card className="border shadow-sm hover:shadow-md transition-shadow h-full">
+      <CardHeader className="pb-3 px-4 md:px-6 py-4 md:py-6">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <Building className="w-4 h-4 text-muted-foreground shrink-0" />
+                <CardTitle className="text-sm md:text-lg font-semibold break-words">
+                  {insertionOrder.client_name}
+                </CardTitle>
+              </div>
+              <Badge variant={getStatusColor(insertionOrder.status)} className="text-xs w-fit">
                 {getStatusLabel(insertionOrder.status)}
               </Badge>
             </div>
             
             {insertionOrder.description && (
-              <CardDescription className="text-sm mt-1">
+              <CardDescription className="text-xs md:text-sm mt-1 break-words">
                 {insertionOrder.description}
               </CardDescription>
             )}
             
-            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-xs text-muted-foreground">
               {insertionOrder.profile && (
-                <span>Criado por: {insertionOrder.profile.email}</span>
+                <span className="break-all">Criado por: {insertionOrder.profile.email}</span>
               )}
               <span className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
+                <Calendar className="w-3 h-3 shrink-0" />
                 {new Date(insertionOrder.created_at).toLocaleDateString('pt-BR')}
               </span>
             </div>
@@ -75,7 +77,7 @@ export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: In
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="shrink-0">
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -100,21 +102,24 @@ export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: In
         </div>
       </CardHeader>
       
-      <CardContent className="pt-0">
-        <div className="space-y-4">
-          {/* Métricas */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center p-3 bg-neutral-50 rounded border">
-              <div className="text-lg font-semibold">{insertionOrder.campaigns_count}</div>
-              <div className="text-xs text-neutral-600">Criativos</div>
+      <CardContent className="pt-0 px-4 md:px-6 pb-4 md:pb-6">
+        <div className="space-y-3 md:space-y-4">
+          {/* Métricas responsivas - stack no mobile, grid no desktop */}
+          <div className="flex flex-col sm:grid sm:grid-cols-3 gap-2 md:gap-3">
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-muted/50 rounded border">
+              <div className="sm:hidden text-xs text-muted-foreground">Criativos</div>
+              <div className="text-sm md:text-lg font-semibold">{insertionOrder.campaigns_count}</div>
+              <div className="hidden sm:block text-xs text-muted-foreground">Criativos</div>
             </div>
-            <div className="text-center p-3 bg-neutral-50 rounded border">
-              <div className="text-lg font-semibold">{insertionOrder.total_tags}</div>
-              <div className="text-xs text-neutral-600">Tags</div>
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-muted/50 rounded border">
+              <div className="sm:hidden text-xs text-muted-foreground">Tags</div>
+              <div className="text-sm md:text-lg font-semibold">{insertionOrder.total_tags}</div>
+              <div className="hidden sm:block text-xs text-muted-foreground">Tags</div>
             </div>
-            <div className="text-center p-3 bg-neutral-50 rounded border">
-              <div className="text-lg font-semibold">{insertionOrder.total_clicks}</div>
-              <div className="text-xs text-neutral-600">Clicks</div>
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-muted/50 rounded border">
+              <div className="sm:hidden text-xs text-muted-foreground">Clicks</div>
+              <div className="text-sm md:text-lg font-semibold">{insertionOrder.total_clicks}</div>
+              <div className="hidden sm:block text-xs text-muted-foreground">Clicks</div>
             </div>
           </div>
 
@@ -123,29 +128,29 @@ export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: In
           {/* Período */}
           {(insertionOrder.start_date || insertionOrder.end_date) && (
             <div className="space-y-2">
-              <h4 className="font-medium text-sm">Período</h4>
-              <div className="text-xs text-muted-foreground">
+              <h4 className="font-medium text-xs md:text-sm">Período</h4>
+              <div className="text-xs text-muted-foreground break-words">
                 {insertionOrder.start_date && (
-                  <span>Início: {new Date(insertionOrder.start_date).toLocaleDateString('pt-BR')}</span>
+                  <div className="sm:inline">Início: {new Date(insertionOrder.start_date).toLocaleDateString('pt-BR')}</div>
                 )}
-                {insertionOrder.start_date && insertionOrder.end_date && <span> • </span>}
+                {insertionOrder.start_date && insertionOrder.end_date && <span className="hidden sm:inline"> • </span>}
                 {insertionOrder.end_date && (
-                  <span>Fim: {new Date(insertionOrder.end_date).toLocaleDateString('pt-BR')}</span>
+                  <div className="sm:inline">Fim: {new Date(insertionOrder.end_date).toLocaleDateString('pt-BR')}</div>
                 )}
               </div>
             </div>
           )}
 
           {/* Ações */}
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Link to={`/insertion-orders/${insertionOrder.id}/campanhas`} className="flex-1">
-              <Button variant="outline" className="w-full gap-2">
+              <Button variant="outline" className="w-full gap-2 text-xs md:text-sm">
                 <FolderOpen className="w-4 h-4" />
-                Ver Campanhas ({insertionOrder.campaigns_count})
+                <span className="break-words">Ver Campanhas ({insertionOrder.campaigns_count})</span>
               </Button>
             </Link>
             <Link to={`/insertion-orders/${insertionOrder.id}/campanhas`}>
-              <Button variant="default" className="gap-2">
+              <Button variant="default" className="gap-2 text-xs md:text-sm w-full sm:w-auto">
                 <MousePointer className="w-4 h-4" />
                 Nova Campanha
               </Button>

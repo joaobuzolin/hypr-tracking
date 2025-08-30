@@ -21,21 +21,23 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
   const ctr = calculateCTR(campaignGroup.total_clicks || 0, campaignGroup.total_page_views || 0);
   
   return (
-    <Card className="border shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <CardTitle className="text-lg font-semibold">
+    <Card className="border shadow-sm hover:shadow-md transition-shadow h-full">
+      <CardHeader className="pb-3 px-4 md:px-6 py-4 md:py-6">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-sm md:text-lg font-semibold break-words">
               {campaignGroup.name}
             </CardTitle>
-            <CardDescription className="text-sm">
-              {campaignGroup.description}
-            </CardDescription>
-            <div className="flex items-center gap-4 mt-2">
+            {campaignGroup.description && (
+              <CardDescription className="text-xs md:text-sm break-words">
+                {campaignGroup.description}
+              </CardDescription>
+            )}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
               {campaignGroup.start_date && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar className="w-3 h-3" />
-                  <span>
+                  <Calendar className="w-3 h-3 shrink-0" />
+                  <span className="break-words">
                     {new Date(campaignGroup.start_date).toLocaleDateString('pt-BR')}
                     {campaignGroup.end_date && (
                       <> - {new Date(campaignGroup.end_date).toLocaleDateString('pt-BR')}</>
@@ -48,7 +50,7 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Badge variant={campaignGroup.derivedStatus === 'active' ? 'default' : 'secondary'} className="text-xs">
               {campaignGroup.derivedStatus === 'active' ? 'Ativa' : 'Pausada'}
             </Badge>
@@ -76,25 +78,29 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
         </div>
       </CardHeader>
       
-      <CardContent className="pt-0">
-        <div className="space-y-4">
-          {/* Métricas gerais */}
-          <div className="grid grid-cols-4 gap-3">
-            <div className="text-center p-3 bg-neutral-50 rounded border">
-              <div className="text-lg font-semibold">{campaignGroup.campaigns_count || 0}</div>
-              <div className="text-xs text-neutral-600">Criativos</div>
+      <CardContent className="pt-0 px-4 md:px-6 pb-4 md:pb-6">
+        <div className="space-y-3 md:space-y-4">
+          {/* Métricas responsivas - stack no mobile, grid no desktop */}
+          <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-muted/50 rounded border">
+              <div className="sm:hidden text-xs text-muted-foreground">Criativos</div>
+              <div className="text-sm md:text-lg font-semibold">{campaignGroup.campaigns_count || 0}</div>
+              <div className="hidden sm:block text-xs text-muted-foreground">Criativos</div>
             </div>
-            <div className="text-center p-3 bg-blue-50 rounded border">
-              <div className="text-lg font-semibold">{campaignGroup.total_clicks || 0}</div>
-              <div className="text-xs text-blue-600">Total Clicks</div>
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-blue-50 rounded border">
+              <div className="sm:hidden text-xs text-blue-600">Total Clicks</div>
+              <div className="text-sm md:text-lg font-semibold">{campaignGroup.total_clicks || 0}</div>
+              <div className="hidden sm:block text-xs text-blue-600">Total Clicks</div>
             </div>
-            <div className="text-center p-3 bg-purple-50 rounded border">
-              <div className="text-lg font-semibold">{campaignGroup.total_page_views || 0}</div>
-              <div className="text-xs text-purple-600">Page Views</div>
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-purple-50 rounded border">
+              <div className="sm:hidden text-xs text-purple-600">Page Views</div>
+              <div className="text-sm md:text-lg font-semibold">{campaignGroup.total_page_views || 0}</div>
+              <div className="hidden sm:block text-xs text-purple-600">Page Views</div>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded border">
-              <div className="text-lg font-semibold">{ctr}%</div>
-              <div className="text-xs text-green-600">CTR</div>
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-green-50 rounded border">
+              <div className="sm:hidden text-xs text-green-600">CTR</div>
+              <div className="text-sm md:text-lg font-semibold">{ctr}%</div>
+              <div className="hidden sm:block text-xs text-green-600">CTR</div>
             </div>
           </div>
 
@@ -106,9 +112,9 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
               to={`/campanhas/${campaignGroup.id}/criativos`} 
               className="flex-1"
             >
-              <Button className="w-full gap-2">
+              <Button className="w-full gap-2 text-xs md:text-sm">
                 <BarChart3 className="w-4 h-4" />
-                Ver Criativos ({campaignGroup.campaigns_count || 0})
+                <span className="break-words">Ver Criativos ({campaignGroup.campaigns_count || 0})</span>
               </Button>
             </Link>
           </div>
