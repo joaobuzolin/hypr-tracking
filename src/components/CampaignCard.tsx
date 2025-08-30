@@ -30,7 +30,7 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
   };
 
   return (
-    <Link to={`/campaigns/${campaign.id}`} className="block">
+    <Link to={`/criativos/${campaign.id}`} className="block">
       <Card className="border shadow-sm hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
