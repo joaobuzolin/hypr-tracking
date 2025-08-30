@@ -72,62 +72,12 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-neutral-50 to-neutral-100 flex-col justify-center p-12">
-        <div className="max-w-md mx-auto text-center space-y-8">
-          <div className="space-y-4">
-            <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center mx-auto">
-              <Target className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <h1 className="text-3xl font-bold text-foreground">
-              HYPR Campaign Manager
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Sistema completo de tracking para campanhas com métricas em tempo real
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6 pt-8">
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto">
-                <BarChart3 className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">Analytics Avançado</h3>
-                <p className="text-xs text-muted-foreground">Métricas detalhadas em tempo real</p>
-              </div>
-            </div>
-
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto">
-                <MousePointer className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">Click Tracking</h3>
-                <p className="text-xs text-muted-foreground">Monitore botões e interações</p>
-              </div>
-            </div>
-
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto">
-                <MapPin className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">Map Pins</h3>
-                <p className="text-xs text-muted-foreground">Rastreie cliques em localizações</p>
-              </div>
-            </div>
-
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto">
-                <Target className="w-6 h-6 text-orange-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">CTR Otimizado</h3>
-                <p className="text-xs text-muted-foreground">Calcule e monitore performance</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-neutral-50 to-neutral-100 flex-col justify-center items-center p-12">
+        <img 
+          src="/lovable-uploads/0fcddc38-83cc-4638-b362-1485d244ceb3.png" 
+          alt="HYPR TRACKING" 
+          className="h-16 object-contain"
+        />
       </div>
 
       {/* Right side - Auth Forms */}
