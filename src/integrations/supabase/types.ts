@@ -20,6 +20,7 @@ export type Database = {
           description: string | null
           end_date: string
           id: string
+          insertion_order_id: string | null
           name: string
           start_date: string
           status: string | null
@@ -31,6 +32,7 @@ export type Database = {
           description?: string | null
           end_date: string
           id?: string
+          insertion_order_id?: string | null
           name: string
           start_date: string
           status?: string | null
@@ -42,13 +44,22 @@ export type Database = {
           description?: string | null
           end_date?: string
           id?: string
+          insertion_order_id?: string | null
           name?: string
           start_date?: string
           status?: string | null
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_insertion_order_id_fkey"
+            columns: ["insertion_order_id"]
+            isOneToOne: false
+            referencedRelation: "insertion_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       events: {
         Row: {
@@ -87,6 +98,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      insertion_orders: {
+        Row: {
+          client_name: string
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          project_name: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          project_name?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          project_name?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
