@@ -469,7 +469,7 @@ const Criativos = () => {
               
               {/* Second row: Filters */}
               <div className="flex flex-col sm:flex-row gap-3">
-                {!insertionOrderId && (
+                {!insertionOrderId && !campaignGroupId && (
                   <Select value={insertionOrderFilter} onValueChange={setInsertionOrderFilter}>
                     <SelectTrigger className="w-full sm:w-[200px]">
                       <Building className="w-4 h-4 mr-2" />
