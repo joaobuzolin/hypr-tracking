@@ -202,6 +202,24 @@ export type Database = {
       }
     }
     Functions: {
+      cleanup_old_events: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      get_campaign_metrics: {
+        Args: {
+          campaign_id_param: string
+          end_date?: string
+          start_date?: string
+        }
+        Returns: {
+          cta_clicks: number
+          metric_date: string
+          page_views: number
+          pin_clicks: number
+          total_events: number
+        }[]
+      }
       normalize_event_type: {
         Args: { provided_type: string; tag_id: string }
         Returns: string
