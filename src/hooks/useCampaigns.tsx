@@ -230,6 +230,11 @@ export const useCampaigns = () => {
   }) => {
     if (!user) return { error: 'Usuário não autenticado' };
 
+    // Validate required campaign_group_id
+    if (!campaignData.campaign_group_id) {
+      return { error: 'Grupo de campanha é obrigatório para criar um criativo' };
+    }
+
     try {
       const startDate = campaignData.start_date || new Date().toISOString().split('T')[0];
       const endDate = campaignData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -240,7 +245,7 @@ export const useCampaigns = () => {
           {
             user_id: user.id,
             insertion_order_id: campaignData.insertion_order_id,
-            campaign_group_id: campaignData.campaign_group_id || '',
+            campaign_group_id: campaignData.campaign_group_id,
             name: campaignData.name,
             description: campaignData.description,
             creative_format: campaignData.creative_format,
@@ -275,7 +280,8 @@ export const useCampaigns = () => {
       return { data, error: null };
     } catch (error) {
       console.error('Error creating campaign:', error);
-      return { data: null, error };
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao criar campanha';
+      return { data: null, error: errorMessage };
     }
   }, [user, campaigns]);
 

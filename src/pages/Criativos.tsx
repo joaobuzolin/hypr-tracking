@@ -44,17 +44,23 @@ const CreateCriativoDialog = ({
   onCriativoCreated,
   insertionOrderId,
   campaignGroupId,
-  createCampaign
+  createCampaign,
+  campaignGroups = [],
+  insertionOrders = []
 }: { 
   onCriativoCreated: () => void;
   insertionOrderId?: string;
   campaignGroupId?: string;
   createCampaign: (data: any) => Promise<any>;
+  campaignGroups?: any[];
+  insertionOrders?: any[];
 }) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [iabFormat, setIabFormat] = useState("300x250");
+  const [selectedCampaignGroupId, setSelectedCampaignGroupId] = useState(campaignGroupId || "");
+  const [selectedInsertionOrderId, setSelectedInsertionOrderId] = useState(insertionOrderId || "");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -67,15 +73,15 @@ const CreateCriativoDialog = ({
     const { error } = await createCampaign({
       name: name.trim(),
       description: description.trim(),
-      insertion_order_id: insertionOrderId,
-      campaign_group_id: campaignGroupId,
+      insertion_order_id: selectedInsertionOrderId || insertionOrderId,
+      campaign_group_id: selectedCampaignGroupId || campaignGroupId,
       creative_format: iabFormat
     });
 
     if (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível criar o criativo.",
+        description: typeof error === 'string' ? error : "Não foi possível criar o criativo.",
         variant: "destructive"
       });
     } else {
@@ -88,6 +94,8 @@ const CreateCriativoDialog = ({
       setName("");
       setDescription("");
       setIabFormat("300x250");
+      setSelectedCampaignGroupId(campaignGroupId || "");
+      setSelectedInsertionOrderId(insertionOrderId || "");
       setOpen(false);
       onCriativoCreated();
     }
@@ -133,6 +141,44 @@ const CreateCriativoDialog = ({
               disabled={loading}
             />
           </div>
+          {/* Campaign Group Selection - Only show if not in context */}
+          {!campaignGroupId && (
+            <div className="space-y-2">
+              <Label htmlFor="campaign-group">Grupo de Campanha *</Label>
+              <Select value={selectedCampaignGroupId} onValueChange={setSelectedCampaignGroupId} disabled={loading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o grupo de campanha" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-md">
+                  {campaignGroups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Insertion Order Selection - Only show if not in context */}
+          {!insertionOrderId && (
+            <div className="space-y-2">
+              <Label htmlFor="insertion-order">Insertion Order</Label>
+              <Select value={selectedInsertionOrderId} onValueChange={setSelectedInsertionOrderId} disabled={loading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o insertion order (opcional)" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-md">
+                  {insertionOrders.map((io) => (
+                    <SelectItem key={io.id} value={io.id}>
+                      {io.client_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="iab-format">Formato IAB *</Label>
             <Select value={iabFormat} onValueChange={setIabFormat} disabled={loading}>
@@ -152,7 +198,11 @@ const CreateCriativoDialog = ({
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1" disabled={loading}>
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="flex-1" 
+              disabled={loading || (!campaignGroupId && !selectedCampaignGroupId)}
+            >
               {loading ? 'Criando...' : 'Criar Criativo'}
             </Button>
           </div>
@@ -371,6 +421,8 @@ const Criativos = () => {
       insertionOrderId={insertionOrderId}
       campaignGroupId={campaignGroupId}
       createCampaign={createCampaign}
+      campaignGroups={campaignGroups}
+      insertionOrders={insertionOrders}
     />
   );
 
@@ -573,6 +625,8 @@ const Criativos = () => {
                       insertionOrderId={insertionOrderId}
                       campaignGroupId={campaignGroupId}
                       createCampaign={createCampaign}
+                      campaignGroups={campaignGroups}
+                      insertionOrders={insertionOrders}
                     />
                   </>
                 )}
