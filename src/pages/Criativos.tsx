@@ -25,6 +25,20 @@ import type { DateRange } from "react-day-picker";
 
 // Componentes otimizados agora estão em arquivos separados
 
+// Common IAB standard formats
+const IAB_FORMATS = [
+  { value: '300x250', label: '300x250 - Medium Rectangle' },
+  { value: '300x600', label: '300x600 - Half Page' },
+  { value: '970x250', label: '970x250 - Billboard' },
+  { value: '728x90', label: '728x90 - Leaderboard' },
+  { value: '320x50', label: '320x50 - Mobile Banner' },
+  { value: '160x600', label: '160x600 - Wide Skyscraper' },
+  { value: '970x90', label: '970x90 - Super Leaderboard' },
+  { value: '300x50', label: '300x50 - Mobile Banner Large' },
+  { value: '320x100', label: '320x100 - Large Mobile Banner' },
+  { value: '336x280', label: '336x280 - Large Rectangle' }
+];
+
 const CreateCriativoDialog = ({ 
   onCriativoCreated,
   insertionOrderId,
@@ -37,6 +51,7 @@ const CreateCriativoDialog = ({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [iabFormat, setIabFormat] = useState("300x250");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -49,7 +64,8 @@ const CreateCriativoDialog = ({
     const { error } = await createCampaign({
       name: name.trim(),
       description: description.trim(),
-      insertion_order_id: insertionOrderId
+      insertion_order_id: insertionOrderId,
+      creative_format: iabFormat
     });
 
     if (error) {
@@ -67,6 +83,7 @@ const CreateCriativoDialog = ({
       // Reset form
       setName("");
       setDescription("");
+      setIabFormat("300x250");
       setOpen(false);
       onCriativoCreated();
     }
@@ -111,6 +128,21 @@ const CreateCriativoDialog = ({
               rows={3}
               disabled={loading}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="iab-format">Formato IAB *</Label>
+            <Select value={iabFormat} onValueChange={setIabFormat} disabled={loading}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o formato IAB" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-md">
+                {IAB_FORMATS.map((format) => (
+                  <SelectItem key={format.value} value={format.value}>
+                    {format.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1" disabled={loading}>
