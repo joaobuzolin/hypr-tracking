@@ -89,7 +89,7 @@ const Auth = () => {
       </div>
 
       {/* Right side - Auth Forms with Glass Effect */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative z-10 backdrop-blur-xl bg-background/80 border-l border-border/20">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative z-10 backdrop-blur-3xl bg-background/30 border-l border-white/10 shadow-2xl">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center space-y-2">
             <div className="lg:hidden w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
