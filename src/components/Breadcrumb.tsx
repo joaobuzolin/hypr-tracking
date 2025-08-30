@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, Building, FolderOpen, FileText } from 'lucide-react';
+import { ChevronRight, Building, FolderOpen, FileText, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface BreadcrumbItem {
@@ -62,6 +62,7 @@ export const useBreadcrumbs = () => {
 
   const generateBreadcrumbs = (
     insertionOrderName?: string,
+    campaignGroupName?: string,
     campaignName?: string
   ): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = [];
@@ -73,12 +74,53 @@ export const useBreadcrumbs = () => {
       icon: Building
     });
 
-    // Sempre adicionar Criativos como segunda opção
-    items.push({
-      label: 'Criativos',
-      href: '/criativos',
-      icon: FolderOpen
-    });
+    // Se temos insertionOrderName, significa que estamos num contexto de IO específica
+    if (insertionOrderName) {
+      items.push({
+        label: insertionOrderName,
+        href: pathname.match(/\/insertion-orders\/([^\/]+)/)?.[0] + '/campanhas',
+        icon: Building
+      });
+    }
+
+    // Se estamos na rota de campanhas ou temos campaignGroupName
+    if (pathname.includes('/campanhas') || campaignGroupName) {
+      if (!insertionOrderName) {
+        // Se não temos IO name, adicionar link genérico para campanhas
+        items.push({
+          label: 'Campanhas',
+          href: pathname.includes('/campanhas') ? pathname.split('/campanhas')[0] + '/campanhas' : undefined,
+          icon: Users
+        });
+      }
+      
+      // Se temos campaignGroupName específico
+      if (campaignGroupName) {
+        items.push({
+          label: campaignGroupName,
+          href: pathname.match(/\/campanhas\/([^\/]+)/)?.[0] + '/criativos',
+          icon: Users
+        });
+      }
+    }
+
+    // Se estamos vendo criativos
+    if (pathname.includes('/criativos')) {
+      // Se não temos campanhas no path, adicionar Criativos genérico
+      if (!pathname.includes('/campanhas/')) {
+        items.push({
+          label: 'Criativos',
+          href: '/criativos',
+          icon: FolderOpen
+        });
+      } else if (campaignGroupName) {
+        // Se temos campaign group, já foi adicionado acima
+        items.push({
+          label: 'Criativos',
+          icon: FolderOpen
+        });
+      }
+    }
 
     // Se estivermos em detalhes de criativo específico
     if (pathname.includes('/criativos/') && campaignName && !pathname.endsWith('/new')) {

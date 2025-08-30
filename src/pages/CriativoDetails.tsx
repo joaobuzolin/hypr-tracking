@@ -413,8 +413,9 @@ const CampaignDetails = () => {
 
   // Generate breadcrumbs
   const breadcrumbItems = generateBreadcrumbs(
-    currentInsertionOrder?.client_name,
-    campaign?.name
+    undefined, // insertionOrderName
+    undefined, // campaignGroupName 
+    campaign?.name // campaignName
   );
 
   if (!campaign) {

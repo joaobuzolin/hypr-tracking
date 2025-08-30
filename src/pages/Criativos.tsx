@@ -16,7 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, BarChart3, MousePointer, FileText, Search, CalendarIcon, Filter, User, Activity, Building } from "lucide-react";
+import { Plus, BarChart3, MousePointer, FileText, Search, CalendarIcon, Filter, User, Activity, Building, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -174,11 +174,12 @@ const Criativos = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [insertionOrderFilter, setInsertionOrderFilter] = useState<string>("all");
   
-  // Get current insertion order if we're in that context
-  const currentInsertionOrder = useMemo(() => {
-    if (!insertionOrderId) return null;
-    return insertionOrders.find(io => io.id === insertionOrderId);
-  }, [insertionOrderId, insertionOrders]);
+  // Get current campaign group if we're in that context
+  const currentCampaignGroup = useMemo(() => {
+    // We'll need to fetch campaign group info when we have the ID
+    // For now, return null as we don't have the campaign groups hook here
+    return null;
+  }, [campaignGroupId]);
 
   // Filter campaigns by campaign group if specified in URL
   const relevantCampaigns = useMemo(() => {
@@ -278,7 +279,11 @@ const Criativos = () => {
   }, []);
 
   // Generate breadcrumbs based on current context
-  const breadcrumbItems = generateBreadcrumbs();
+  const breadcrumbItems = generateBreadcrumbs(
+    undefined, // insertionOrderName - we don't have it in this context
+    currentCampaignGroup?.name, // campaignGroupName
+    undefined // campaignName
+  );
 
   const DateRangePicker = () => (
     <Popover>
@@ -365,41 +370,15 @@ const Criativos = () => {
             />
           </div>
 
-          {/* Header with IO context */}
-          {currentInsertionOrder && (
+          {/* Header with Campaign Group context */}
+          {currentCampaignGroup && (
             <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
               <div className="flex items-center gap-2 mb-1">
-                <Building className="w-4 h-4 text-muted-foreground" />
-                <Select
-                  value={insertionOrderId}
-                  onValueChange={(value) => {
-                    if (value !== insertionOrderId) {
-                      // Reset local filters when switching
-                      setSearchTerm("");
-                      setDateRange(undefined);
-                      setCreatorFilter("all");
-                      setCreationMonthFilter("all");
-                      setStatusFilter("all");
-                      setInsertionOrderFilter("all");
-                      
-                      navigate(`/insertion-orders/${value}/criativos`);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-auto border-none shadow-none p-0 h-auto text-lg font-semibold bg-transparent hover:bg-muted/50 focus:ring-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-50 bg-background border shadow-md">
-                    {insertionOrders.map((io) => (
-                      <SelectItem key={io.id} value={io.id}>
-                        {io.client_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <h2 className="text-lg font-semibold">{currentCampaignGroup.name}</h2>
               </div>
-              {currentInsertionOrder.description && (
-                <p className="text-sm text-muted-foreground">{currentInsertionOrder.description}</p>
+              {currentCampaignGroup.description && (
+                <p className="text-sm text-muted-foreground">{currentCampaignGroup.description}</p>
               )}
             </div>
           )}
@@ -549,7 +528,9 @@ const Criativos = () => {
           {/* Campaigns List */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">Seus Criativos {currentInsertionOrder ? `- ${currentInsertionOrder.client_name}` : ''}</h2>
+              <h2 className="text-lg font-medium">
+                Seus Criativos {currentCampaignGroup ? `- ${currentCampaignGroup.name}` : ''}
+              </h2>
               <Badge variant="outline" className="text-xs">
                 {filteredCampaigns.length} criativo{filteredCampaigns.length !== 1 ? 's' : ''}
                 {filteredCampaigns.length !== relevantCampaigns.length && (
