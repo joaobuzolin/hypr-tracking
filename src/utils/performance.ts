@@ -1,5 +1,38 @@
 // Utilitários de performance para o sistema
 
+// Cache simples para dados estáticos
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+export const getCachedData = <T>(key: string): T | null => {
+  const cached = cache.get(key);
+  if (!cached) return null;
+  
+  if (Date.now() - cached.timestamp > CACHE_DURATION) {
+    cache.delete(key);
+    return null;
+  }
+  
+  return cached.data;
+};
+
+export const setCachedData = <T>(key: string, data: T): void => {
+  cache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
+// Fast click para remover delays de mobile
+export const fastClick = (callback: () => void) => {
+  const handleClick = (e: MouseEvent | TouchEvent) => {
+    e.preventDefault();
+    callback();
+  };
+  
+  return handleClick;
+};
+
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number

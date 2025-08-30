@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Building, FolderOpen, FileText, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ interface BreadcrumbProps {
   items: BreadcrumbItem[];
 }
 
-export const Breadcrumb = ({ items }: BreadcrumbProps) => {
+const BreadcrumbComponent = ({ items }: BreadcrumbProps) => {
   const location = useLocation();
 
   return (
@@ -33,11 +33,22 @@ export const Breadcrumb = ({ items }: BreadcrumbProps) => {
             {item.href ? (
               <Link 
                 to={item.href}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-md transition-none hover:bg-muted hover:text-foreground ${
                   isActive 
                     ? 'bg-primary text-primary-foreground font-medium' 
-                    : 'hover:bg-muted hover:text-foreground'
+                    : ''
                 }`}
+                replace={false}
+                onMouseEnter={() => {
+                  // Prefetch da página no hover para navegação instantânea
+                  if (item.href === '/') {
+                    import('../pages/InsertionOrders').catch(() => {});
+                  } else if (item.href === '/campanhas') {
+                    import('../pages/Campanhas').catch(() => {});
+                  } else if (item.href === '/criativos') {
+                    import('../pages/Criativos').catch(() => {});
+                  }
+                }}
               >
                 {Icon && <Icon className="w-4 h-4" />}
                 {item.label}
@@ -55,12 +66,14 @@ export const Breadcrumb = ({ items }: BreadcrumbProps) => {
   );
 };
 
-// Hook personalizado para gerar breadcrumbs automaticamente
+export const Breadcrumb = memo(BreadcrumbComponent);
+
+// Hook personalizado para gerar breadcrumbs automaticamente - otimizado
 export const useBreadcrumbs = () => {
   const location = useLocation();
-  const pathname = location.pathname;
-
-  const generateBreadcrumbs = (): BreadcrumbItem[] => {
+  
+  // Memoizar os breadcrumbs para evitar recriação desnecessária
+  const generateBreadcrumbs = React.useMemo((): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = [];
 
     // Sempre mostrar os 3 níveis da hierarquia
@@ -83,7 +96,7 @@ export const useBreadcrumbs = () => {
     });
 
     return items;
-  };
+  }, [location.pathname]);
 
-  return { generateBreadcrumbs };
+  return { generateBreadcrumbs: () => generateBreadcrumbs };
 };
