@@ -223,17 +223,45 @@ const InsertionOrders = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Insertion Orders</h1>
-          <p className="text-muted-foreground">Manage your advertising campaigns</p>
+    <div className="min-h-screen bg-background">
+      {/* Fixed Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg bg-white/50 border-b border-white/20 shadow-lg">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="mb-1">
+                <img 
+                  src="/lovable-uploads/0fcddc38-83cc-4638-b362-1485d244ceb3.png" 
+                  alt="HYPR TRACKING" 
+                  className="h-7 object-contain"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Gerencie suas insertion orders e organize campanhas por cliente
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <UserMenu />
+              <Link to="/campaigns">
+                <Button variant="outline" className="gap-2">
+                  <FolderOpen className="w-4 h-4" />
+                  Campanhas
+                </Button>
+              </Link>
+              <CreateInsertionOrderDialog onCreated={handleCreated} />
+            </div>
+          </div>
         </div>
-        <CreateInsertionOrderDialog onCreated={handleCreated} />
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* Content */}
+      <div className="pt-32">
+        <div className="container mx-auto px-4 py-6">
+          {/* Breadcrumb Navigation */}
+          <Breadcrumb items={breadcrumbs} />
+          
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="border shadow-sm">
@@ -391,6 +419,8 @@ const InsertionOrders = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
 
       {/* Edit Dialog */}
       <EditInsertionOrderDialog 

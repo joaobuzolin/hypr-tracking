@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -30,7 +30,7 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
   };
 
   return (
-    <div className="block">
+    <Link to={`/campaigns/${campaign.id}`} className="block">
       <Card className="border shadow-sm hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
@@ -105,7 +105,7 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </Link>
   );
 });
 

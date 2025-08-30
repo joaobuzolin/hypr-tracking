@@ -1,16 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  ChevronRight, 
-  Building, 
-  FolderOpen, 
-  FileText, 
-  Home,
-  Layers,
-  Image,
-  Plus,
-  BarChart3
-} from 'lucide-react';
+import { ChevronRight, Building, FolderOpen, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface BreadcrumbItem {
   label: string;
@@ -23,6 +14,7 @@ interface BreadcrumbProps {
 }
 
 export const Breadcrumb = ({ items }: BreadcrumbProps) => {
+  if (items.length <= 1) return null;
 
   return (
     <nav className="flex items-center space-x-1 text-sm text-muted-foreground mb-4">
@@ -65,84 +57,67 @@ export const Breadcrumb = ({ items }: BreadcrumbProps) => {
 // Hook personalizado para gerar breadcrumbs automaticamente
 export const useBreadcrumbs = () => {
   const location = useLocation();
+  const pathname = location.pathname;
 
   const generateBreadcrumbs = (
-    insertionOrderName?: string, 
+    insertionOrderName?: string,
     campaignName?: string
   ): BreadcrumbItem[] => {
-    const pathSegments = location.pathname.split('/').filter(Boolean);
-    const breadcrumbs: BreadcrumbItem[] = [];
+    const items: BreadcrumbItem[] = [];
 
-    // Handle insertion orders
-    if (pathSegments.includes('insertion-orders')) {
-      breadcrumbs.push({
+    // Sempre começar com Insertion Orders se não estivermos na home
+    if (pathname !== '/') {
+      items.push({
         label: 'Insertion Orders',
-        href: '/insertion-orders',
-        icon: FolderOpen
+        href: '/',
+        icon: Building
       });
+    }
 
-      // Handle specific insertion order
-      const insertionOrderIndex = pathSegments.indexOf('insertion-orders');
-      const insertionOrderId = pathSegments[insertionOrderIndex + 1];
-      
-      if (insertionOrderId && insertionOrderName) {
-        // If we're in campaign groups or deeper
-        if (pathSegments.includes('campaign-groups')) {
-          breadcrumbs.push({
-            label: insertionOrderName,
-            href: `/insertion-orders/${insertionOrderId}/campaign-groups`,
-            icon: Building
-          });
-
-          const campaignGroupIndex = pathSegments.indexOf('campaign-groups');
-          const campaignGroupId = pathSegments[campaignGroupIndex + 1];
-          
-          if (campaignGroupId && campaignName) {
-            breadcrumbs.push({
-              label: campaignName,
-              href: `/insertion-orders/${insertionOrderId}/campaign-groups/${campaignGroupId}/creatives`,
-              icon: Layers
-            });
-
-            // Handle creatives
-            if (pathSegments.includes('creatives')) {
-              breadcrumbs.push({
-                label: 'Creatives',
-                href: `/insertion-orders/${insertionOrderId}/campaign-groups/${campaignGroupId}/creatives`,
-                icon: Image
-              });
-
-              // Handle specific creative
-              const creativesIndex = pathSegments.indexOf('creatives');
-              const creativeId = pathSegments[creativesIndex + 1];
-              
-              if (creativeId && creativeId !== 'new') {
-                breadcrumbs.push({
-                  label: 'Creative Details',
-                  icon: FileText
-                });
-              } else if (creativeId === 'new') {
-                breadcrumbs.push({
-                  label: 'New Creative',
-                  icon: Plus
-                });
-              }
-            }
-          }
-        }
+    // Se estivermos em campanhas de uma IO específica
+    if (pathname.includes('/insertion-orders/') && pathname.includes('/campaigns')) {
+      if (insertionOrderName) {
+        const ioId = pathname.split('/insertion-orders/')[1]?.split('/')[0];
+        items.push({
+          label: insertionOrderName,
+          href: '/',
+          icon: Building
+        });
+        
+        items.push({
+          label: 'Campanhas',
+          href: `/insertion-orders/${ioId}/campaigns`,
+          icon: FolderOpen
+        });
       }
     }
-
-    // Handle reports
-    if (pathSegments.includes('reports')) {
-      breadcrumbs.push({
-        label: 'Reports',
-        href: '/reports',
-        icon: BarChart3
+    
+    // Se estivermos em campanhas gerais
+    else if (pathname.startsWith('/campaigns') && !pathname.includes('/insertion-orders/')) {
+      items.push({
+        label: 'Campanhas',
+        href: '/campaigns',
+        icon: FolderOpen
       });
     }
 
-    return breadcrumbs;
+    // Se estivermos em detalhes de campanha
+    if (pathname.includes('/campaigns/') && campaignName && !pathname.endsWith('/new')) {
+      items.push({
+        label: campaignName,
+        icon: FileText
+      });
+    }
+
+    // Se estivermos criando nova campanha
+    if (pathname.endsWith('/new')) {
+      items.push({
+        label: 'Nova Campanha',
+        icon: FileText
+      });
+    }
+
+    return items;
   };
 
   return { generateBreadcrumbs };

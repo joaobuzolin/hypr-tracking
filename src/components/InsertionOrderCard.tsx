@@ -138,13 +138,13 @@ export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: In
 
           {/* Ações */}
           <div className="flex gap-2">
-            <Link to={`/insertion-orders/${insertionOrder.id}/campaign-groups`} className="flex-1">
+            <Link to={`/insertion-orders/${insertionOrder.id}/campaigns`} className="flex-1">
               <Button variant="outline" className="w-full gap-2">
                 <FolderOpen className="w-4 h-4" />
                 Ver Campanhas ({insertionOrder.campaigns_count})
               </Button>
             </Link>
-            <Link to={`/insertion-orders/${insertionOrder.id}/campaign-groups/new`}>
+            <Link to={`/insertion-orders/${insertionOrder.id}/campaigns/new`}>
               <Button variant="default" className="gap-2">
                 <MousePointer className="w-4 h-4" />
                 Nova Campanha

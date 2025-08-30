@@ -1,80 +1,38 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { AppLayout } from "@/components/AppLayout";
-import InsertionOrders from "@/pages/InsertionOrders";
-import CampaignGroups from "@/pages/CampaignGroups";
-import Creatives from "@/pages/Creatives";
-import CreativeDetails from "@/pages/CreativeDetails";
-import Reports from "@/pages/Reports";
-import Auth from "@/pages/Auth";
-import AuthCallback from "@/pages/AuthCallback";
-import NotFound from "@/pages/NotFound";
-
-const queryClient = new QueryClient();
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Campaigns from "./pages/Campaigns";
+import CampaignDetails from "./pages/CampaignDetails";
+import Reports from "./pages/Reports";
+import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
+import NotFound from "./pages/NotFound";
+import InsertionOrders from "./pages/InsertionOrders";
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <InsertionOrders />
-                </AppLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/insertion-orders" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <InsertionOrders />
-                </AppLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/insertion-orders/:insertionOrderId/campaign-groups" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <CampaignGroups />
-                </AppLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/insertion-orders/:insertionOrderId/campaign-groups/:campaignGroupId/creatives" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Creatives />
-                </AppLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/insertion-orders/:insertionOrderId/campaign-groups/:campaignGroupId/creatives/:creativeId" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <CreativeDetails />
-                </AppLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/reports" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Reports />
-                </AppLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/" element={<ProtectedRoute><InsertionOrders /></ProtectedRoute>} />
+          <Route path="/insertion-orders" element={<ProtectedRoute><InsertionOrders /></ProtectedRoute>} />
+          <Route path="/insertion-orders/:insertionOrderId/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
+          <Route path="/insertion-orders/:insertionOrderId/campaigns/new" element={<ProtectedRoute><CampaignDetails /></ProtectedRoute>} />
+          <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
+          <Route path="/campaigns/:id" element={<ProtectedRoute><CampaignDetails /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </AuthProvider>
 );
 
 export default App;
