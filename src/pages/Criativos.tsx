@@ -471,36 +471,38 @@ const Criativos = () => {
       </div>
 
       {/* Filters Section */}
-      <Card className="mb-8">
-        <CardContent className="p-6">
+      <Card className="mb-6 md:mb-8 mx-1">
+        <CardContent className="p-4 md:p-6">
           <div className="space-y-4">
             {/* First row: Search and Date Range */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1 max-w-sm">
+            <div className="flex flex-col gap-3 md:gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Buscar criativos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-full"
                 />
               </div>
-              <DateRangePicker />
+              <div className="w-full">
+                <DateRangePicker />
+              </div>
             </div>
             
             {/* Second row: Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
               {!insertionOrderId && !campaignGroupId && (
                 <Select value={insertionOrderFilter} onValueChange={setInsertionOrderFilter}>
-                  <SelectTrigger className="w-full sm:w-[200px]">
-                    <Building className="w-4 h-4 mr-2" />
+                  <SelectTrigger className="w-full">
+                    <Building className="w-4 h-4 mr-2 shrink-0" />
                     <SelectValue placeholder="Insertion Order" />
                   </SelectTrigger>
                   <SelectContent className="bg-background border shadow-md z-50">
                     <SelectItem value="all">Todas as IOs</SelectItem>
                     {uniqueInsertionOrders.map((io) => (
                       <SelectItem key={io.id} value={io.id}>
-                        {io.name}
+                        <span className="truncate">{io.name}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -508,23 +510,23 @@ const Criativos = () => {
               )}
 
               <Select value={creatorFilter} onValueChange={setCreatorFilter}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <User className="w-4 h-4 mr-2" />
+                <SelectTrigger className="w-full">
+                  <User className="w-4 h-4 mr-2 shrink-0" />
                   <SelectValue placeholder="Responsável" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
                   <SelectItem value="all">Todos os criadores</SelectItem>
                   {uniqueCreators.map((creator) => (
                     <SelectItem key={creator} value={creator}>
-                      {creator}
+                      <span className="truncate">{creator}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
               <Select value={creationMonthFilter} onValueChange={setCreationMonthFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <CalendarIcon className="w-4 h-4 mr-2" />
+                <SelectTrigger className="w-full">
+                  <CalendarIcon className="w-4 h-4 mr-2 shrink-0" />
                   <SelectValue placeholder="Mês/Ano" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
@@ -537,7 +539,7 @@ const Criativos = () => {
                     });
                     return (
                       <SelectItem key={month} value={month}>
-                        {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+                        <span className="truncate">{monthName.charAt(0).toUpperCase() + monthName.slice(1)}</span>
                       </SelectItem>
                     );
                   })}
@@ -578,12 +580,12 @@ const Criativos = () => {
       </Card>
 
       {/* Campaigns List */}
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">
+      <div className="space-y-6 px-1">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <h2 className="text-lg md:text-xl font-semibold">
             Seus Criativos {currentCampaignGroup ? `- ${currentCampaignGroup.name}` : ''}
           </h2>
-          <Badge variant="outline">
+          <Badge variant="outline" className="shrink-0">
             {filteredCampaigns.length} criativo{filteredCampaigns.length !== 1 ? 's' : ''}
             {filteredCampaigns.length !== relevantCampaigns.length && (
               <span className="text-muted-foreground ml-1">de {relevantCampaigns.length}</span>
@@ -595,31 +597,32 @@ const Criativos = () => {
           <div className="space-y-4">
             {Array.from({ length: 2 }).map((_, i) => (
               <Card key={i}>
-                <CardContent className="p-6">
-                  <Skeleton className="h-32 w-full" />
+                <CardContent className="p-4 md:p-6">
+                  <Skeleton className="h-24 md:h-32 w-full" />
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : filteredCampaigns.length === 0 ? (
           <Card>
-            <CardContent className="p-12 text-center">
+            <CardContent className="p-8 md:p-12 text-center">
               <div className="text-muted-foreground">
                 {searchTerm || dateRange?.from || dateRange?.to || creatorFilter !== "all" || creationMonthFilter !== "all" || statusFilter !== "all" ? (
                   <>
-                    <Filter className="w-12 h-12 mx-auto mb-4 opacity-40" />
-                    <p className="mb-4">Nenhum criativo encontrado com os filtros aplicados</p>
+                    <Filter className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-4 opacity-40" />
+                    <p className="mb-4 text-sm md:text-base">Nenhum criativo encontrado com os filtros aplicados</p>
                     <Button 
                       variant="outline" 
                       onClick={clearFilters}
+                      size="sm"
                     >
                       Limpar filtros
                     </Button>
                   </>
                 ) : (
                   <>
-                    <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-40" />
-                    <p className="mb-4">Nenhum criativo criado ainda</p>
+                    <BarChart3 className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-4 opacity-40" />
+                    <p className="mb-4 text-sm md:text-base">Nenhum criativo criado ainda</p>
                     <CreateCriativoDialog 
                       onCriativoCreated={handleCriativoCreated} 
                       insertionOrderId={insertionOrderId}

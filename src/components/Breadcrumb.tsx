@@ -17,7 +17,7 @@ const BreadcrumbComponent = ({ items }: BreadcrumbProps) => {
   const location = useLocation();
 
   return (
-    <nav className="flex flex-wrap items-center gap-1 md:gap-2 text-xs md:text-sm text-muted-foreground mb-6 md:mb-8 mt-2 md:mt-4">
+    <nav className="flex flex-wrap items-center gap-1 md:gap-2 text-xs md:text-sm text-muted-foreground mb-6 md:mb-8 mt-2 md:mt-4 overflow-x-auto">
       {items.map((item, index) => {
         const Icon = item.icon;
         
@@ -25,7 +25,7 @@ const BreadcrumbComponent = ({ items }: BreadcrumbProps) => {
         const isActive = item.href ? location.pathname === item.href : false;
 
         return (
-          <div key={index} className="flex items-center">
+          <div key={index} className="flex items-center shrink-0">
             {index > 0 && (
               <ChevronRight className="w-3 h-3 md:w-4 md:h-4 mx-1 md:mx-2 text-muted-foreground/60 shrink-0" />
             )}
@@ -33,7 +33,7 @@ const BreadcrumbComponent = ({ items }: BreadcrumbProps) => {
             {item.href ? (
               <Link 
                 to={item.href}
-                className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-md transition-none hover:bg-muted hover:text-foreground text-xs md:text-sm whitespace-nowrap ${
+                className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-md transition-none hover:bg-muted hover:text-foreground text-xs md:text-sm min-w-0 ${
                   isActive 
                     ? 'bg-primary text-primary-foreground font-medium' 
                     : ''
@@ -51,12 +51,12 @@ const BreadcrumbComponent = ({ items }: BreadcrumbProps) => {
                 }}
               >
                 {Icon && <Icon className="w-3 h-3 md:w-4 md:h-4 shrink-0" />}
-                <span className="truncate">{item.label}</span>
+                <span className="truncate max-w-[80px] sm:max-w-[120px] md:max-w-none">{item.label}</span>
               </Link>
             ) : (
-              <span className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-md bg-primary text-primary-foreground font-medium text-xs md:text-sm whitespace-nowrap">
+              <span className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-md bg-primary text-primary-foreground font-medium text-xs md:text-sm min-w-0">
                 {Icon && <Icon className="w-3 h-3 md:w-4 md:h-4 shrink-0" />}
-                <span className="truncate">{item.label}</span>
+                <span className="truncate max-w-[80px] sm:max-w-[120px] md:max-w-none">{item.label}</span>
               </span>
             )}
           </div>
