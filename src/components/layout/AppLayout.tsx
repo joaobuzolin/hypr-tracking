@@ -48,10 +48,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                     className="h-5 md:h-7 object-contain"
                   />
                 </div>
-                {(title || subtitle) && (
+                {title && (
                   <div>
-                    {title && <h1 className="text-lg md:text-2xl font-semibold truncate">{title}</h1>}
-                    {subtitle && <p className="text-xs md:text-sm text-muted-foreground truncate">{subtitle}</p>}
+                    <h1 className="text-lg md:text-2xl font-semibold truncate">{title}</h1>
                   </div>
                 )}
               </div>
