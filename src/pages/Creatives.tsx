@@ -12,7 +12,7 @@ import { useCampaigns } from "@/hooks/useCampaigns";
 import { useCampaignGroups } from "@/hooks/useCampaignGroups";
 import { useInsertionOrders } from "@/hooks/useInsertionOrders";
 import { CampaignCard } from "@/components/CampaignCard";
-import { Breadcrumb, useBreadcrumbs } from "@/components/Breadcrumb";
+
 
 // IAB Standard Ad Formats
 const IAB_FORMATS = [
@@ -138,8 +138,6 @@ const Creatives = () => {
   const { campaigns, loading, fetchCampaigns } = useCampaigns();
   const { campaignGroups } = useCampaignGroups();
   const { insertionOrders } = useInsertionOrders();
-  const { generateBreadcrumbs } = useBreadcrumbs();
-
   const insertionOrder = insertionOrders.find(io => io.id === insertionOrderId);
   const campaignGroup = campaignGroups.find(cg => cg.id === campaignGroupId);
 
@@ -160,80 +158,66 @@ const Creatives = () => {
     fetchCampaigns();
   };
 
-  const breadcrumbItems = generateBreadcrumbs(insertionOrder?.client_name, campaignGroup?.name);
+  
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Breadcrumb items={breadcrumbItems} />
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Creatives</h1>
+          <p className="text-muted-foreground">
+            {campaignGroup ? `${campaignGroup.name} - ${insertionOrder?.client_name}` : 'Loading...'}
+          </p>
         </div>
-
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Link to={`/insertion-orders/${insertionOrderId}/campaigns`}>
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Campaigns
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold">Creatives</h1>
-              <p className="text-muted-foreground">
-                {campaignGroup ? campaignGroup.name : 'Loading...'}
-              </p>
-            </div>
-          </div>
-          {campaignGroupId && (
-            <CreateCreativeDialog
-              campaignGroupId={campaignGroupId}
-              onCreativeCreated={handleCreativeCreated}
-            />
-          )}
-        </div>
-
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search creatives..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="space-y-3">
-                <Skeleton className="h-[200px] w-full" />
-              </div>
-            ))}
-          </div>
-        ) : filteredCreatives.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">
-              {searchTerm ? "No creatives found matching your search." : "No creatives found."}
-            </p>
-            {!searchTerm && campaignGroupId && (
-              <div className="mt-4">
-                <CreateCreativeDialog
-                  campaignGroupId={campaignGroupId}
-                  onCreativeCreated={handleCreativeCreated}
-                />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCreatives.map((creative) => (
-              <CampaignCard key={creative.id} campaign={creative} />
-            ))}
-          </div>
+        {campaignGroupId && (
+          <CreateCreativeDialog
+            campaignGroupId={campaignGroupId}
+            onCreativeCreated={handleCreativeCreated}
+          />
         )}
       </div>
+
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search creatives..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-[200px] w-full" />
+            </div>
+          ))}
+        </div>
+      ) : filteredCreatives.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground text-lg">
+            {searchTerm ? "No creatives found matching your search." : "No creatives found."}
+          </p>
+          {!searchTerm && campaignGroupId && (
+            <div className="mt-4">
+              <CreateCreativeDialog
+                campaignGroupId={campaignGroupId}
+                onCreativeCreated={handleCreativeCreated}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCreatives.map((creative) => (
+            <CampaignCard key={creative.id} campaign={creative} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

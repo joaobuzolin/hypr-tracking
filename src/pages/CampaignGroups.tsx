@@ -12,8 +12,6 @@ import { useInsertionOrders } from "@/hooks/useInsertionOrders";
 import { CampaignGroupCard } from "@/components/CampaignGroupCard";
 import { EditCampaignGroupDialog } from "@/components/EditCampaignGroupDialog";
 import { CampaignGroupWithCounts } from "@/hooks/useCampaignGroups";
-import { Breadcrumb } from "@/components/Breadcrumb";
-import { useBreadcrumbs } from "@/components/Breadcrumb";
 
 const CreateCampaignGroupDialog = ({ 
   insertionOrderId, 
@@ -129,8 +127,6 @@ const CampaignGroups = () => {
   
   const { campaignGroups, loading, fetchCampaignGroups } = useCampaignGroups();
   const { insertionOrders } = useInsertionOrders();
-  const { generateBreadcrumbs } = useBreadcrumbs();
-
   const insertionOrder = insertionOrders.find(io => io.id === insertionOrderId);
 
   useEffect(() => {
@@ -153,37 +149,22 @@ const CampaignGroups = () => {
     await fetchCampaignGroups(insertionOrderId);
   };
 
-  const breadcrumbItems = generateBreadcrumbs(insertionOrder?.client_name);
-
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Breadcrumb items={breadcrumbItems} />
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Campaigns</h1>
+          <p className="text-muted-foreground">
+            {insertionOrder ? insertionOrder.client_name : 'Loading...'}
+          </p>
         </div>
-
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Link to="/insertion-orders">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Insertion Orders
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold">Campaigns</h1>
-              <p className="text-muted-foreground">
-                {insertionOrder ? insertionOrder.client_name : 'Loading...'}
-              </p>
-            </div>
-          </div>
-          {insertionOrderId && (
-            <CreateCampaignGroupDialog
-              insertionOrderId={insertionOrderId}
-              onCampaignGroupCreated={() => fetchCampaignGroups(insertionOrderId)}
-            />
-          )}
-        </div>
+        {insertionOrderId && (
+          <CreateCampaignGroupDialog
+            insertionOrderId={insertionOrderId}
+            onCampaignGroupCreated={() => fetchCampaignGroups(insertionOrderId)}
+          />
+        )}
+      </div>
 
         <div className="mb-6">
           <div className="relative max-w-md">
@@ -235,7 +216,6 @@ const CampaignGroups = () => {
           onOpenChange={(open) => !open && setEditingCampaignGroup(null)}
           onSave={handleEditSave}
         />
-      </div>
     </div>
   );
 };
