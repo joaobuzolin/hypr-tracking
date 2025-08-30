@@ -39,14 +39,14 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
               {(campaign.campaign_group || campaign.insertion_order) && (
                 <div className="flex flex-wrap gap-1 mb-2">
                   {campaign.campaign_group && (
-                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    <Badge variant="outline" className="text-xs">
                       {campaign.campaign_group.name.length > 20 
                         ? `${campaign.campaign_group.name.slice(0, 20)}...` 
                         : campaign.campaign_group.name}
                     </Badge>
                   )}
                   {campaign.insertion_order && (
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    <Badge variant="outline" className="text-xs">
                       {campaign.insertion_order.client_name.length > 20 
                         ? `${campaign.insertion_order.client_name.slice(0, 20)}...` 
                         : campaign.insertion_order.client_name}
