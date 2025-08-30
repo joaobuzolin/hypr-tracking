@@ -119,7 +119,6 @@ const Auth = () => {
                 <CardHeader>
                   <CardTitle>Fazer Login</CardTitle>
                   <CardDescription>
-                    Entre com seu email @hypr.mobi
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
