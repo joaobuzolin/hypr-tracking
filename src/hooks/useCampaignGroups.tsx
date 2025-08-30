@@ -55,18 +55,13 @@ export const useCampaignGroups = () => {
     try {
       setLoading(true);
       
-      // Fetch campaign groups with insertion order info and campaign metrics
+      // Fetch campaign groups with insertion order info and campaign count
       const { data: groups, error } = await supabase
         .from('campaign_groups')
         .select(`
           *,
           insertion_orders!inner(id, client_name, description),
-          campaigns(
-            id,
-            metrics:events_with_tags(
-              event_type
-            )
-          )
+          campaigns!campaigns_campaign_group_id_fkey(id)
         `)
         .order('created_at', { ascending: false });
 
@@ -77,21 +72,9 @@ export const useCampaignGroups = () => {
           const campaigns = group.campaigns || [];
           const campaignsCount = campaigns.length;
           
-          // Calculate total metrics from all campaigns in this group
-          let totalClicks = 0;
-          let totalPageViews = 0;
-          
-          campaigns.forEach((campaign: any) => {
-            if (campaign.metrics) {
-              campaign.metrics.forEach((event: any) => {
-                if (event.event_type === 'click' || event.event_type === 'pin_click') {
-                  totalClicks++;
-                } else if (event.event_type === 'page_view') {
-                  totalPageViews++;
-                }
-              });
-            }
-          });
+          // For now, set metrics to 0 - we can add this back later
+          const totalClicks = 0;
+          const totalPageViews = 0;
 
           return {
             ...group,
