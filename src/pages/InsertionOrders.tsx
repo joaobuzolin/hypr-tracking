@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { UserMenu } from "@/components/UserMenu";
 import { InsertionOrderCard } from "@/components/InsertionOrderCard";
+import { EditInsertionOrderDialog } from "@/components/EditInsertionOrderDialog";
 import { MetricsCard } from "@/components/MetricsCard";
 import { useInsertionOrders, type InsertionOrderWithMetrics } from "@/hooks/useInsertionOrders";
 import { Button } from "@/components/ui/button";
@@ -157,6 +158,7 @@ const InsertionOrders = () => {
   const [creatorFilter, setCreatorFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editingOrder, setEditingOrder] = useState<InsertionOrderWithMetrics | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
   const { toast } = useToast();
   
@@ -208,6 +210,7 @@ const InsertionOrders = () => {
 
   const handleEdit = (order: InsertionOrderWithMetrics) => {
     setEditingOrder(order);
+    setEditDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -423,6 +426,13 @@ const InsertionOrders = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <EditInsertionOrderDialog 
+        insertionOrder={editingOrder}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingOrder} onOpenChange={() => setDeletingOrder(null)}>

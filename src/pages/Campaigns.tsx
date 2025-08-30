@@ -2,7 +2,9 @@ import { useState, useMemo, useCallback } from "react";
 import { UserMenu } from "@/components/UserMenu";
 import { CampaignCard } from "@/components/CampaignCard";
 import { MetricsCard } from "@/components/MetricsCard";
+import { Breadcrumb, useBreadcrumbs } from "@/components/Breadcrumb";
 import { useCampaigns, type CampaignWithTags } from "@/hooks/useCampaigns";
+import { useInsertionOrders } from "@/hooks/useInsertionOrders";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,14 +18,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, BarChart3, MousePointer, FileText, Search, CalendarIcon, Filter, User, Activity, Building } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
 // Componentes otimizados agora estão em arquivos separados
 
-const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: () => void }) => {
+const CreateCampaignDialog = ({ 
+  onCampaignCreated, 
+  insertionOrderId 
+}: { 
+  onCampaignCreated: () => void;
+  insertionOrderId?: string;
+}) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -39,7 +47,8 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: () => 
 
     const { error } = await createCampaign({
       name: name.trim(),
-      description: description.trim()
+      description: description.trim(),
+      insertion_order_id: insertionOrderId
     });
 
     if (error) {
@@ -118,34 +127,49 @@ const CreateCampaignDialog = ({ onCampaignCreated }: { onCampaignCreated: () => 
 
 const Campaigns = () => {
   const { campaigns, loading } = useCampaigns();
+  const { insertionOrders } = useInsertionOrders();
+  const { insertionOrderId } = useParams();
+  const { generateBreadcrumbs } = useBreadcrumbs();
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [creatorFilter, setCreatorFilter] = useState<string>("all");
   const [creationMonthFilter, setCreationMonthFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   
+  // Get current insertion order if we're in that context
+  const currentInsertionOrder = useMemo(() => {
+    if (!insertionOrderId) return null;
+    return insertionOrders.find(io => io.id === insertionOrderId);
+  }, [insertionOrderId, insertionOrders]);
+
+  // Filter campaigns by insertion order if specified
+  const relevantCampaigns = useMemo(() => {
+    if (!insertionOrderId) return campaigns;
+    return campaigns.filter(campaign => campaign.insertion_order_id === insertionOrderId);
+  }, [campaigns, insertionOrderId]);
+
   // Get unique creators and months for filter options
   const uniqueCreators = useMemo(() => {
-    const creators = campaigns
+    const creators = relevantCampaigns
       .filter(c => c.profile?.email)
       .map(c => c.profile!.email)
       .filter((email, index, arr) => arr.indexOf(email) === index);
     return creators.sort();
-  }, [campaigns]);
+  }, [relevantCampaigns]);
 
   const uniqueMonths = useMemo(() => {
-    const months = campaigns
+    const months = relevantCampaigns
       .map(c => {
         const date = new Date(c.created_at);
         return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
       })
       .filter((month, index, arr) => arr.indexOf(month) === index);
     return months.sort().reverse();
-  }, [campaigns]);
+  }, [relevantCampaigns]);
 
   // Filtered campaigns based on all filters
   const filteredCampaigns = useMemo(() => {
-    return campaigns.filter(campaign => {
+    return relevantCampaigns.filter(campaign => {
       // Search filter
       const matchesSearch = 
         campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -175,7 +199,7 @@ const Campaigns = () => {
       
       return matchesSearch && matchesDateRange && matchesCreator && matchesCreationMonth && matchesStatus;
     });
-  }, [campaigns, searchTerm, dateRange, creatorFilter, creationMonthFilter, statusFilter]);
+  }, [relevantCampaigns, searchTerm, dateRange, creatorFilter, creationMonthFilter, statusFilter]);
   
   const totalCampaigns = filteredCampaigns.length;
   const activeCampaigns = filteredCampaigns.filter(c => c.status === 'active').length;
@@ -192,6 +216,9 @@ const Campaigns = () => {
   const handleCampaignCreated = useCallback(() => {
     // Campaigns will be refreshed automatically by the hook
   }, []);
+
+  // Generate breadcrumbs based on current context
+  const breadcrumbItems = generateBreadcrumbs(currentInsertionOrder?.client_name);
 
   const DateRangePicker = () => (
     <Popover>
@@ -263,7 +290,7 @@ const Campaigns = () => {
                   Relatórios
                 </Button>
               </Link>
-              <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
+              <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} insertionOrderId={insertionOrderId} />
             </div>
           </div>
         </div>
@@ -272,6 +299,25 @@ const Campaigns = () => {
       {/* Content with top padding to account for fixed header */}
       <div className="pt-32">
         <div className="container mx-auto px-4 py-6">
+          {/* Breadcrumb */}
+          <Breadcrumb items={breadcrumbItems} />
+
+          {/* Header with IO context */}
+          {currentInsertionOrder && (
+            <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
+              <div className="flex items-center gap-2 mb-1">
+                <Building className="w-4 h-4 text-muted-foreground" />
+                <h1 className="text-lg font-semibold">{currentInsertionOrder.client_name}</h1>
+                <Badge variant="outline" className="text-xs">
+                  {currentInsertionOrder.project_name || 'Sem projeto'}
+                </Badge>
+              </div>
+              {currentInsertionOrder.description && (
+                <p className="text-sm text-muted-foreground">{currentInsertionOrder.description}</p>
+              )}
+            </div>
+          )}
+
           {/* Stats Overview simples */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {loading ? (
@@ -400,11 +446,11 @@ const Campaigns = () => {
           {/* Campaigns List */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">Suas Campanhas</h2>
+              <h2 className="text-lg font-medium">Suas Campanhas {currentInsertionOrder ? `- ${currentInsertionOrder.client_name}` : ''}</h2>
               <Badge variant="outline" className="text-xs">
                 {filteredCampaigns.length} campanha{filteredCampaigns.length !== 1 ? 's' : ''}
-                {filteredCampaigns.length !== campaigns.length && (
-                  <span className="text-muted-foreground ml-1">de {campaigns.length}</span>
+                {filteredCampaigns.length !== relevantCampaigns.length && (
+                  <span className="text-muted-foreground ml-1">de {relevantCampaigns.length}</span>
                 )}
               </Badge>
             </div>
@@ -439,7 +485,7 @@ const Campaigns = () => {
                       <>
                         <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-40" />
                         <p className="mb-4">Nenhuma campanha criada ainda</p>
-                        <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} />
+                        <CreateCampaignDialog onCampaignCreated={handleCampaignCreated} insertionOrderId={insertionOrderId} />
                       </>
                     )}
                   </div>

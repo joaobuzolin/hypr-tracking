@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +11,12 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Breadcrumb, useBreadcrumbs } from "@/components/Breadcrumb";
 import { ArrowLeft, Copy, MousePointer, Eye, Calendar, TrendingUp, Download, Tag as TagIcon, Trash2, User, Radio, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AddTagDialog from "@/components/AddTagDialog";
 import { useCampaigns, type Tag } from "@/hooks/useCampaigns";
+import { useInsertionOrders } from "@/hooks/useInsertionOrders";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DailyMetric {
@@ -77,6 +79,8 @@ const CampaignDetails = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const { campaigns, loading, createTag, deleteTag, fetchCampaigns } = useCampaigns();
+  const { insertionOrders } = useInsertionOrders();
+  const { generateBreadcrumbs } = useBreadcrumbs();
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetric[]>([]);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [isActive, setIsActive] = useState(false);
@@ -94,6 +98,10 @@ const CampaignDetails = () => {
   const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const campaign = campaigns.find(c => c.id === id);
+  const currentInsertionOrder = useMemo(() => {
+    if (!campaign?.insertion_order_id) return null;
+    return insertionOrders.find(io => io.id === campaign.insertion_order_id);
+  }, [campaign, insertionOrders]);
 
   useEffect(() => {
     if (!loading && campaigns.length === 0) {
@@ -401,6 +409,12 @@ const CampaignDetails = () => {
     );
   }
 
+  // Generate breadcrumbs
+  const breadcrumbItems = generateBreadcrumbs(
+    currentInsertionOrder?.client_name,
+    campaign?.name
+  );
+
   if (!campaign) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -559,6 +573,9 @@ const CampaignDetails = () => {
       {/* Content with top padding to account for fixed header */}
       <div className="pt-32">
         <div className="container mx-auto px-4 py-6">
+          {/* Breadcrumb */}
+          <Breadcrumb items={breadcrumbItems} />
+          
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="border shadow-sm">
             <CardContent className="p-4">
