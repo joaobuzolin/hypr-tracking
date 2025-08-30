@@ -33,7 +33,7 @@ const availableMetrics = [
 
 const availableDimensions = [
   { id: 'campaign_name', label: 'Nome da Campanha' },
-  { id: 'campaign_status', label: 'Status da Campanha' },
+  { id: 'insertion_order_name', label: 'Nome da Insertion Order' },
   { id: 'campaign_description', label: 'Descrição' },
   { id: 'campaign_tags', label: 'Tags' },
 ];
@@ -112,8 +112,8 @@ const Reports = () => {
           case 'campaign_name':
             row['Nome da Campanha'] = event.campaignName;
             break;
-          case 'campaign_status':
-            row['Status'] = event.campaignStatus === 'active' ? 'Ativa' : 'Pausada';
+          case 'insertion_order_name':
+            row['Nome da Insertion Order'] = event.insertionOrderName;
             break;
           case 'campaign_description':
             row['Descrição'] = event.campaignDescription;

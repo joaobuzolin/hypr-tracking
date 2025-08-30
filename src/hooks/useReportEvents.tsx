@@ -10,6 +10,7 @@ export interface ReportEvent {
   campaignStatus: string;
   campaignDescription: string;
   campaignTags: string;
+  insertionOrderName: string;
   tagId?: string;
   tagTitle?: string;
   pageViews: number;
@@ -75,7 +76,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
     setLoading(true);
     setError(null);
     try {
-      // 1. Fetch campaigns with their tags - query otimizada
+      // 1. Fetch campaigns with their tags and insertion order info - query otimizada
       const { data: campaignsData, error: campaignError } = await supabase
         .from('campaigns')
         .select(`
@@ -85,6 +86,10 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
           description,
           start_date,
           end_date,
+          insertion_order_id,
+          insertion_orders (
+            client_name
+          ),
           tags!inner (
             id,
             code,
@@ -180,6 +185,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
               campaignStatus: campaign.status || 'active',
               campaignDescription: campaign.description || '',
               campaignTags: shouldBreakByTags && eventTag ? eventTag.title : campaign.tags?.map((tag: any) => tag.title).join(', ') || '',
+              insertionOrderName: (campaign as any).insertion_orders?.client_name || 'Sem Insertion Order',
               tagId: shouldBreakByTags && eventTag ? eventTag.id : undefined,
               tagTitle: shouldBreakByTags && eventTag ? eventTag.title : undefined,
               pageViews: 0,
