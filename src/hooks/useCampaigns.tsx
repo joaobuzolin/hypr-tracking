@@ -106,7 +106,7 @@ export const useCampaigns = () => {
             created_at,
             campaign_id
           ),
-          campaign_groups!inner (
+          campaign_groups!campaigns_campaign_group_id_fkey (
             name
           ),
           insertion_orders (
