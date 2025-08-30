@@ -14,9 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
-      campaigns: {
+      campaign_groups: {
         Row: {
           created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          insertion_order_id: string
+          name: string
+          start_date: string | null
+          status: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          insertion_order_id: string
+          name: string
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          insertion_order_id?: string
+          name?: string
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      campaigns: {
+        Row: {
+          campaign_group_id: string | null
+          created_at: string
+          creative_format: string | null
           description: string | null
           end_date: string
           id: string
@@ -28,7 +69,9 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          campaign_group_id?: string | null
           created_at?: string
+          creative_format?: string | null
           description?: string | null
           end_date: string
           id?: string
@@ -40,7 +83,9 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          campaign_group_id?: string | null
           created_at?: string
+          creative_format?: string | null
           description?: string | null
           end_date?: string
           id?: string

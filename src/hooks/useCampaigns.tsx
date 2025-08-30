@@ -7,6 +7,8 @@ export interface Campaign {
   id: string;
   user_id: string;
   insertion_order_id?: string;
+  campaign_group_id?: string;
+  creative_format?: string;
   name: string;
   description: string;
   status: 'active' | 'paused' | 'completed';
@@ -219,8 +221,10 @@ export const useCampaigns = () => {
 
   const createCampaign = useCallback(async (campaignData: {
     name: string;
-    description: string;
+    description?: string;
     insertion_order_id?: string;
+    campaign_group_id?: string;
+    creative_format?: string;
     start_date?: string;
     end_date?: string;
   }) => {
@@ -236,6 +240,8 @@ export const useCampaigns = () => {
           {
             user_id: user.id,
             insertion_order_id: campaignData.insertion_order_id,
+            campaign_group_id: campaignData.campaign_group_id,
+            creative_format: campaignData.creative_format,
             name: campaignData.name,
             description: campaignData.description,
             start_date: startDate,
