@@ -283,7 +283,7 @@ const Reports = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
-              <Link to="/campaigns">
+              <Link to="/criativos">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <ArrowLeft className="w-4 h-4" />
                   Voltar
