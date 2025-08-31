@@ -706,7 +706,7 @@ const CampaignDetails = () => {
                       </div>
                       <Separator className="my-3" />
                       <div className="text-sm font-medium text-foreground mb-2">DSP Específica:</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">`
                         <Button
                           variant="outline"
                           size="sm"
