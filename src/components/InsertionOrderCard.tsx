@@ -133,57 +133,68 @@ export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: In
         </div>
       </CardHeader>
       
-      <CardContent className="pt-0 px-4 md:px-6 pb-4 md:pb-6">
-        <div className="space-y-3 md:space-y-4">
+      <CardContent className="pt-0 px-4 md:px-6 pb-3 md:pb-4">
+        <div className="space-y-2 md:space-y-3">
           {/* Métricas responsivas - stack no mobile, grid no desktop */}
-          <div className="flex flex-col sm:grid sm:grid-cols-3 gap-2 md:gap-3">
-            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-muted/50 rounded border">
+          <div className="flex flex-col sm:grid sm:grid-cols-3 gap-1.5 md:gap-2">
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-1.5 md:p-2 bg-muted/50 rounded border">
               <div className="sm:hidden text-xs text-muted-foreground">Criativos</div>
-              <div className="text-sm md:text-lg font-semibold">{insertionOrder.campaigns_count}</div>
+              <div className="text-sm md:text-base font-semibold">{insertionOrder.campaigns_count}</div>
               <div className="hidden sm:block text-xs text-muted-foreground">Criativos</div>
             </div>
-            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-muted/50 rounded border">
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-1.5 md:p-2 bg-muted/50 rounded border">
               <div className="sm:hidden text-xs text-muted-foreground">Tags</div>
-              <div className="text-sm md:text-lg font-semibold">{insertionOrder.total_tags}</div>
+              <div className="text-sm md:text-base font-semibold">{insertionOrder.total_tags}</div>
               <div className="hidden sm:block text-xs text-muted-foreground">Tags</div>
             </div>
-            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-muted/50 rounded border">
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-1.5 md:p-2 bg-muted/50 rounded border">
               <div className="sm:hidden text-xs text-muted-foreground">Clicks</div>
-              <div className="text-sm md:text-lg font-semibold">{insertionOrder.total_clicks}</div>
+              <div className="text-sm md:text-base font-semibold">{insertionOrder.total_clicks}</div>
               <div className="hidden sm:block text-xs text-muted-foreground">Clicks</div>
             </div>
           </div>
 
           <Separator />
 
-          {/* Período */}
-          {(insertionOrder.start_date || insertionOrder.end_date) && (
-            <div className="space-y-2">
-              <h4 className="font-medium text-xs md:text-sm">Período</h4>
-              <div className="text-xs text-muted-foreground break-words">
-                {insertionOrder.start_date && (
-                  <div className="sm:inline">Início: {new Date(insertionOrder.start_date).toLocaleDateString('pt-BR')}</div>
-                )}
-                {insertionOrder.start_date && insertionOrder.end_date && <span className="hidden sm:inline"> • </span>}
-                {insertionOrder.end_date && (
-                  <div className="sm:inline">Fim: {new Date(insertionOrder.end_date).toLocaleDateString('pt-BR')}</div>
-                )}
+          {/* Período com botão inline */}
+          {(insertionOrder.start_date || insertionOrder.end_date) ? (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h4 className="font-medium text-xs md:text-sm mb-1">Período</h4>
+                <div className="text-xs text-muted-foreground">
+                  {insertionOrder.start_date && (
+                    <span>Início: {new Date(insertionOrder.start_date).toLocaleDateString('pt-BR')}</span>
+                  )}
+                  {insertionOrder.start_date && insertionOrder.end_date && <span> • </span>}
+                  {insertionOrder.end_date && (
+                    <span>Fim: {new Date(insertionOrder.end_date).toLocaleDateString('pt-BR')}</span>
+                  )}
+                </div>
               </div>
+              <Link 
+                to={`/insertion-orders/${insertionOrder.id}/campanhas`}
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0"
+              >
+                <Button variant="default" size="sm" className="gap-2 text-xs">
+                  <MousePointer className="w-3 h-3" />
+                  Nova Campanha
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <Link 
+                to={`/insertion-orders/${insertionOrder.id}/campanhas`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button variant="default" size="sm" className="gap-2 text-xs">
+                  <MousePointer className="w-3 h-3" />
+                  Nova Campanha
+                </Button>
+              </Link>
             </div>
           )}
-
-          {/* Ações */}
-          <div className="flex justify-end">
-            <Link 
-              to={`/insertion-orders/${insertionOrder.id}/campanhas`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Button variant="default" className="gap-2 text-xs md:text-sm">
-                <MousePointer className="w-4 h-4" />
-                Nova Campanha
-              </Button>
-            </Link>
-          </div>
         </div>
       </CardContent>
     </Card>
