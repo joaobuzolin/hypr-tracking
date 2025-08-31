@@ -17,7 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, BarChart3, MousePointer, Search, CalendarIcon, Filter, User, Activity, Building, Users } from "lucide-react";
+import { Plus, BarChart3, MousePointer, Search, CalendarIcon, Filter, User, Activity, Building, Users, Target, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -316,6 +316,9 @@ const Criativos = () => {
   const totalCampaigns = filteredCampaigns.length;
   const activeCampaigns = filteredCampaigns.filter(c => c.derivedStatus === 'active').length;
   const totalClicks = filteredCampaigns.reduce((sum, c) => sum + c.metrics.cta_clicks + c.metrics.pin_clicks, 0);
+  const totalPinClicks = filteredCampaigns.reduce((sum, c) => sum + c.metrics.pin_clicks, 0);
+  const totalClickButton = filteredCampaigns.reduce((sum, c) => sum + c.metrics.cta_clicks, 0);
+  const totalPageViews = filteredCampaigns.reduce((sum, c) => sum + c.metrics.page_views, 0);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -434,9 +437,9 @@ const Criativos = () => {
       contextBar={contextBar}
     >
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6 mb-6 md:mb-8">
         {loading ? (
-          Array.from({ length: 3 }).map((_, i) => (
+          Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="p-6">
                 <Skeleton className="h-20 w-full" />
@@ -452,11 +455,35 @@ const Criativos = () => {
             />
             
             <MetricsCard
-              icon={BarChart3}
+              icon={Activity}
               value={activeCampaigns}
               label="Criativos Ativos"
               className="bg-success/5 border-success/20"
               iconColor="text-success"
+            />
+            
+            <MetricsCard
+              icon={Target}
+              value={totalPinClicks}
+              label="Total Pin Clicks"
+              className="bg-orange-500/5 border-orange-500/20"
+              iconColor="text-orange-500"
+            />
+            
+            <MetricsCard
+              icon={MousePointer}
+              value={totalClickButton}
+              label="Total Click Button"
+              className="bg-blue-500/5 border-blue-500/20"
+              iconColor="text-blue-500"
+            />
+            
+            <MetricsCard
+              icon={Eye}
+              value={totalPageViews}
+              label="Total Page Views"
+              className="bg-purple-500/5 border-purple-500/20"
+              iconColor="text-purple-500"
             />
             
             <MetricsCard
