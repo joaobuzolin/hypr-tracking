@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,8 +41,28 @@ const getStatusLabel = (status: string) => {
 };
 
 export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: InsertionOrderCardProps) => {
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    navigate(`/insertion-orders/${insertionOrder.id}/campanhas`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
+
   return (
-    <Card className="border shadow-sm hover:shadow-md transition-shadow h-full">
+    <Card 
+      className="border shadow-sm hover:shadow-lg transition-all duration-200 h-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" 
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Ver campanhas de ${insertionOrder.client_name}`}
+    >
       <CardHeader className="pb-3 px-4 md:px-6 py-4 md:py-6">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
           <div className="flex-1 min-w-0">
@@ -77,20 +97,31 @@ export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: In
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="shrink-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {onEdit && (
-                <DropdownMenuItem onClick={() => onEdit(insertionOrder)}>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(insertionOrder);
+                }}>
                   <Edit className="w-4 h-4 mr-2" />
                   Editar
                 </DropdownMenuItem>
               )}
               {onDelete && (
                 <DropdownMenuItem 
-                  onClick={() => onDelete(insertionOrder.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(insertionOrder.id);
+                  }}
                   className="text-destructive"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -142,15 +173,12 @@ export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: In
           )}
 
           {/* Ações */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Link to={`/insertion-orders/${insertionOrder.id}/campanhas`} className="flex-1">
-              <Button variant="outline" className="w-full gap-2 text-xs md:text-sm">
-                <FolderOpen className="w-4 h-4" />
-                <span className="break-words">Ver Campanhas ({insertionOrder.campaigns_count})</span>
-              </Button>
-            </Link>
-            <Link to={`/insertion-orders/${insertionOrder.id}/campanhas`}>
-              <Button variant="default" className="gap-2 text-xs md:text-sm w-full sm:w-auto">
+          <div className="flex justify-end">
+            <Link 
+              to={`/insertion-orders/${insertionOrder.id}/campanhas`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button variant="default" className="gap-2 text-xs md:text-sm">
                 <MousePointer className="w-4 h-4" />
                 Nova Campanha
               </Button>
