@@ -398,7 +398,7 @@ const Reports = () => {
 
               {/* Campaigns Multi-Select */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Campanhas Específicas</Label>
+                <Label className="text-sm font-medium">Campanhas</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
