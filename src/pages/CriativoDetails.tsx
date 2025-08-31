@@ -359,24 +359,28 @@ const CampaignDetails = () => {
     });
   };
 
-  const getPixelUrl = (tag: string, dspType: 'dv360' | 'xandr' | 'js' | 'universal') => {
+  const getPixelUrl = (tag: string, dspType: 'dv360' | 'xandr' | 'ttd' | 'combo' | 'js' | 'test') => {
     const baseUrl = `https://wmwpzmpgaokjplhyyktv.supabase.co/functions/v1/track-event?tag=${tag}`;
     
     switch (dspType) {
       case 'dv360':
         return `${baseUrl}&cb=%%CACHEBUSTER%%`;
       case 'xandr':
-        return `${baseUrl}&cb=\${CACHEBUSTER}`;
+        return `${baseUrl}&cb=\${CB}`;
+      case 'ttd':
+        return `${baseUrl}&cb=[timestamp]`;
+      case 'combo':
+        return `${baseUrl}&cb=%%CACHEBUSTER%%-\${CB}-[timestamp]`;
       case 'js':
-        return `${baseUrl}&cb=` + '${Date.now()}';
-      case 'universal':
-        return `${baseUrl}&cb=%%CACHEBUSTER%%-%%RANDOM%%-\${CACHEBUSTER}-\${CB}-[timestamp]`;
+        return `${baseUrl}&cb=\${Date.now()}`;
+      case 'test':
+        return `${baseUrl}&cb=${Date.now()}`;
       default:
         return `${baseUrl}&cb=%%CACHEBUSTER%%`;
     }
   };
 
-  const getImgTag = (tag: string, dspType: 'dv360' | 'xandr' | 'universal') => {
+  const getImgTag = (tag: string, dspType: 'dv360' | 'xandr' | 'ttd' | 'combo' | 'test') => {
     const pixelUrl = getPixelUrl(tag, dspType);
     return `<img src="${pixelUrl}" width="1" height="1" style="display:none" />`;
   };
@@ -683,67 +687,67 @@ const CampaignDetails = () => {
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <div className="text-sm font-medium text-foreground mb-2">Universal DSP Tracking (Recomendado):</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(getPixelUrl(tag.code, 'universal'), `Universal URL (${tag.title})`)}
-                          className="justify-start text-xs h-8"
-                        >
-                          <Copy className="w-3 h-3 mr-2" />
-                          Universal URL
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(getImgTag(tag.code, 'universal'), `Universal IMG (${tag.title})`)}
-                          className="justify-start text-xs h-8"
-                        >
-                          <Copy className="w-3 h-3 mr-2" />
-                          Universal IMG Tag
-                        </Button>
-                      </div>
-                      <Separator className="my-3" />
-                      <div className="text-sm font-medium text-foreground mb-2">DSP Específica:</div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(getPixelUrl(tag.code, 'dv360'), `DV360 URL (${tag.title})`)}
-                          className="justify-start text-xs h-8"
-                        >
-                          <Copy className="w-3 h-3 mr-2" />
-                          DV360 URL
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(getImgTag(tag.code, 'dv360'), `DV360 IMG (${tag.title})`)}
-                          className="justify-start text-xs h-8"
-                        >
-                          <Copy className="w-3 h-3 mr-2" />
-                          DV360 IMG Tag
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(getPixelUrl(tag.code, 'xandr'), `Xandr URL (${tag.title})`)}
-                          className="justify-start text-xs h-8"
-                        >
-                          <Copy className="w-3 h-3 mr-2" />
-                          Xandr URL
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(getImgTag(tag.code, 'xandr'), `Xandr IMG (${tag.title})`)}
-                          className="justify-start text-xs h-8"
-                        >
-                          <Copy className="w-3 h-3 mr-2" />
-                          Xandr IMG Tag
-                        </Button>
-                      </div>
+                       <div className="text-sm font-medium text-foreground mb-2">Universal DSP Tracking (Recomendado):</div>
+                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'combo'), `Combo URL (${tag.title})`)}
+                           className="justify-start text-xs h-8"
+                         >
+                           <Copy className="w-3 h-3 mr-2" />
+                           Combo URL
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => copyToClipboard(getImgTag(tag.code, 'combo'), `Combo IMG (${tag.title})`)}
+                           className="justify-start text-xs h-8"
+                         >
+                           <Copy className="w-3 h-3 mr-2" />
+                           Combo IMG
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'test'), `Test URL (${tag.title})`)}
+                           className="justify-start text-xs h-8"
+                         >
+                           <Copy className="w-3 h-3 mr-2" />
+                           Test URL
+                         </Button>
+                       </div>
+                       <Separator className="my-3" />
+                       <div className="text-sm font-medium text-foreground mb-2">DSP Específica:</div>
+                       <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 mb-3">
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'dv360'), `DV360 URL (${tag.title})`)}
+                           className="justify-start text-xs h-8"
+                         >
+                           <Copy className="w-3 h-3 mr-2" />
+                           DV360 (%%CACHEBUSTER%%)
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'xandr'), `Xandr URL (${tag.title})`)}
+                           className="justify-start text-xs h-8"
+                         >
+                           <Copy className="w-3 h-3 mr-2" />
+                           Xandr ($&#123;CB&#125;)
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'ttd'), `TTD URL (${tag.title})`)}
+                           className="justify-start text-xs h-8"
+                         >
+                           <Copy className="w-3 h-3 mr-2" />
+                           TTD ([timestamp])
+                         </Button>
+                       </div>
                       <Separator className="my-3" />
                       <div className="text-sm font-medium text-foreground mb-2">Fallback JavaScript:</div>
                       <Button

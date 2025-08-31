@@ -106,10 +106,24 @@ Deno.serve(async (req) => {
       });
     }
     
-    const url = new URL(req.url)
-    let tagCode = url.searchParams.get('tag')
+    let url: URL;
+    let tagCode: string | null = null;
     
-    // If tag not in URL, try to get it from POST body
+    // Try to parse URL - if it fails due to malformed query params, extract tag manually
+    try {
+      url = new URL(req.url);
+      tagCode = url.searchParams.get('tag');
+    } catch (e) {
+      console.log('URL parsing failed, attempting manual tag extraction:', e);
+      // Extract tag manually using regex if URL parsing fails
+      const tagMatch = req.url.match(/[?&]tag=([^&]+)/);
+      if (tagMatch) {
+        tagCode = decodeURIComponent(tagMatch[1]);
+        console.log('Extracted tag manually:', tagCode);
+      }
+    }
+    
+    // If tag not found in URL, try to get it from POST body
     if (!tagCode && req.method === 'POST') {
       try {
         const body = await req.json()
@@ -122,9 +136,16 @@ Deno.serve(async (req) => {
     
     if (!tagCode) {
       console.log('Missing tag parameter in both URL and body')
-      return new Response('Missing tag parameter', { 
-        status: 400, 
-        headers: corsHeaders 
+      // Return 1x1 GIF even for missing tag to prevent ad server errors
+      const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
+      return new Response(gifBuffer, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'image/gif',
+          'Content-Length': gifBuffer.length.toString(),
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'X-Debug': 'missing-tag'
+        }
       })
     }
 
@@ -156,13 +177,30 @@ Deno.serve(async (req) => {
         metadata = body
       } catch (e) {
         // If JSON parsing fails, continue with empty metadata
+        console.log('Failed to parse POST body for metadata:', e)
       }
     } else if (req.method === 'GET') {
-      // For GET requests, include all query parameters (except 'tag') in metadata
-      const params = Object.fromEntries(url.searchParams.entries())
-      delete params.tag // Remove the tag parameter as it's already processed
-      if (Object.keys(params).length > 0) {
-        metadata = { query_params: params }
+      // For GET requests, try to include query parameters in metadata
+      try {
+        if (url && url.searchParams) {
+          const params = Object.fromEntries(url.searchParams.entries())
+          delete params.tag // Remove the tag parameter as it's already processed
+          if (Object.keys(params).length > 0) {
+            metadata = { query_params: params }
+          }
+        }
+      } catch (e) {
+        // If we can't parse query params properly, try to extract cb manually
+        console.log('Failed to parse query params, attempting manual extraction:', e)
+        const cbMatch = req.url.match(/[?&]cb=([^&]*)/);
+        if (cbMatch) {
+          try {
+            metadata = { query_params: { cb: decodeURIComponent(cbMatch[1]) } }
+          } catch (decodeError) {
+            // If decoding fails, store the raw value
+            metadata = { query_params: { cb: cbMatch[1] } }
+          }
+        }
       }
     }
 
