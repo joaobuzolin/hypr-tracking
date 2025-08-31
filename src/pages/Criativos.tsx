@@ -472,7 +472,7 @@ const Criativos = () => {
 
       {/* Filters Section */}
       <Card className="mb-6 md:mb-8 mx-1">
-        <CardContent className="p-4 md:p-6">
+        <CardContent className="p-4 md:p-6 bg-muted/30">
           <div className="space-y-4">
             {/* First row: Search and Date Range */}
             <div className="flex flex-col gap-3 md:gap-4">
