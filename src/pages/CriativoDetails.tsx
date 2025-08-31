@@ -359,11 +359,28 @@ const CampaignDetails = () => {
     });
   };
 
-  const getPixelUrl = (tag: string) => 
-    `https://wmwpzmpgaokjplhyyktv.supabase.co/functions/v1/track-event?tag=${tag}&cb=` + "${timestamp}";
+  const getPixelUrl = (tag: string, dspType: 'dv360' | 'xandr' | 'js') => {
+    const baseUrl = `https://wmwpzmpgaokjplhyyktv.supabase.co/functions/v1/track-event?tag=${tag}`;
+    
+    switch (dspType) {
+      case 'dv360':
+        return `${baseUrl}&cb=%%CACHEBUSTER%%`;
+      case 'xandr':
+        return `${baseUrl}&cb=\${CACHEBUSTER}`;
+      case 'js':
+        return `${baseUrl}&cb=` + '${Date.now()}';
+      default:
+        return `${baseUrl}&cb=%%CACHEBUSTER%%`;
+    }
+  };
+
+  const getImgTag = (tag: string, dspType: 'dv360' | 'xandr') => {
+    const pixelUrl = getPixelUrl(tag, dspType);
+    return `<img src="${pixelUrl}" width="1" height="1" style="display:none" />`;
+  };
 
   const getJsSnippet = (tag: string) => 
-    `fetch("https://wmwpzmpgaokjplhyyktv.supabase.co/functions/v1/track-event?tag=${tag}", {
+    `fetch("https://wmwpzmpgaokjplhyyktv.supabase.co/functions/v1/track-event?tag=${tag}&cb=" + Date.now(), {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -663,25 +680,63 @@ const CampaignDetails = () => {
                         </Dialog>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyToClipboard(getPixelUrl(tag.code), `Pixel URL (${tag.title})`)}
-                        className="justify-start text-xs h-8"
-                      >
-                        <Copy className="w-3 h-3 mr-2" />
-                        Copiar Pixel URL
-                      </Button>
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium text-foreground mb-2">DSP Tracking (Recomendado):</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(getPixelUrl(tag.code, 'dv360'), `DV360 URL (${tag.title})`)}
+                          className="justify-start text-xs h-8"
+                        >
+                          <Copy className="w-3 h-3 mr-2" />
+                          DV360 URL
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(getImgTag(tag.code, 'dv360'), `DV360 IMG (${tag.title})`)}
+                          className="justify-start text-xs h-8"
+                        >
+                          <Copy className="w-3 h-3 mr-2" />
+                          DV360 IMG Tag
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(getPixelUrl(tag.code, 'xandr'), `Xandr URL (${tag.title})`)}
+                          className="justify-start text-xs h-8"
+                        >
+                          <Copy className="w-3 h-3 mr-2" />
+                          Xandr URL
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(getImgTag(tag.code, 'xandr'), `Xandr IMG (${tag.title})`)}
+                          className="justify-start text-xs h-8"
+                        >
+                          <Copy className="w-3 h-3 mr-2" />
+                          Xandr IMG Tag
+                        </Button>
+                      </div>
+                      <Separator className="my-3" />
+                      <div className="text-sm font-medium text-foreground mb-2">Fallback JavaScript:</div>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => copyToClipboard(getJsSnippet(tag.code), `JS Snippet (${tag.title})`)}
-                        className="justify-start text-xs h-8"
+                        className="justify-start text-xs h-8 w-full"
                       >
                         <Copy className="w-3 h-3 mr-2" />
-                        Copiar JS Snippet
+                        Copiar JS Snippet (Para iframes)
                       </Button>
+                      <div className="text-xs text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg">
+                        <div className="font-medium mb-1">💡 Dicas de uso:</div>
+                        <div>• DV360: Use %%CACHEBUSTER%% para cache-busting único</div>
+                        <div>• Xandr: Use $&#123;CACHEBUSTER&#125; para evitar duplicatas</div>
+                        <div>• JS: Para iframes/mapas que precisam de controle total</div>
+                      </div>
                     </div>
                   </div>
                 ))}

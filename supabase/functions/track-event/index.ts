@@ -9,10 +9,10 @@ const corsHeaders = {
 const tagCache = new Map<string, { id: string; type: string; expires: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
-// Rate limiting simples por IP
+// Rate limiting simples por IP (configurável via env vars)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 1000; // requests por minuto por IP
-const RATE_WINDOW = 60 * 1000; // 1 minuto
+const RATE_LIMIT = parseInt(Deno.env.get('TRACK_EVENT_RATE_LIMIT') || '2000'); // requests por minuto por IP
+const RATE_WINDOW = parseInt(Deno.env.get('TRACK_EVENT_RATE_WINDOW') || '60000'); // 1 minuto
 
 // Função para verificar rate limit
 function checkRateLimit(ip: string): boolean {
@@ -94,9 +94,15 @@ Deno.serve(async (req) => {
     const ip = rawIp === 'unknown' ? 'unknown' : rawIp.split(',')[0].trim();
     
     if (!checkRateLimit(ip)) {
+      console.log(`Rate limit exceeded for IP: ${ip}`)
       return new Response('Rate limit exceeded', { 
         status: 429, 
-        headers: corsHeaders 
+        headers: {
+          ...corsHeaders,
+          'X-RateLimit-Limit': RATE_LIMIT.toString(),
+          'X-RateLimit-Window': (RATE_WINDOW / 1000).toString(),
+          'X-RateLimit-Remaining': '0'
+        }
       });
     }
     
@@ -151,6 +157,13 @@ Deno.serve(async (req) => {
       } catch (e) {
         // If JSON parsing fails, continue with empty metadata
       }
+    } else if (req.method === 'GET') {
+      // For GET requests, include all query parameters (except 'tag') in metadata
+      const params = Object.fromEntries(url.searchParams.entries())
+      delete params.tag // Remove the tag parameter as it's already processed
+      if (Object.keys(params).length > 0) {
+        metadata = { query_params: params }
+      }
     }
 
     // Map tag type to event type (aligned with frontend expectations)
@@ -193,22 +206,34 @@ Deno.serve(async (req) => {
     if (req.method === 'GET') {
       // Return 1x1 pixel GIF for GET requests
       const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
+      const currentLimit = rateLimitMap.get(ip)
+      const remaining = currentLimit ? Math.max(0, RATE_LIMIT - currentLimit.count) : RATE_LIMIT - 1
+      
       return new Response(gifBuffer, {
         headers: {
           ...corsHeaders,
           'Content-Type': 'image/gif',
           'Content-Length': gifBuffer.length.toString(),
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'X-RateLimit-Limit': RATE_LIMIT.toString(),
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Window': (RATE_WINDOW / 1000).toString()
         }
       })
     } else {
       // Return JSON response for POST requests
+      const currentLimit = rateLimitMap.get(ip)
+      const remaining = currentLimit ? Math.max(0, RATE_LIMIT - currentLimit.count) : RATE_LIMIT - 1
+      
       return new Response(
         JSON.stringify({ success: true, event_type: eventType }),
         {
           headers: {
             ...corsHeaders,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': RATE_LIMIT.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Window': (RATE_WINDOW / 1000).toString()
           }
         }
       )
