@@ -491,7 +491,7 @@ const Criativos = () => {
             </div>
             
             {/* Second row: Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {!insertionOrderId && !campaignGroupId && (
                 <Select value={insertionOrderFilter} onValueChange={setInsertionOrderFilter}>
                   <SelectTrigger className="w-full">
@@ -547,7 +547,7 @@ const Criativos = () => {
               </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectTrigger className="w-full">
                   <Activity className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
