@@ -207,25 +207,109 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
         };
       });
       
-      // Sort by period using actual timestamp (most recent first) then by campaign name
-      result.sort((a, b) => {
-        // Find the original row data to get timestamp
-        const rowA = validData.find(r => r.campaign_id === a.campaignId && 
-          (a.tagId ? r.tag_id === a.tagId : !r.tag_id));
-        const rowB = validData.find(r => r.campaign_id === b.campaignId && 
-          (b.tagId ? r.tag_id === b.tagId : !r.tag_id));
+      // Determine if we should aggregate by campaign group
+      const shouldAggregateByGroup = selectedDimensions.includes('campaign_name') && 
+                                   !selectedDimensions.includes('creative_name') &&
+                                   !selectedDimensions.includes('campaign_tags');
+
+      let finalResult: ReportEvent[];
+
+      if (shouldAggregateByGroup) {
+        // Create a period order map for correct sorting
+        const periodOrderMap = new Map<string, number>();
+        validData.forEach(row => {
+          const periodDate = new Date(row.period_start);
+          const year = periodDate.getUTCFullYear();
+          const month = periodDate.getUTCMonth();
+          const day = periodDate.getUTCDate();
+          const localDate = new Date(year, month, day);
+          
+          let periodFormat: string;
+          switch (groupBy) {
+            case 'day':
+              periodFormat = format(localDate, 'dd/MM/yyyy');
+              break;
+            case 'week':
+              periodFormat = `Semana ${format(localDate, 'dd/MM/yyyy')}`;
+              break;
+            case 'month':
+              periodFormat = format(localDate, 'MM/yyyy');
+              break;
+            default:
+              periodFormat = format(localDate, 'dd/MM/yyyy');
+          }
+          
+          if (!periodOrderMap.has(periodFormat)) {
+            periodOrderMap.set(periodFormat, periodDate.getTime());
+          }
+        });
+
+        // Aggregate by period + campaign group
+        const aggregatedMap = new Map<string, ReportEvent>();
         
-        if (rowA && rowB) {
-          const timestampCompare = new Date(rowB.period_start).getTime() - new Date(rowA.period_start).getTime();
+        result.forEach(item => {
+          const key = `${item.period}_${item.campaignGroupName}`;
+          
+          if (aggregatedMap.has(key)) {
+            const existing = aggregatedMap.get(key)!;
+            existing.pageViews += item.pageViews;
+            existing.ctaClicks += item.ctaClicks;
+            existing.pinClicks += item.pinClicks;
+            existing.totalClicks = existing.ctaClicks + existing.pinClicks;
+            existing.ctr = existing.pageViews > 0 ? (existing.totalClicks / existing.pageViews) * 100 : 0;
+            existing.ctr = Number(existing.ctr.toFixed(2));
+            
+            // Handle multiple values - mark as "Vários" when different
+            if (existing.insertionOrderName !== item.insertionOrderName) {
+              existing.insertionOrderName = 'Vários';
+            }
+            if (existing.creativeFormat !== item.creativeFormat) {
+              existing.creativeFormat = 'Vários';
+            }
+          } else {
+            aggregatedMap.set(key, {
+              ...item,
+              campaignName: item.campaignGroupName, // Show group name as campaign name
+              creativeName: 'Todos',
+              totalClicks: item.ctaClicks + item.pinClicks,
+              ctr: Number(item.ctr.toFixed(2))
+            });
+          }
+        });
+        
+        finalResult = Array.from(aggregatedMap.values());
+        
+        // Sort aggregated results by period (most recent first) then by campaign group name
+        finalResult.sort((a, b) => {
+          const timestampA = periodOrderMap.get(a.period) || 0;
+          const timestampB = periodOrderMap.get(b.period) || 0;
+          const timestampCompare = timestampB - timestampA;
           if (timestampCompare !== 0) return timestampCompare;
-        }
-        // Sort by campaign group name, then by creative name
-        const campaignGroupCompare = a.campaignGroupName.localeCompare(b.campaignGroupName);
-        if (campaignGroupCompare !== 0) return campaignGroupCompare;
-        return a.creativeName.localeCompare(b.creativeName);
-      });
+          return a.campaignGroupName.localeCompare(b.campaignGroupName);
+        });
+      } else {
+        // No aggregation - sort individual results
+        result.sort((a, b) => {
+          // Find the original row data to get timestamp
+          const rowA = validData.find(r => r.campaign_id === a.campaignId && 
+            (a.tagId ? r.tag_id === a.tagId : !r.tag_id));
+          const rowB = validData.find(r => r.campaign_id === b.campaignId && 
+            (b.tagId ? r.tag_id === b.tagId : !r.tag_id));
+          
+          if (rowA && rowB) {
+            const timestampCompare = new Date(rowB.period_start).getTime() - new Date(rowA.period_start).getTime();
+            if (timestampCompare !== 0) return timestampCompare;
+          }
+          // Sort by campaign group name, then by creative name
+          const campaignGroupCompare = a.campaignGroupName.localeCompare(b.campaignGroupName);
+          if (campaignGroupCompare !== 0) return campaignGroupCompare;
+          return a.creativeName.localeCompare(b.creativeName);
+        });
+        
+        finalResult = result;
+      }
       
-      setData(result);
+      setData(finalResult);
     } catch (err) {
       console.error('Error fetching report data:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
