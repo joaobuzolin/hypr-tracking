@@ -157,11 +157,13 @@ const CampaignDetails = () => {
 
         // Transform the data to match DailyMetric interface
         const metricsArray = (reportData || []).map((row: any) => {
-          // Convert period_start to local date
-          const periodDate = new Date(row.period_start);
-          const year = periodDate.getFullYear();
-          const month = String(periodDate.getMonth() + 1).padStart(2, '0');
-          const day = String(periodDate.getDate()).padStart(2, '0');
+          // Convert period_start to local date string without timezone issues
+          const periodStart = new Date(row.period_start);
+          // Add timezone offset to get the correct local date
+          const localDate = new Date(periodStart.getTime() + periodStart.getTimezoneOffset() * 60000);
+          const year = localDate.getFullYear();
+          const month = String(localDate.getMonth() + 1).padStart(2, '0');
+          const day = String(localDate.getDate()).padStart(2, '0');
           const dateString = `${year}-${month}-${day}`;
 
           return {
