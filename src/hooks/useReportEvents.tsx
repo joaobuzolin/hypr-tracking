@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay, startOfWeek, startOfMonth, format, subDays } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export interface ReportEvent {
   period: string;
@@ -125,29 +126,45 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
         throw new Error(`Erro ao buscar campanhas: ${campaignsError.message}`);
       }
       
+      // Filter out rows without valid period_start or without any events
+      const validData = aggregatedData.filter(row => {
+        const hasValidPeriod = row.period_start && new Date(row.period_start).getTime() > 0;
+        const hasEvents = Number(row.page_views) + Number(row.cta_clicks) + Number(row.pin_clicks) > 0;
+        return hasValidPeriod && hasEvents;
+      });
+
+      console.debug('Report data filtering:', {
+        original: aggregatedData.length,
+        afterFilter: validData.length,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        dateRange: { startDate, endDate }
+      });
+
       // Transform the data to match our ReportEvent interface
-      const result: ReportEvent[] = aggregatedData.map(row => {
+      const result: ReportEvent[] = validData.map(row => {
         const campaign = campaigns?.find(c => c.id === row.campaign_id);
         const totalClicks = Number(row.cta_clicks) + Number(row.pin_clicks);
         const pageViews = Number(row.page_views);
         const ctr = pageViews > 0 ? (totalClicks / pageViews) * 100 : 0;
         
-        // Format period based on groupBy
+        // Get user's timezone
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // Format period based on groupBy using timezone
         let periodFormat: string;
-        const periodDate = new Date(row.period_start);
         
         switch (groupBy) {
           case 'day':
-            periodFormat = format(periodDate, 'dd/MM/yyyy');
+            periodFormat = formatInTimeZone(row.period_start, userTimezone, 'dd/MM/yyyy');
             break;
           case 'week':
-            periodFormat = `Semana ${format(periodDate, 'dd/MM/yyyy')}`;
+            periodFormat = `Semana ${formatInTimeZone(row.period_start, userTimezone, 'dd/MM/yyyy')}`;
             break;
           case 'month':
-            periodFormat = format(periodDate, 'MM/yyyy');
+            periodFormat = formatInTimeZone(row.period_start, userTimezone, 'MM/yyyy');
             break;
           default:
-            periodFormat = format(periodDate, 'dd/MM/yyyy');
+            periodFormat = formatInTimeZone(row.period_start, userTimezone, 'dd/MM/yyyy');
         }
         
         return {
@@ -169,10 +186,18 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
         };
       });
       
-      // Sort by period (most recent first) then by campaign name
+      // Sort by period using actual timestamp (most recent first) then by campaign name
       result.sort((a, b) => {
-        const periodCompare = b.period.localeCompare(a.period);
-        if (periodCompare !== 0) return periodCompare;
+        // Find the original row data to get timestamp
+        const rowA = validData.find(r => r.campaign_id === a.campaignId && 
+          (a.tagId ? r.tag_id === a.tagId : !r.tag_id));
+        const rowB = validData.find(r => r.campaign_id === b.campaignId && 
+          (b.tagId ? r.tag_id === b.tagId : !r.tag_id));
+        
+        if (rowA && rowB) {
+          const timestampCompare = new Date(rowB.period_start).getTime() - new Date(rowA.period_start).getTime();
+          if (timestampCompare !== 0) return timestampCompare;
+        }
         return a.campaignName.localeCompare(b.campaignName);
       });
       
