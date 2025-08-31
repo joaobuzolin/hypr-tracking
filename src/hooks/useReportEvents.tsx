@@ -147,24 +147,28 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
         const pageViews = Number(row.page_views);
         const ctr = pageViews > 0 ? (totalClicks / pageViews) * 100 : 0;
         
-        // Get user's timezone
-        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        
-        // Format period based on groupBy using timezone
+        // Format period based on groupBy - use date only to avoid timezone issues
         let periodFormat: string;
+        const periodDate = new Date(row.period_start);
+        
+        // Extract just the date parts to avoid timezone conversion issues
+        const year = periodDate.getUTCFullYear();
+        const month = periodDate.getUTCMonth();
+        const day = periodDate.getUTCDate();
+        const localDate = new Date(year, month, day);
         
         switch (groupBy) {
           case 'day':
-            periodFormat = formatInTimeZone(row.period_start, userTimezone, 'dd/MM/yyyy');
+            periodFormat = format(localDate, 'dd/MM/yyyy');
             break;
           case 'week':
-            periodFormat = `Semana ${formatInTimeZone(row.period_start, userTimezone, 'dd/MM/yyyy')}`;
+            periodFormat = `Semana ${format(localDate, 'dd/MM/yyyy')}`;
             break;
           case 'month':
-            periodFormat = formatInTimeZone(row.period_start, userTimezone, 'MM/yyyy');
+            periodFormat = format(localDate, 'MM/yyyy');
             break;
           default:
-            periodFormat = formatInTimeZone(row.period_start, userTimezone, 'dd/MM/yyyy');
+            periodFormat = format(localDate, 'dd/MM/yyyy');
         }
         
         return {
