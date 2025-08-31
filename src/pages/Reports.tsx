@@ -522,7 +522,6 @@ const Reports = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Período</Label>
                 <DateRangePicker />
               </div>
               
