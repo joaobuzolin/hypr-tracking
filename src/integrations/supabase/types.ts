@@ -71,6 +71,7 @@ export type Database = {
           id: string
           insertion_order_id: string | null
           name: string
+          short_token: string | null
           start_date: string
           status: string | null
           updated_at: string
@@ -85,6 +86,7 @@ export type Database = {
           id?: string
           insertion_order_id?: string | null
           name: string
+          short_token?: string | null
           start_date: string
           status?: string | null
           updated_at?: string
@@ -99,6 +101,7 @@ export type Database = {
           id?: string
           insertion_order_id?: string | null
           name?: string
+          short_token?: string | null
           start_date?: string
           status?: string | null
           updated_at?: string

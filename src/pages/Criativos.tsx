@@ -58,6 +58,7 @@ const CreateCriativoDialog = ({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [shortToken, setShortToken] = useState("");
   const [iabFormat, setIabFormat] = useState("300x250");
   const [selectedCampaignGroupId, setSelectedCampaignGroupId] = useState(campaignGroupId || "");
   const [selectedInsertionOrderId, setSelectedInsertionOrderId] = useState(insertionOrderId || "");
@@ -73,6 +74,7 @@ const CreateCriativoDialog = ({
     const { error } = await createCampaign({
       name: name.trim(),
       description: description.trim(),
+      short_token: shortToken.trim() || undefined,
       insertion_order_id: selectedInsertionOrderId || insertionOrderId,
       campaign_group_id: selectedCampaignGroupId || campaignGroupId,
       creative_format: iabFormat
@@ -93,6 +95,7 @@ const CreateCriativoDialog = ({
       // Reset form
       setName("");
       setDescription("");
+      setShortToken("");
       setIabFormat("300x250");
       setSelectedCampaignGroupId(campaignGroupId || "");
       setSelectedInsertionOrderId(insertionOrderId || "");
@@ -140,6 +143,26 @@ const CreateCriativoDialog = ({
               rows={3}
               disabled={loading}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="short-token">Short Token</Label>
+            <Input
+              id="short-token"
+              placeholder="Ex: TBGJ1R (6 caracteres)"
+              value={shortToken}
+              onChange={(e) => {
+                const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                if (value.length <= 6) {
+                  setShortToken(value);
+                }
+              }}
+              maxLength={6}
+              disabled={loading}
+              className="font-mono"
+            />
+            <p className="text-xs text-muted-foreground">
+              Opcional. Código alfanumérico de 6 caracteres (letras e números).
+            </p>
           </div>
           {/* Campaign Group Selection - Only show if not in context */}
           {!campaignGroupId && (

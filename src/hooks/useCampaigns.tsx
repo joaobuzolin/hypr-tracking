@@ -11,6 +11,7 @@ export interface Campaign {
   name: string;
   description: string;
   creative_format?: string;
+  short_token?: string;
   status: 'active' | 'paused' | 'completed';
   start_date: string;
   end_date: string;
@@ -197,6 +198,7 @@ export const useCampaigns = () => {
   const createCampaign = useCallback(async (campaignData: {
     name: string;
     description: string;
+    short_token?: string;
     insertion_order_id?: string;
     campaign_group_id?: string;
     creative_format?: string;
@@ -223,6 +225,7 @@ export const useCampaigns = () => {
             campaign_group_id: campaignData.campaign_group_id,
             name: campaignData.name,
             description: campaignData.description,
+            short_token: campaignData.short_token,
             creative_format: campaignData.creative_format,
             start_date: startDate,
             end_date: endDate,
