@@ -7,12 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { LogIn, UserPlus, Target, BarChart3, MousePointer, MapPin } from 'lucide-react';
 
 const Auth = () => {
   const { signIn, signUp, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
 
   // Redirect if already logged in
   if (user) {
@@ -64,6 +66,33 @@ const Auth = () => {
     
     if (error) {
       setError(error.message || 'Erro ao criar conta');
+    }
+    
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async (email: string) => {
+    if (!email) {
+      setError('Digite seu email para redefinir a senha');
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`
+      });
+      
+      if (error) {
+        setError(error.message || 'Erro ao enviar email de redefinição');
+      } else {
+        setResetSent(true);
+        setError(null);
+      }
+    } catch (err) {
+      setError('Erro ao enviar email de redefinição');
     }
     
     setLoading(false);
@@ -162,6 +191,29 @@ const Auth = () => {
                       {loading ? 'Entrando...' : 'Entrar'}
                     </Button>
                   </form>
+                  
+                  {resetSent ? (
+                    <div className="text-center p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+                      <p className="text-sm text-green-100">
+                        Email de redefinição de senha enviado! Verifique sua caixa de entrada.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const emailInput = document.getElementById('signin-email') as HTMLInputElement;
+                          const email = emailInput?.value;
+                          handleForgotPassword(email);
+                        }}
+                        disabled={loading}
+                        className="text-sm text-white/80 hover:text-white underline transition-colors disabled:opacity-50"
+                      >
+                        Esqueci minha senha
+                      </button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
