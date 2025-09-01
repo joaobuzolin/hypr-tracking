@@ -35,7 +35,7 @@ const ResetPassword = () => {
         } else if (session?.user && window.location.hash.includes('type=recovery')) {
           setIsValidToken(true);
         } else {
-          toast.error("Link de recuperação inválido ou expirado");
+          toast.error("Link de recuperação inválido ou expirado. Configure as URLs no Supabase e solicite um novo email.");
           navigate('/auth');
         }
       } catch (error) {
@@ -78,7 +78,8 @@ const ResetPassword = () => {
       }
 
       toast.success("Senha alterada com sucesso!");
-      navigate('/');
+      // Force full page reload to clear auth state
+      window.location.href = '/';
     } catch (error: any) {
       console.error('Error updating password:', error);
       toast.error(error.message || "Erro ao atualizar senha");
