@@ -16,6 +16,7 @@ const CriativoDetails = lazy(() => import("./pages/CriativoDetails"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const AppContent = () => {
@@ -31,6 +32,7 @@ const AppContent = () => {
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={<ProtectedRoute><InsertionOrders /></ProtectedRoute>} />
               <Route path="/insertion-orders" element={<ProtectedRoute><InsertionOrders /></ProtectedRoute>} />
               <Route path="/insertion-orders/:insertionOrderId/campanhas" element={<ProtectedRoute><Campanhas /></ProtectedRoute>} />
