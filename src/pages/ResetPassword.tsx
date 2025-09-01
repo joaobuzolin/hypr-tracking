@@ -25,23 +25,33 @@ const ResetPassword = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        // Check if we have a recovery session or if the URL contains recovery type
-        const urlParams = new URLSearchParams(window.location.hash.replace('#', ''));
-        const accessToken = urlParams.get('access_token');
-        const type = urlParams.get('type');
+        // Check tokens from both hash and query string
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+        const queryParams = new URLSearchParams(window.location.search);
+        
+        const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+        const type = hashParams.get('type') || queryParams.get('type');
+        
+        // Log token source for debugging in dev mode
+        if (import.meta.env.DEV) {
+          console.log('Password reset token check:', { 
+            source: hashParams.get('access_token') ? 'hash' : 'query',
+            hasToken: !!accessToken,
+            type 
+          });
+        }
         
         if (type === 'recovery' && accessToken) {
           setIsValidToken(true);
-        } else if (session?.user && window.location.hash.includes('type=recovery')) {
+        } else if (session?.user && (window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery'))) {
           setIsValidToken(true);
         } else {
-          toast.error("Link de recuperação inválido ou expirado. Configure as URLs no Supabase e solicite um novo email.");
-          navigate('/auth');
+          // Don't automatically redirect, let the error screen show
+          setIsValidToken(false);
         }
       } catch (error) {
         console.error('Error checking recovery session:', error);
-        toast.error("Erro ao verificar sessão de recuperação");
-        navigate('/auth');
+        setIsValidToken(false);
       }
     };
 
@@ -88,8 +98,45 @@ const ResetPassword = () => {
     }
   };
 
+  // Show error screen for invalid tokens
   if (!isValidToken) {
-    return null; // Component will redirect in useEffect
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <div className="flex justify-center mb-4">
+              <img 
+                src="/lovable-uploads/34701aad-d67f-460e-9f6a-5c12858d6725.png" 
+                alt="HYPR Tracking" 
+                className="h-8 object-contain"
+              />
+            </div>
+            <CardTitle className="text-2xl font-bold text-center text-destructive">
+              Link Inválido
+            </CardTitle>
+            <CardDescription className="text-center">
+              O link de redefinição de senha é inválido ou expirado
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg space-y-2">
+              <p className="text-sm font-medium">Possíveis soluções:</p>
+              <ul className="text-sm space-y-1 list-disc pl-4">
+                <li>Configure as URLs do Supabase (Site URL e Redirect URLs)</li>
+                <li>Certifique-se de que está acessando pelo domínio correto</li>
+                <li>Solicite um novo email de redefinição</li>
+              </ul>
+            </div>
+            <Button 
+              onClick={() => navigate('/auth')} 
+              className="w-full"
+            >
+              Voltar ao Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
