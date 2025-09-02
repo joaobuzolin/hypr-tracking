@@ -345,24 +345,26 @@ const CampaignDetails = () => {
 
   const PROJECT_DOMAIN = 'wmwpzmpgaokjplhyyktv.supabase.co';
 
-  const getPixelUrl = (tag: string, dspType: 'dv360' | 'xandr' | 'ttd' | 'combo' | 'js' | 'test') => {
-    const baseUrl = `https://${PROJECT_DOMAIN}/functions/v1/track-event?tag=${tag}`;
+  const getPixelUrl = (tag: string, dspType: 'dv360' | 'xandr' | 'ttd' | 'combo' | 'js' | 'test', format: 'path' | 'query' = 'path') => {
+    const baseUrl = format === 'path' 
+      ? `https://${PROJECT_DOMAIN}/functions/v1/track-event/${tag}`
+      : `https://${PROJECT_DOMAIN}/functions/v1/track-event?tag=${tag}`;
     
     switch (dspType) {
       case 'dv360':
-        return `${baseUrl}&cb=%%CACHEBUSTER%%`;
+        return `${baseUrl}${format === 'path' ? '?' : '&'}cb=%%CACHEBUSTER%%`;
       case 'xandr':
-        return `${baseUrl}&cb=\${CB}`;
+        return `${baseUrl}${format === 'path' ? '?' : '&'}cb=\${CB}`;
       case 'ttd':
-        return `${baseUrl}&cb=[timestamp]`;
+        return `${baseUrl}${format === 'path' ? '?' : '&'}cb=[timestamp]`;
       case 'combo':
-        return `${baseUrl}&cb=${encodeURIComponent('%%CACHEBUSTER%%-${CB}-[timestamp]')}`;
+        return `${baseUrl}${format === 'path' ? '?' : '&'}cb=${encodeURIComponent('%%CACHEBUSTER%%-${CB}-[timestamp]')}`;
       case 'js':
-        return `${baseUrl}&cb=\${Date.now()}`;
+        return `${baseUrl}${format === 'path' ? '?' : '&'}cb=\${Date.now()}`;
       case 'test':
-        return `${baseUrl}&cb=${Date.now()}`;
+        return `${baseUrl}${format === 'path' ? '?' : '&'}cb=${Date.now()}`;
       default:
-        return `${baseUrl}&cb=%%CACHEBUSTER%%`;
+        return `${baseUrl}${format === 'path' ? '?' : '&'}cb=%%CACHEBUSTER%%`;
     }
   };
 
@@ -382,13 +384,80 @@ const CampaignDetails = () => {
     }
   };
 
-  const getImgTag = (tag: string, dspType: 'dv360' | 'xandr' | 'ttd' | 'combo' | 'test') => {
-    const pixelUrl = getPixelUrl(tag, dspType);
+  // Real-time monitoring - fetch recent events for last 15 minutes
+  const [realtimeStats, setRealtimeStats] = useState<any>({});
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  const loadRealtimeStats = async () => {
+    if (!campaign) return;
+    
+    setIsLoadingStats(true);
+    try {
+      const fifteenMinutesAgo = new Date();
+      fifteenMinutesAgo.setMinutes(fifteenMinutesAgo.getMinutes() - 15);
+
+      const tagIds = campaign.tags.map(tag => tag.id);
+      if (tagIds.length === 0) {
+        setRealtimeStats({});
+        return;
+      }
+
+      const { data: events, error } = await supabase
+        .from('events')
+        .select('tag_id, event_type, created_at')
+        .in('tag_id', tagIds)
+        .gte('created_at', fifteenMinutesAgo.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Group by tag and event type
+      const stats: any = {};
+      campaign.tags.forEach(tag => {
+        stats[tag.id] = {
+          tag: tag,
+          total: 0,
+          page_views: 0,
+          clicks: 0,
+          pin_clicks: 0,
+          last_event: null
+        };
+      });
+
+      events?.forEach(event => {
+        if (stats[event.tag_id]) {
+          stats[event.tag_id].total++;
+          if (event.event_type === 'page_view') stats[event.tag_id].page_views++;
+          else if (event.event_type === 'click') stats[event.tag_id].clicks++;
+          else if (event.event_type === 'pin_click') stats[event.tag_id].pin_clicks++;
+          
+          if (!stats[event.tag_id].last_event || event.created_at > stats[event.tag_id].last_event) {
+            stats[event.tag_id].last_event = event.created_at;
+          }
+        }
+      });
+
+      setRealtimeStats(stats);
+    } catch (error) {
+      console.error('Error loading realtime stats:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRealtimeStats();
+    const interval = setInterval(loadRealtimeStats, 30000); // Update every 30 seconds
+    return () => clearInterval(interval);
+  }, [campaign]);
+
+  const getImgTag = (tag: string, dspType: 'dv360' | 'xandr' | 'ttd' | 'combo' | 'test', format: 'path' | 'query' = 'path') => {
+    const pixelUrl = getPixelUrl(tag, dspType, format);
     return `<img src="${pixelUrl}" width="1" height="1" style="display:none" />`;
   };
 
   const getJsSnippet = (tag: string) => 
-    `fetch("https://${PROJECT_DOMAIN}/functions/v1/track-event?tag=${tag}&cb=" + Date.now(), {
+    `fetch("https://${PROJECT_DOMAIN}/functions/v1/track-event/${tag}?cb=" + Date.now(), {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -544,6 +613,73 @@ const CampaignDetails = () => {
             </div>
           </div>
           
+        {/* Real-time stats widget */}
+        {Object.keys(realtimeStats).length > 0 && (
+          <Card className="border shadow-sm mb-6">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Últimos 15 Minutos
+                   <Badge variant="secondary" className="ml-2">
+                     {String(Object.values(realtimeStats).reduce((acc: number, stat: any) => acc + (stat?.total || 0), 0))} eventos
+                   </Badge>
+                </CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => loadRealtimeStats()} 
+                  disabled={isLoadingStats}
+                  className="gap-2"
+                >
+                  <RefreshCcw className={isLoadingStats ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
+                  Recarregar
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.values(realtimeStats).map((stat: any) => (
+                  <div key={stat.tag.id} className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-medium text-sm">{stat.tag.title}</div>
+                      <Badge 
+                        variant="outline" 
+                        className={
+                          stat.tag.type === 'click-button' ? "bg-blue-50 text-blue-700 border-blue-200" : 
+                          stat.tag.type === 'pin' ? "bg-green-50 text-green-700 border-green-200" :
+                          "bg-purple-50 text-purple-700 border-purple-200"
+                        }
+                      >
+                        {stat.tag.type}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="text-lg font-semibold text-purple-600">{stat.page_views}</div>
+                        <div className="text-xs text-muted-foreground">Views</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-blue-600">{stat.clicks}</div>
+                        <div className="text-xs text-muted-foreground">Clicks</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-green-600">{stat.pin_clicks}</div>
+                        <div className="text-xs text-muted-foreground">Pins</div>
+                      </div>
+                    </div>
+                    {stat.last_event && (
+                      <div className="text-xs text-muted-foreground text-center mt-2">
+                        Último: {new Date(stat.last_event).toLocaleTimeString('pt-BR', { hour12: false })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="border shadow-sm">
             <CardContent className="p-4">
@@ -688,16 +824,16 @@ const CampaignDetails = () => {
                         </Dialog>
                       </div>
                     </div>
-                    <div className="space-y-3">
+                     <div className="space-y-3">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium text-foreground">Universal DSP Tracking (Recomendado):</div>
-                          <div className="text-xs text-muted-foreground">Domínio: {PROJECT_DOMAIN}</div>
+                          <div className="text-sm font-medium text-foreground">🔗 Formato Path (Recomendado - DSPs):</div>
+                          <div className="text-xs text-muted-foreground">Mais resistente a DSPs que removem query strings</div>
                         </div>
                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
                          <Button
                            variant="outline"
                            size="sm"
-                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'combo'), `Combo URL (${tag.title})`)}
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'combo', 'path'), `Path Combo URL (${tag.title})`)}
                            className="justify-start text-xs h-8"
                          >
                            <Copy className="w-3 h-3 mr-2" />
@@ -706,7 +842,7 @@ const CampaignDetails = () => {
                          <Button
                            variant="outline"
                            size="sm"
-                           onClick={() => copyToClipboard(getImgTag(tag.code, 'combo'), `Combo IMG (${tag.title})`)}
+                           onClick={() => copyToClipboard(getImgTag(tag.code, 'combo', 'path'), `Path Combo IMG (${tag.title})`)}
                            className="justify-start text-xs h-8"
                          >
                            <Copy className="w-3 h-3 mr-2" />
@@ -715,7 +851,7 @@ const CampaignDetails = () => {
                          <Button
                            variant="outline"
                            size="sm"
-                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'test'), `Test URL (${tag.title})`)}
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'test', 'path'), `Path Test URL (${tag.title})`)}
                            className="justify-start text-xs h-8"
                          >
                            <Copy className="w-3 h-3 mr-2" />
@@ -724,7 +860,7 @@ const CampaignDetails = () => {
                          <Button
                            variant="outline"
                            size="sm"
-                           onClick={() => testPixelUrl(getPixelUrl(tag.code, 'test'), tag.title)}
+                           onClick={() => testPixelUrl(getPixelUrl(tag.code, 'test', 'path'), tag.title)}
                            className="justify-start text-xs h-8"
                          >
                            <Activity className="w-3 h-3 mr-2" />
@@ -732,34 +868,65 @@ const CampaignDetails = () => {
                          </Button>
                        </div>
                        <Separator className="my-3" />
-                       <div className="text-sm font-medium text-foreground mb-2">DSP Específica:</div>
+                       <div className="text-sm font-medium text-foreground mb-2">DSPs Específicas (Path Format):</div>
                        <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 mb-3">
                          <Button
                            variant="outline"
                            size="sm"
-                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'dv360'), `DV360 URL (${tag.title})`)}
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'dv360', 'path'), `DV360 Path URL (${tag.title})`)}
                            className="justify-start text-xs h-8"
                          >
                            <Copy className="w-3 h-3 mr-2" />
-                           DV360 (%%CACHEBUSTER%%)
+                           DV360
                          </Button>
                          <Button
                            variant="outline"
                            size="sm"
-                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'xandr'), `Xandr URL (${tag.title})`)}
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'xandr', 'path'), `Xandr Path URL (${tag.title})`)}
                            className="justify-start text-xs h-8"
                          >
                            <Copy className="w-3 h-3 mr-2" />
-                           Xandr ($&#123;CB&#125;)
+                           Xandr
                          </Button>
                          <Button
                            variant="outline"
                            size="sm"
-                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'ttd'), `TTD URL (${tag.title})`)}
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'ttd', 'path'), `TTD Path URL (${tag.title})`)}
                            className="justify-start text-xs h-8"
                          >
                            <Copy className="w-3 h-3 mr-2" />
-                           TTD ([timestamp])
+                           TTD
+                         </Button>
+                       </div>
+                       <Separator className="my-3" />
+                       <div className="text-sm font-medium text-foreground mb-2">🔗 Formato Query (Compatibilidade):</div>
+                       <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 mb-3">
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'dv360', 'query'), `DV360 Query URL (${tag.title})`)}
+                           className="justify-start text-xs h-8"
+                         >
+                           <Copy className="w-3 h-3 mr-2" />
+                           DV360 (query)
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'xandr', 'query'), `Xandr Query URL (${tag.title})`)}
+                           className="justify-start text-xs h-8"
+                         >
+                           <Copy className="w-3 h-3 mr-2" />
+                           Xandr (query)
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => copyToClipboard(getPixelUrl(tag.code, 'ttd', 'query'), `TTD Query URL (${tag.title})`)}
+                           className="justify-start text-xs h-8"
+                         >
+                           <Copy className="w-3 h-3 mr-2" />
+                           TTD (query)
                          </Button>
                        </div>
                       <Separator className="my-3" />
@@ -773,17 +940,17 @@ const CampaignDetails = () => {
                         <Copy className="w-3 h-3 mr-2" />
                         Copiar JS Snippet (Para iframes)
                       </Button>
-                      <div className="text-xs text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg">
-                        <div className="font-medium mb-1">💡 Melhores Práticas:</div>
-                        <div>• <strong>Universal</strong>: Funciona em múltiplas DSPs (DV360, Xandr, etc)</div>
-                        <div>• <strong>DV360</strong>: %%CACHEBUSTER%% para cache único por impressão</div>
-                        <div>• <strong>Xandr</strong>: $&#123;CACHEBUSTER&#125; para identificação única</div>
-                        <div>• <strong>JS</strong>: Para iframes/mapas com controle total do cache</div>
-                        <div className="mt-2 pt-2 border-t border-muted-foreground/20">
-                          <div className="font-medium">🎯 Recomendação:</div>
-                          <div>Use a tag <strong>Universal</strong> nas DSPs para máxima compatibilidade</div>
-                        </div>
-                      </div>
+                       <div className="text-xs text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg">
+                         <div className="font-medium mb-1">💡 Implementação Robusta:</div>
+                         <div>• <strong>Path Format</strong>: Tag na URL (/track-event/TAG), resistente a remoção de query strings pelas DSPs</div>
+                         <div>• <strong>Query Format</strong>: Tag como parâmetro (?tag=TAG), formato tradicional para compatibilidade</div>
+                         <div>• <strong>Combo URLs</strong>: Inclui cachebusters de múltiplas DSPs para máxima cobertura</div>
+                         <div>• <strong>Health Check</strong>: Use /health para verificar se a function está funcionando</div>
+                         <div className="mt-2 pt-2 border-t border-muted-foreground/20">
+                           <div className="font-medium">🎯 Recomendação para DSPs:</div>
+                           <div>Use o <strong>Path Format</strong> para DV360/Xandr. Se houver problemas, teste com Query Format.</div>
+                         </div>
+                       </div>
                     </div>
                   </div>
                 ))}

@@ -81,6 +81,12 @@ setInterval(() => {
 const GIF_PIXEL = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
 Deno.serve(async (req) => {
+  // Health check route
+  if (req.url.endsWith('/health')) {
+    return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -109,17 +115,34 @@ Deno.serve(async (req) => {
     let url: URL;
     let tagCode: string | null = null;
     
-    // Try to parse URL - if it fails due to malformed query params, extract tag manually
-    try {
-      url = new URL(req.url);
-      tagCode = url.searchParams.get('tag');
-    } catch (e) {
-      console.log('URL parsing failed, attempting manual tag extraction:', e);
-      // Extract tag manually using regex if URL parsing fails
-      const tagMatch = req.url.match(/[?&]tag=([^&]+)/);
-      if (tagMatch) {
-        tagCode = decodeURIComponent(tagMatch[1]);
-        console.log('Extracted tag manually:', tagCode);
+    // Try to extract tag from URL path first: /functions/v1/track-event/{tag}
+    const pathMatch = req.url.match(/\/track-event\/([^/?]+)/);
+    if (pathMatch) {
+      try {
+        tagCode = decodeURIComponent(pathMatch[1]);
+        console.log('Extracted tag from path:', tagCode);
+      } catch (e) {
+        console.log('Failed to decode tag from path:', e);
+        tagCode = pathMatch[1];
+      }
+    }
+    
+    // If no tag in path, try to parse URL query parameters
+    if (!tagCode) {
+      try {
+        url = new URL(req.url);
+        // Try multiple parameter aliases: tag, code, t
+        tagCode = url.searchParams.get('tag') || 
+                  url.searchParams.get('code') || 
+                  url.searchParams.get('t');
+      } catch (e) {
+        console.log('URL parsing failed, attempting manual tag extraction:', e);
+        // Extract tag manually using regex if URL parsing fails
+        const tagMatch = req.url.match(/[?&](?:tag|code|t)=([^&]+)/);
+        if (tagMatch) {
+          tagCode = decodeURIComponent(tagMatch[1]);
+          console.log('Extracted tag manually:', tagCode);
+        }
       }
     }
     
@@ -127,7 +150,7 @@ Deno.serve(async (req) => {
     if (!tagCode && req.method === 'POST') {
       try {
         const body = await req.json()
-        tagCode = body.tag
+        tagCode = body.tag || body.code || body.t;
       } catch (e) {
         // If JSON parsing fails, continue with null tagCode
         console.log('Failed to parse JSON body:', e)
@@ -135,7 +158,7 @@ Deno.serve(async (req) => {
     }
     
     if (!tagCode) {
-      console.log('Missing tag parameter in both URL and body')
+      console.log('Missing tag parameter - URL:', req.url);
       // Return 1x1 GIF even for missing tag to prevent ad server errors
       const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
       return new Response(gifBuffer, {
@@ -170,13 +193,17 @@ Deno.serve(async (req) => {
     const userAgent = req.headers.get('user-agent')
 
     // Get additional metadata based on request method
-    let metadata = {}
+    let metadata: any = {
+      referer: req.headers.get('referer'),
+      original_url: req.url
+    };
+    
     if (req.method === 'POST') {
       try {
         const body = await req.json()
-        metadata = body
+        metadata = { ...metadata, ...body }
       } catch (e) {
-        // If JSON parsing fails, continue with empty metadata
+        // If JSON parsing fails, continue with existing metadata
         console.log('Failed to parse POST body for metadata:', e)
       }
     } else if (req.method === 'GET') {
@@ -184,9 +211,12 @@ Deno.serve(async (req) => {
       try {
         if (url && url.searchParams) {
           const params = Object.fromEntries(url.searchParams.entries())
-          delete params.tag // Remove the tag parameter as it's already processed
+          // Remove tag parameter aliases as they're already processed
+          delete params.tag;
+          delete params.code;
+          delete params.t;
           if (Object.keys(params).length > 0) {
-            metadata = { query_params: params }
+            metadata.query_params = params;
           }
         }
       } catch (e) {
@@ -195,10 +225,10 @@ Deno.serve(async (req) => {
         const cbMatch = req.url.match(/[?&]cb=([^&]*)/);
         if (cbMatch) {
           try {
-            metadata = { query_params: { cb: decodeURIComponent(cbMatch[1]) } }
+            metadata.query_params = { cb: decodeURIComponent(cbMatch[1]) };
           } catch (decodeError) {
             // If decoding fails, store the raw value
-            metadata = { query_params: { cb: cbMatch[1] } }
+            metadata.query_params = { cb: cbMatch[1] };
           }
         }
       }
