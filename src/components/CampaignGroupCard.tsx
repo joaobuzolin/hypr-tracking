@@ -34,7 +34,7 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
   
   return (
     <Card 
-      className="border shadow-sm hover:shadow-lg transition-all duration-200 h-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="border shadow-sm hover:shadow-lg transition-all duration-200 h-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 section-surface"
       onClick={handleCardClick}
       onKeyDown={handleKeyDown}
       role="button"
