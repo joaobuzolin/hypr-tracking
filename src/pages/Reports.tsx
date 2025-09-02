@@ -67,6 +67,7 @@ interface ReportConfig {
   metrics: string[];
   dateRange?: DateRange;
   groupBy: 'day' | 'week' | 'month';
+  shortTokenFilter?: string;
 }
 
 const Reports = () => {
@@ -80,7 +81,8 @@ const Reports = () => {
     selectedCreatives: [],
     dimensions: ['campaign_name'],
     metrics: ['page_views', 'cta_clicks', 'pin_clicks', 'ctr'],
-    groupBy: 'day'
+    groupBy: 'day',
+    shortTokenFilter: ''
   });
 
   // Get unique creatives from campaigns
@@ -114,6 +116,14 @@ const Reports = () => {
     if (reportConfig.selectedCreatives.length > 0) {
       filteredCampaigns = filteredCampaigns.filter(campaign => 
         reportConfig.selectedCreatives.includes(campaign.id)
+      );
+    }
+    
+    // Filter by short token if specified
+    if (reportConfig.shortTokenFilter && reportConfig.shortTokenFilter.trim()) {
+      filteredCampaigns = filteredCampaigns.filter(campaign => 
+        campaign.short_token && 
+        campaign.short_token.toLowerCase().includes(reportConfig.shortTokenFilter!.toLowerCase().trim())
       );
     }
     
@@ -493,6 +503,40 @@ const Reports = () => {
                         </Badge>
                       ) : null;
                      })}
+                  </div>
+                )}
+              </div>
+
+              {/* Short Token Filter */}
+              <div className="space-y-2">
+                <Label htmlFor="shortToken" className="text-sm font-medium">
+                  Buscar por Short Token
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="shortToken"
+                    placeholder="Digite o short token"
+                    value={reportConfig.shortTokenFilter || ''}
+                    onChange={(e) => setReportConfig(prev => ({ 
+                      ...prev, 
+                      shortTokenFilter: e.target.value 
+                    }))}
+                    className="pl-10"
+                  />
+                </div>
+                {reportConfig.shortTokenFilter && reportConfig.shortTokenFilter.trim() && (
+                  <div className="flex items-center gap-1">
+                    <Badge variant="secondary" className="text-xs">
+                      Token: {reportConfig.shortTokenFilter}
+                      <X 
+                        className="ml-1 h-3 w-3 cursor-pointer" 
+                        onClick={() => setReportConfig(prev => ({ 
+                          ...prev, 
+                          shortTokenFilter: '' 
+                        }))}
+                      />
+                    </Badge>
                   </div>
                 )}
               </div>
