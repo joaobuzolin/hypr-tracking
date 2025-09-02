@@ -5,6 +5,7 @@ import { EditInsertionOrderDialog } from "@/components/EditInsertionOrderDialog"
 import { MetricsCard } from "@/components/MetricsCard";
 import { useBreadcrumbs } from "@/components/Breadcrumb";
 import { useInsertionOrders, type InsertionOrderWithMetrics } from "@/hooks/useInsertionOrders";
+import { useProfiles } from "@/hooks/useProfiles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -141,6 +142,7 @@ const CreateInsertionOrderDialog = ({ onCreated }: { onCreated: () => void }) =>
 
 const InsertionOrders = () => {
   const { insertionOrders, loading, updateInsertionOrder, deleteInsertionOrder } = useInsertionOrders();
+  const { profiles } = useProfiles();
   const [searchTerm, setSearchTerm] = useState("");
   const [creatorFilter, setCreatorFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -152,14 +154,20 @@ const InsertionOrders = () => {
   const { generateBreadcrumbs } = useBreadcrumbs();
   const breadcrumbs = generateBreadcrumbs();
   
-  // Get unique creators for filter options
+  // Get unique creators for filter options - show all registered users
   const uniqueCreators = useMemo(() => {
+    // Use all profiles if available, fallback to insertion order creators
+    if (profiles.length > 0) {
+      return profiles.map(p => p.email).sort();
+    }
+    
+    // Fallback to existing logic if profiles not loaded
     const creators = insertionOrders
       .filter(io => io.profile?.email)
       .map(io => io.profile!.email)
       .filter((email, index, arr) => arr.indexOf(email) === index);
     return creators.sort();
-  }, [insertionOrders]);
+  }, [profiles, insertionOrders]);
 
   // Filtered insertion orders
   const filteredInsertionOrders = useMemo(() => {

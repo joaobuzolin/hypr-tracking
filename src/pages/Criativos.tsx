@@ -6,6 +6,7 @@ import { useBreadcrumbs } from "@/components/Breadcrumb";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useCampaignGroups } from "@/hooks/useCampaignGroups";
 import { useInsertionOrders } from "@/hooks/useInsertionOrders";
+import { useProfiles } from "@/hooks/useProfiles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -239,6 +240,7 @@ const Criativos = () => {
   const { campaigns, loading, createCampaign } = useCampaigns();
   const { insertionOrders } = useInsertionOrders();
   const { campaignGroups } = useCampaignGroups();
+  const { profiles } = useProfiles();
   const { insertionOrderId, campaignGroupId } = useParams();
   const { generateBreadcrumbs } = useBreadcrumbs();
   const navigate = useNavigate();
@@ -285,14 +287,20 @@ const Criativos = () => {
     return campaigns.sort((a, b) => a.name.localeCompare(b.name));
   }, [relevantCampaigns, campaignGroupId]);
 
-  // Get unique creators and months for filter options
+  // Get unique creators for filter options - show all registered users
   const uniqueCreators = useMemo(() => {
+    // Use all profiles if available, fallback to campaign creators
+    if (profiles.length > 0) {
+      return profiles.map(p => p.email).sort();
+    }
+    
+    // Fallback to existing logic if profiles not loaded
     const creators = relevantCampaigns
       .filter(c => c.profile?.email)
       .map(c => c.profile!.email)
       .filter((email, index, arr) => arr.indexOf(email) === index);
     return creators.sort();
-  }, [relevantCampaigns]);
+  }, [profiles, relevantCampaigns]);
 
 
   // Filtered campaigns based on all filters
