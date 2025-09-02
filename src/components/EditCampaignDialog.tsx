@@ -34,6 +34,7 @@ interface EditCampaignDialogProps {
 export const EditCampaignDialog = ({ campaign, open, onOpenChange }: EditCampaignDialogProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [shortToken, setShortToken] = useState("");
   const [insertionOrderId, setInsertionOrderId] = useState("");
   const [campaignGroupId, setCampaignGroupId] = useState("");
   const [creativeFormat, setCreativeFormat] = useState("300x250");
@@ -47,6 +48,7 @@ export const EditCampaignDialog = ({ campaign, open, onOpenChange }: EditCampaig
     if (campaign && open) {
       setName(campaign.name);
       setDescription(campaign.description || "");
+      setShortToken(campaign.short_token || "");
       setInsertionOrderId(campaign.insertion_order_id || "none");
       setCampaignGroupId(campaign.campaign_group_id || "none");
       setCreativeFormat(campaign.creative_format || "300x250");
@@ -83,6 +85,7 @@ export const EditCampaignDialog = ({ campaign, open, onOpenChange }: EditCampaig
     const updates = {
       name: name.trim(),
       description: description.trim() || null,
+      short_token: shortToken.trim() || null,
       insertion_order_id: insertionOrderId === "none" ? null : insertionOrderId,
       campaign_group_id: campaignGroupId === "none" ? null : campaignGroupId,
       creative_format: creativeFormat,
@@ -146,6 +149,20 @@ export const EditCampaignDialog = ({ campaign, open, onOpenChange }: EditCampaig
               rows={3}
               disabled={loading}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="shortToken">Short Token</Label>
+            <Input
+              id="shortToken"
+              placeholder="Token curto para identificação (opcional)"
+              value={shortToken}
+              onChange={(e) => setShortToken(e.target.value)}
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Token opcional para identificação rápida do criativo
+            </p>
           </div>
 
           <div className="space-y-2">
