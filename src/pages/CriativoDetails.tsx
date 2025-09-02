@@ -689,7 +689,7 @@ const CampaignDetails = () => {
                      <div className="space-y-3">
                         <div className="flex items-center justify-between mb-2">
                           <div className="text-sm font-medium text-foreground">🔗 Formato Path (Recomendado - DSPs):</div>
-                          <div className="text-xs text-muted-foreground">Mais resistente a DSPs que removem query strings</div>
+                          
                         </div>
                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
                          <Button
