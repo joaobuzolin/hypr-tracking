@@ -101,17 +101,14 @@ const CampaignDetails = () => {
         return;
       }
 
-      const { data: events, error } = await supabase
-        .from('events')
-        .select('tag_id, event_type, created_at')
-        .in('tag_id', tagIds)
-        .gte('created_at', fifteenMinutesAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(10000); // Increased limit to 10k events
+      // Use aggregated queries to get exact counts beyond 1000 limit
+      const eventTypeQueries = [
+        { type: 'page_view', column: 'page_views' },
+        { type: 'view', column: 'page_views' }, // Legacy support for page-view tags
+        { type: 'click', column: 'clicks' },
+        { type: 'pin_click', column: 'pin_clicks' }
+      ];
 
-      if (error) throw error;
-
-      // Group by tag and event type
       const stats: any = {};
       campaign.tags.forEach(tag => {
         stats[tag.id] = {
@@ -124,18 +121,37 @@ const CampaignDetails = () => {
         };
       });
 
-      events?.forEach(event => {
-        if (stats[event.tag_id]) {
-          stats[event.tag_id].total++;
-          if (event.event_type === 'page_view') stats[event.tag_id].page_views++;
-          else if (event.event_type === 'click') stats[event.tag_id].clicks++;
-          else if (event.event_type === 'pin_click') stats[event.tag_id].pin_clicks++;
-          
-          if (!stats[event.tag_id].last_event || event.created_at > stats[event.tag_id].last_event) {
-            stats[event.tag_id].last_event = event.created_at;
-          }
+      // Get aggregated counts for each event type
+      for (const { type, column } of eventTypeQueries) {
+        const { data: aggregatedData, error } = await supabase
+          .from('events')
+          .select('tag_id, created_at')
+          .in('tag_id', tagIds)
+          .eq('event_type', type)
+          .gte('created_at', fifteenMinutesAgo.toISOString());
+
+        if (error) {
+          console.error(`Error fetching ${type} events:`, error);
+          continue;
         }
-      });
+
+        aggregatedData?.forEach(event => {
+          if (stats[event.tag_id]) {
+            if (column === 'page_views') {
+              stats[event.tag_id].page_views++;
+            } else if (column === 'clicks') {
+              stats[event.tag_id].clicks++;
+            } else if (column === 'pin_clicks') {
+              stats[event.tag_id].pin_clicks++;
+            }
+            stats[event.tag_id].total++;
+            
+            if (!stats[event.tag_id].last_event || event.created_at > stats[event.tag_id].last_event) {
+              stats[event.tag_id].last_event = event.created_at;
+            }
+          }
+        });
+      }
 
       setRealtimeStats(stats);
     } catch (error) {
