@@ -85,6 +85,10 @@ const CampaignDetails = () => {
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [isActive, setIsActive] = useState(false);
   
+  // Real-time monitoring states
+  const [realtimeStats, setRealtimeStats] = useState<any>({});
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  
   // Real-time log states
   const [realtimeLogs, setRealtimeLogs] = useState<RealtimeEvent[]>([]);
   const [filterType, setFilterType] = useState<string>('click');
@@ -385,8 +389,6 @@ const CampaignDetails = () => {
   };
 
   // Real-time monitoring - fetch recent events for last 15 minutes
-  const [realtimeStats, setRealtimeStats] = useState<any>({});
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const loadRealtimeStats = async () => {
     if (!campaign) return;
