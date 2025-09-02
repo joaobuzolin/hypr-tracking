@@ -264,7 +264,7 @@ const CampaignDetails = () => {
 
   useEffect(() => {
     loadInitialLogs();
-  }, [campaign]);
+  }, [campaign, includePageViews]);
 
   // Setup real-time listening for new events
   useEffect(() => {
@@ -304,9 +304,12 @@ const CampaignDetails = () => {
     };
   }, [campaign]);
 
+  // Real-time stats monitoring
   useEffect(() => {
-    loadInitialLogs();
-  }, [campaign, includePageViews]);
+    loadRealtimeStats();
+    const interval = setInterval(loadRealtimeStats, 30000); // Update every 30 seconds
+    return () => clearInterval(interval);
+  }, [campaign]);
   
   if (loading) {
     return (
@@ -447,11 +450,6 @@ const CampaignDetails = () => {
     }
   };
 
-  useEffect(() => {
-    loadRealtimeStats();
-    const interval = setInterval(loadRealtimeStats, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, [campaign]);
 
   const getImgTag = (tag: string, dspType: 'dv360' | 'xandr' | 'ttd' | 'combo' | 'test', format: 'path' | 'query' = 'path') => {
     const pixelUrl = getPixelUrl(tag, dspType, format);
