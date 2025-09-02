@@ -664,20 +664,20 @@ const CampaignDetails = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => copyToClipboard(getPixelUrl(tag.code, 'combo'), `Combo URL (${tag.title})`)}
+                            onClick={() => copyToClipboard(getPixelUrl(tag.code, 'combo'), `Universal URL (${tag.title})`)}
                             className="justify-start text-xs h-8"
                           >
                             <Copy className="w-3 h-3 mr-2" />
-                            Combo URL
+                            Universal URL
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => copyToClipboard(getImgTag(tag.code, 'combo'), `Combo IMG (${tag.title})`)}
+                            onClick={() => copyToClipboard(getImgTag(tag.code, 'combo'), `Universal IMG (${tag.title})`)}
                             className="justify-start text-xs h-8"
                           >
                             <Copy className="w-3 h-3 mr-2" />
-                            Combo IMG
+                            Universal IMG
                           </Button>
                         </div>
                         <Separator className="my-3" />
@@ -713,7 +713,7 @@ const CampaignDetails = () => {
                         </div>
                         <div className="text-xs text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg">
                           <div className="font-medium mb-1">💡 Implementação:</div>
-                          <div>• <strong>Combo URLs</strong>: Inclui cachebusters de múltiplas DSPs para máxima cobertura</div>
+                          <div>• <strong>Universal URLs</strong>: Inclui cachebusters de múltiplas DSPs para máxima cobertura</div>
                           <div>• <strong>DSPs Específicas</strong>: URLs otimizadas para cada plataforma (DV360, Xandr, TTD)</div>
                           <div>• <strong>Health Check</strong>: Use /health para verificar se a function está funcionando</div>
                         </div>
