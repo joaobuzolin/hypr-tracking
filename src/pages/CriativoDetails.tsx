@@ -555,9 +555,9 @@ const CampaignDetails = () => {
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Activity className="w-5 h-5" />
                   Últimos 15 Minutos
-                   <Badge variant="secondary" className="ml-2">
-                     {String(Object.values(realtimeStats).reduce((acc: number, stat: any) => acc + (stat?.total || 0), 0))} eventos
-                   </Badge>
+                  <Badge variant="secondary" className="ml-2">
+                    {String(Object.values(realtimeStats).reduce((acc: number, stat: any) => acc + (stat?.total || 0), 0))} eventos
+                  </Badge>
                 </CardTitle>
                 <Button 
                   variant="outline" 
