@@ -106,7 +106,8 @@ const CampaignDetails = () => {
         .select('tag_id, event_type, created_at')
         .in('tag_id', tagIds)
         .gte('created_at', fifteenMinutesAgo.toISOString())
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10000); // Increased limit to 10k events
 
       if (error) throw error;
 
