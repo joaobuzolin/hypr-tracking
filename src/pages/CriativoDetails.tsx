@@ -657,7 +657,7 @@ const CampaignDetails = () => {
                     </div>
                      <div className="space-y-3">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium text-foreground">🔗 Formato Path (Recomendado - DSPs):</div>
+                          <div className="text-sm font-medium text-foreground">Universal Pixels (recomendado):</div>
                           
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
