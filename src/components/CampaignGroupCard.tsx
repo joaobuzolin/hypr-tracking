@@ -86,10 +86,15 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent 
+                align="end" 
+                className="w-48"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
                 <EditCampaignGroupDialog campaignGroup={campaignGroup}>
                   <DropdownMenuItem 
-                    onSelect={(e) => e.preventDefault()} // Previne fechar o dropdown automaticamente
+                    onClick={(e) => e.stopPropagation()}
                     className="gap-2"
                   >
                     <Settings className="w-4 h-4" />
