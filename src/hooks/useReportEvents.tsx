@@ -15,6 +15,7 @@ export interface ReportEvent {
   campaignTags: string;
   insertionOrderName: string;
   creativeFormat: string;
+  shortToken: string;
   tagId?: string;
   tagTitle?: string;
   pageViews: number;
@@ -118,6 +119,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
           status,
           description,
           creative_format,
+          short_token,
           campaign_group_id,
           insertion_orders (
             client_name
@@ -197,6 +199,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
           campaignTags: needsTagBreakdown && row.tag_title ? row.tag_title : '',
           insertionOrderName: (campaign as any)?.insertion_orders?.client_name || 'Sem Insertion Order',
           creativeFormat: campaign?.creative_format || 'Não definido',
+          shortToken: campaign?.short_token || '',
           tagId: needsTagBreakdown ? row.tag_id : undefined,
           tagTitle: needsTagBreakdown ? row.tag_title : undefined,
           pageViews,
@@ -265,6 +268,9 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
             }
             if (existing.creativeFormat !== item.creativeFormat) {
               existing.creativeFormat = 'Vários';
+            }
+            if (existing.shortToken !== item.shortToken) {
+              existing.shortToken = 'Vários';
             }
           } else {
             aggregatedMap.set(key, {

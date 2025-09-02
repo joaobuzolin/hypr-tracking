@@ -40,6 +40,7 @@ const availableDimensions = [
   { id: 'campaign_description', label: 'Descrição' },
   { id: 'campaign_tags', label: 'Tags' },
   { id: 'creative_format', label: 'Formato do Criativo' },
+  { id: 'short_token', label: 'Short Token' },
 ];
 
 
@@ -180,6 +181,9 @@ const Reports = () => {
             break;
           case 'creative_format':
             row['Formato do Criativo'] = event.creativeFormat;
+            break;
+          case 'short_token':
+            row['Short Token'] = event.shortToken || '-';
             break;
         }
       });
