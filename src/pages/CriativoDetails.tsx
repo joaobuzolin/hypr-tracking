@@ -105,6 +105,64 @@ const CampaignDetails = () => {
     return insertionOrders.find(io => io.id === campaign.insertion_order_id);
   }, [campaign, insertionOrders]);
 
+  // Define functions before useEffect calls to avoid temporal dead zone
+  const loadRealtimeStats = async () => {
+    if (!campaign) return;
+    
+    setIsLoadingStats(true);
+    try {
+      const fifteenMinutesAgo = new Date();
+      fifteenMinutesAgo.setMinutes(fifteenMinutesAgo.getMinutes() - 15);
+
+      const tagIds = campaign.tags.map(tag => tag.id);
+      if (tagIds.length === 0) {
+        setRealtimeStats({});
+        return;
+      }
+
+      const { data: events, error } = await supabase
+        .from('events')
+        .select('tag_id, event_type, created_at')
+        .in('tag_id', tagIds)
+        .gte('created_at', fifteenMinutesAgo.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Group by tag and event type
+      const stats: any = {};
+      campaign.tags.forEach(tag => {
+        stats[tag.id] = {
+          tag: tag,
+          total: 0,
+          page_views: 0,
+          clicks: 0,
+          pin_clicks: 0,
+          last_event: null
+        };
+      });
+
+      events?.forEach(event => {
+        if (stats[event.tag_id]) {
+          stats[event.tag_id].total++;
+          if (event.event_type === 'page_view') stats[event.tag_id].page_views++;
+          else if (event.event_type === 'click') stats[event.tag_id].clicks++;
+          else if (event.event_type === 'pin_click') stats[event.tag_id].pin_clicks++;
+          
+          if (!stats[event.tag_id].last_event || event.created_at > stats[event.tag_id].last_event) {
+            stats[event.tag_id].last_event = event.created_at;
+          }
+        }
+      });
+
+      setRealtimeStats(stats);
+    } catch (error) {
+      console.error('Error loading realtime stats:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading && campaigns.length === 0) {
       fetchCampaigns();
@@ -391,64 +449,6 @@ const CampaignDetails = () => {
     }
   };
 
-  // Real-time monitoring - fetch recent events for last 15 minutes
-
-  const loadRealtimeStats = async () => {
-    if (!campaign) return;
-    
-    setIsLoadingStats(true);
-    try {
-      const fifteenMinutesAgo = new Date();
-      fifteenMinutesAgo.setMinutes(fifteenMinutesAgo.getMinutes() - 15);
-
-      const tagIds = campaign.tags.map(tag => tag.id);
-      if (tagIds.length === 0) {
-        setRealtimeStats({});
-        return;
-      }
-
-      const { data: events, error } = await supabase
-        .from('events')
-        .select('tag_id, event_type, created_at')
-        .in('tag_id', tagIds)
-        .gte('created_at', fifteenMinutesAgo.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Group by tag and event type
-      const stats: any = {};
-      campaign.tags.forEach(tag => {
-        stats[tag.id] = {
-          tag: tag,
-          total: 0,
-          page_views: 0,
-          clicks: 0,
-          pin_clicks: 0,
-          last_event: null
-        };
-      });
-
-      events?.forEach(event => {
-        if (stats[event.tag_id]) {
-          stats[event.tag_id].total++;
-          if (event.event_type === 'page_view') stats[event.tag_id].page_views++;
-          else if (event.event_type === 'click') stats[event.tag_id].clicks++;
-          else if (event.event_type === 'pin_click') stats[event.tag_id].pin_clicks++;
-          
-          if (!stats[event.tag_id].last_event || event.created_at > stats[event.tag_id].last_event) {
-            stats[event.tag_id].last_event = event.created_at;
-          }
-        }
-      });
-
-      setRealtimeStats(stats);
-    } catch (error) {
-      console.error('Error loading realtime stats:', error);
-    } finally {
-      setIsLoadingStats(false);
-    }
-  };
 
 
   const getImgTag = (tag: string, dspType: 'dv360' | 'xandr' | 'ttd' | 'combo' | 'test', format: 'path' | 'query' = 'path') => {
