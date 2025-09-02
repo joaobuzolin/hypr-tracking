@@ -101,57 +101,30 @@ const CampaignDetails = () => {
         return;
       }
 
-      // Use aggregated queries to get exact counts beyond 1000 limit
-      const eventTypeQueries = [
-        { type: 'page_view', column: 'page_views' },
-        { type: 'view', column: 'page_views' }, // Legacy support for page-view tags
-        { type: 'click', column: 'clicks' },
-        { type: 'pin_click', column: 'pin_clicks' }
-      ];
-
-      const stats: any = {};
-      campaign.tags.forEach(tag => {
-        stats[tag.id] = {
-          tag: tag,
-          total: 0,
-          page_views: 0,
-          clicks: 0,
-          pin_clicks: 0,
-          last_event: null
-        };
+      // Use RPC function to get aggregated counts without 1000-row limit
+      const { data: realtimeData, error } = await supabase.rpc('get_realtime_event_counts', {
+        p_tag_ids: tagIds,
+        p_since: fifteenMinutesAgo.toISOString()
       });
 
-      // Get aggregated counts for each event type
-      for (const { type, column } of eventTypeQueries) {
-        const { data: aggregatedData, error } = await supabase
-          .from('events')
-          .select('tag_id, created_at')
-          .in('tag_id', tagIds)
-          .eq('event_type', type)
-          .gte('created_at', fifteenMinutesAgo.toISOString());
-
-        if (error) {
-          console.error(`Error fetching ${type} events:`, error);
-          continue;
-        }
-
-        aggregatedData?.forEach(event => {
-          if (stats[event.tag_id]) {
-            if (column === 'page_views') {
-              stats[event.tag_id].page_views++;
-            } else if (column === 'clicks') {
-              stats[event.tag_id].clicks++;
-            } else if (column === 'pin_clicks') {
-              stats[event.tag_id].pin_clicks++;
-            }
-            stats[event.tag_id].total++;
-            
-            if (!stats[event.tag_id].last_event || event.created_at > stats[event.tag_id].last_event) {
-              stats[event.tag_id].last_event = event.created_at;
-            }
-          }
-        });
+      if (error) {
+        console.error('Error fetching realtime stats:', error);
+        return;
       }
+
+      // Build stats object from RPC results
+      const stats: any = {};
+      campaign.tags.forEach(tag => {
+        const tagData = realtimeData?.find(d => d.tag_id === tag.id);
+        stats[tag.id] = {
+          tag: tag,
+          total: (tagData?.page_views || 0) + (tagData?.clicks || 0) + (tagData?.pin_clicks || 0),
+          page_views: tagData?.page_views || 0,
+          clicks: tagData?.clicks || 0,
+          pin_clicks: tagData?.pin_clicks || 0,
+          last_event: tagData?.last_event || null
+        };
+      });
 
       setRealtimeStats(stats);
     } catch (error) {

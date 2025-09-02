@@ -355,6 +355,16 @@ export type Database = {
           total_events: number
         }[]
       }
+      get_realtime_event_counts: {
+        Args: { p_since: string; p_tag_ids: string[] }
+        Returns: {
+          clicks: number
+          last_event: string
+          page_views: number
+          pin_clicks: number
+          tag_id: string
+        }[]
+      }
       get_report_aggregated: {
         Args: {
           p_breakdown_by_tags?: boolean
