@@ -574,7 +574,7 @@ const CampaignDetails = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.values(realtimeStats).map((stat: any) => (
-                  <div key={stat.tag.id} className="border rounded-lg p-3 bg-muted">
+                  <div key={stat.tag.id} className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="font-medium text-sm">{stat.tag.title}</div>
                       <Badge 
@@ -642,7 +642,7 @@ const CampaignDetails = () => {
             ) : (
               <div className="grid gap-4">
                 {campaign.tags.map((tag) => (
-                  <div key={tag.id} className="border rounded-lg p-4 bg-muted">
+                  <div key={tag.id} className="border rounded-lg p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <Badge 
