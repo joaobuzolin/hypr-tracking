@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     let tagCode: string | null = null;
     
     // Try to extract tag from URL path first: /functions/v1/track-event/{tag}
-    const pathMatch = req.url.match(/\/track-event\/([^/?]+)/);
+    const pathMatch = req.url.match(/\/track-event\/([^/?&]+)/);
     if (pathMatch) {
       try {
         tagCode = decodeURIComponent(pathMatch[1]);
@@ -183,6 +183,19 @@ Deno.serve(async (req) => {
     
     if (!tag) {
       console.log('Tag not found:', tagCode)
+      // For GET requests, return 1x1 GIF instead of 404 to prevent ad server errors
+      if (req.method === 'GET') {
+        const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
+        return new Response(gifBuffer, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'image/gif',
+            'Content-Length': gifBuffer.length.toString(),
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'X-Debug': 'tag-not-found'
+          }
+        })
+      }
       return new Response('Tag not found', { 
         status: 404, 
         headers: corsHeaders 

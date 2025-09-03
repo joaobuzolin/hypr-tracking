@@ -277,13 +277,13 @@ const CampaignDetails = () => {
     
     switch (dspType) {
       case 'dv360':
-        return `${baseUrl}&cb={dclid}&cb2=%25%25PATTERN:DV360_CLK_ID%25%25&cb3=%25%25PATTERN:DV360_UNIQUE_ID%25%25`;
+        return `${baseUrl}?cb={dclid}&cb2=%25%25PATTERN:DV360_CLK_ID%25%25&cb3=%25%25PATTERN:DV360_UNIQUE_ID%25%25`;
       case 'xandr':
-        return `${baseUrl}&cb={click_id}&cb2={external_data}&cb3={adv_id}`;
+        return `${baseUrl}?cb={click_id}&cb2={external_data}&cb3={adv_id}`;
       case 'ttd':
-        return `${baseUrl}&cb={click_id}&cb2={auction_id}&cb3={adgroup_id}`;
+        return `${baseUrl}?cb={click_id}&cb2={auction_id}&cb3={adgroup_id}`;
       case 'combo':
-        return `${baseUrl}&cb={dclid}&cb2=%25%25PATTERN:DV360_CLK_ID%25%25&cb3={click_id}&cb4={external_data}&cb5={auction_id}`;
+        return `${baseUrl}?cb={dclid}&cb2=%25%25PATTERN:DV360_CLK_ID%25%25&cb3={click_id}&cb4={external_data}&cb5={auction_id}`;
       default:
         return baseUrl;
     }
