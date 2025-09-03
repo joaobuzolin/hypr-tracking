@@ -78,7 +78,7 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
             </div>
             <div className="flex flex-col gap-1 items-end">
               <Badge variant={campaign.derivedStatus === 'active' ? 'default' : 'secondary'} className="text-xs shrink-0">
-                {campaign.derivedStatus === 'active' ? 'Ativa' : 'Pausada'}
+                {campaign.derivedStatus === 'active' ? 'Ativa' : 'Inativa'}
               </Badge>
               <Badge 
                 variant="outline" 
