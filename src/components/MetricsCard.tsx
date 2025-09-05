@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
+import { formatCompactNumber } from '@/lib/utils';
 
 interface MetricsCardProps {
   icon: LucideIcon;
@@ -11,6 +12,9 @@ interface MetricsCardProps {
 }
 
 export const MetricsCard = memo(({ icon: Icon, value, label, className, iconColor }: MetricsCardProps) => {
+  const displayValue = typeof value === 'number' ? formatCompactNumber(value) : value;
+  const fullValue = typeof value === 'number' ? value.toLocaleString() : value;
+  
   return (
     <Card className="border shadow-sm hover:shadow-md transition-shadow duration-200">
       <CardContent className="p-3 md:p-4">
@@ -19,7 +23,12 @@ export const MetricsCard = memo(({ icon: Icon, value, label, className, iconColo
             <Icon className={`w-4 h-4 md:w-5 md:h-5 ${iconColor || 'text-muted-foreground'}`} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-lg md:text-xl font-semibold truncate">{value}</div>
+            <div 
+              className="text-lg md:text-xl font-semibold truncate" 
+              title={typeof value === 'number' ? fullValue : undefined}
+            >
+              {displayValue}
+            </div>
             <div className="text-xs md:text-sm text-muted-foreground truncate">{label}</div>
           </div>
         </div>
