@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { EditCampaignGroupDialog } from '@/components/EditCampaignGroupDialog';
 import { BarChart3, MousePointer, Eye, Users, Calendar, MoreVertical, Settings } from 'lucide-react';
+import { formatCompactNumber } from '@/lib/utils';
 import type { CampaignGroup } from '@/hooks/useCampaignGroups';
 
 interface CampaignGroupCardProps {
@@ -113,17 +114,32 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
           <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
             <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-muted/50 rounded border">
               <div className="sm:hidden text-xs text-muted-foreground">Criativos</div>
-              <div className="text-sm md:text-lg font-semibold">{campaignGroup.campaigns_count || 0}</div>
+              <div 
+                className="text-sm md:text-lg font-semibold"
+                title={(campaignGroup.campaigns_count || 0).toLocaleString()}
+              >
+                {formatCompactNumber(campaignGroup.campaigns_count || 0)}
+              </div>
               <div className="hidden sm:block text-xs text-muted-foreground">Criativos</div>
             </div>
             <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-blue-50 rounded border">
               <div className="sm:hidden text-xs text-blue-600">Total Clicks</div>
-              <div className="text-sm md:text-lg font-semibold">{campaignGroup.total_clicks || 0}</div>
+              <div 
+                className="text-sm md:text-lg font-semibold"
+                title={(campaignGroup.total_clicks || 0).toLocaleString()}
+              >
+                {formatCompactNumber(campaignGroup.total_clicks || 0)}
+              </div>
               <div className="hidden sm:block text-xs text-blue-600">Total Clicks</div>
             </div>
             <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-purple-50 rounded border">
               <div className="sm:hidden text-xs text-purple-600">Page Views</div>
-              <div className="text-sm md:text-lg font-semibold">{campaignGroup.total_page_views || 0}</div>
+              <div 
+                className="text-sm md:text-lg font-semibold"
+                title={(campaignGroup.total_page_views || 0).toLocaleString()}
+              >
+                {formatCompactNumber(campaignGroup.total_page_views || 0)}
+              </div>
               <div className="hidden sm:block text-xs text-purple-600">Page Views</div>
             </div>
             <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-green-50 rounded border">
