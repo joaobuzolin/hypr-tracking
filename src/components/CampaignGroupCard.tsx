@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ const calculateCTR = (clicks: number, pageViews: number) => {
 export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps) => {
   const ctr = calculateCTR(campaignGroup.total_clicks || 0, campaignGroup.total_page_views || 0);
   const navigate = useNavigate();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const handleCardClick = () => {
     navigate(`/campanhas/${campaignGroup.id}/criativos`);
@@ -93,17 +94,22 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <EditCampaignGroupDialog campaignGroup={campaignGroup}>
-                  <DropdownMenuItem 
-                    onClick={(e) => e.stopPropagation()}
-                    className="gap-2"
-                  >
-                    <Settings className="w-4 h-4" />
-                    Editar Campanha
-                  </DropdownMenuItem>
-                </EditCampaignGroupDialog>
+                <DropdownMenuItem 
+                  onSelect={() => setIsEditDialogOpen(true)}
+                  className="gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  Editar Campanha
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* Dialog montado fora do dropdown */}
+            <EditCampaignGroupDialog 
+              campaignGroup={campaignGroup}
+              open={isEditDialogOpen}
+              onOpenChange={setIsEditDialogOpen}
+            />
           </div>
         </div>
       </CardHeader>

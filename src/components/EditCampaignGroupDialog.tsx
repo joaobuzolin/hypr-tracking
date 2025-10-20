@@ -18,10 +18,16 @@ import type { DateRange } from "react-day-picker";
 interface EditCampaignGroupDialogProps {
   campaignGroup: CampaignGroup;
   children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export const EditCampaignGroupDialog = ({ campaignGroup, children }: EditCampaignGroupDialogProps) => {
-  const [open, setOpen] = useState(false);
+export const EditCampaignGroupDialog = ({ campaignGroup, children, open: controlledOpen, onOpenChange }: EditCampaignGroupDialogProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  // Usar estado controlado se fornecido, caso contrário usar estado interno
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const [name, setName] = useState(campaignGroup.name);
   const [description, setDescription] = useState(campaignGroup.description || "");
   const [status, setStatus] = useState(campaignGroup.status);
@@ -93,14 +99,15 @@ export const EditCampaignGroupDialog = ({ campaignGroup, children }: EditCampaig
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children || (
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+      {!children && (
+        <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="gap-2">
             <Settings className="w-4 h-4" />
             Editar
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Editar Campanha</DialogTitle>
