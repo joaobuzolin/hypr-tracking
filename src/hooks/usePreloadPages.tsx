@@ -18,9 +18,13 @@ export const usePreloadPages = () => {
       }
     };
 
-    // Delay para não impactar o carregamento inicial
-    const timeoutId = setTimeout(preloadPages, 2000);
-    
-    return () => clearTimeout(timeoutId);
+    // Use requestIdleCallback for better performance (fallback to setTimeout)
+    if ('requestIdleCallback' in window) {
+      const idleCallbackId = requestIdleCallback(() => preloadPages(), { timeout: 2000 });
+      return () => cancelIdleCallback(idleCallbackId);
+    } else {
+      const timeoutId = setTimeout(preloadPages, 2000);
+      return () => clearTimeout(timeoutId);
+    }
   }, []);
 };

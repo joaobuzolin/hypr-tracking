@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import { useInsertionOrdersQuery } from './queries/useInsertionOrdersQuery';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface InsertionOrder {
   id: string;
@@ -25,84 +27,14 @@ export interface InsertionOrderWithMetrics extends InsertionOrder {
 }
 
 export const useInsertionOrders = () => {
-  const [insertionOrders, setInsertionOrders] = useState<InsertionOrderWithMetrics[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: insertionOrders = [], isLoading: loading, refetch } = useInsertionOrdersQuery();
 
   const fetchInsertionOrders = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-
-      // Fetch insertion orders with campaigns count and metrics
-      const { data: insertionOrdersData, error } = await supabase
-        .from('insertion_orders')
-        .select(`
-          *,
-          profiles!insertion_orders_user_id_fkey(email),
-          campaigns(
-            id,
-            tags(
-              id,
-              events(event_type)
-            )
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching insertion orders:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar as insertion orders.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Process data to calculate metrics
-      const processedData = insertionOrdersData.map((io: any) => {
-        const campaigns = io.campaigns || [];
-        const campaigns_count = campaigns.length;
-        
-        let total_tags = 0;
-        let total_clicks = 0;
-
-        campaigns.forEach((campaign: any) => {
-          const tags = campaign.tags || [];
-          total_tags += tags.length;
-
-          tags.forEach((tag: any) => {
-            const events = tag.events || [];
-            total_clicks += events.filter((e: any) => 
-              e.event_type === 'click' || e.event_type === 'pin_click'
-            ).length;
-          });
-        });
-
-        return {
-          ...io,
-          campaigns_count,
-          total_tags,
-          total_clicks,
-          profile: Array.isArray(io.profiles) ? io.profiles[0] : io.profiles
-        };
-      });
-
-      setInsertionOrders(processedData);
-    } catch (error) {
-      console.error('Error in fetchInsertionOrders:', error);
-      toast({
-        title: "Erro",
-        description: "Erro inesperado ao carregar insertion orders.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, toast]);
+    await refetch();
+  }, [refetch]);
 
   const createInsertionOrder = async (orderData: {
     client_name: string;
@@ -128,8 +60,8 @@ export const useInsertionOrders = () => {
         return { error: 'Erro ao criar insertion order' };
       }
 
-      // Refresh the list
-      fetchInsertionOrders();
+      // Invalidate queries to refresh
+      queryClient.invalidateQueries({ queryKey: ['insertion-orders'] });
       return { data, error: null };
     } catch (error) {
       console.error('Error in createInsertionOrder:', error);
@@ -153,8 +85,8 @@ export const useInsertionOrders = () => {
         return { error: 'Erro ao atualizar insertion order' };
       }
 
-      // Refresh the list
-      fetchInsertionOrders();
+      // Invalidate queries to refresh
+      queryClient.invalidateQueries({ queryKey: ['insertion-orders'] });
       return { data, error: null };
     } catch (error) {
       console.error('Error in updateInsertionOrder:', error);
@@ -176,18 +108,14 @@ export const useInsertionOrders = () => {
         return { error: 'Erro ao deletar insertion order' };
       }
 
-      // Refresh the list
-      fetchInsertionOrders();
+      // Invalidate queries to refresh
+      queryClient.invalidateQueries({ queryKey: ['insertion-orders'] });
       return { error: null };
     } catch (error) {
       console.error('Error in deleteInsertionOrder:', error);
       return { error: 'Erro inesperado ao deletar insertion order' };
     }
   };
-
-  useEffect(() => {
-    fetchInsertionOrders();
-  }, [fetchInsertionOrders]);
 
   return {
     insertionOrders,

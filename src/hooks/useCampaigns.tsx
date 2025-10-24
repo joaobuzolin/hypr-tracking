@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useCampaignsQuery } from './queries/useCampaignsQuery';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface Campaign {
   id: string;
@@ -80,120 +82,14 @@ const classifyEventByTagType = (event: any, tagType: string) => {
 };
 
 export const useCampaigns = () => {
-  const [campaigns, setCampaigns] = useState<CampaignWithTags[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
-
-  // Memoizar consultas para evitar re-renders desnecessários
-  const memoizedCampaigns = useMemo(() => campaigns, [campaigns]);
+  const queryClient = useQueryClient();
+  const { data: campaigns = [], isLoading: loading, refetch } = useCampaignsQuery();
 
   const fetchCampaigns = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      
-      // Fetch all campaigns (with or without tags)
-      const { data: campaignsData, error: campaignsError } = await supabase
-        .from('campaigns')
-        .select(`
-          *,
-          tags (
-            id,
-            title,
-            code,
-            type,
-            created_at,
-            campaign_id
-          ),
-          campaign_groups!campaigns_campaign_group_id_fkey (
-            name
-          ),
-          insertion_orders (
-            client_name
-          )
-        `)
-        .order('created_at', { ascending: false });
-        // NO LIMITS - fetch all campaigns
-
-      if (campaignsError) throw campaignsError;
-
-      // For each campaign, fetch the profile and metrics
-      const campaignsWithMetrics = await Promise.all(
-        (campaignsData || []).map(async (campaign) => {
-          const tagIds = campaign.tags?.map((tag: Tag) => tag.id) || [];
-          
-          // Fetch profile separately if user_id exists
-          let profile: Profile | undefined = undefined;
-          if (campaign.user_id) {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', campaign.user_id)
-              .maybeSingle();
-            
-            if (!profileError && profileData) {
-              profile = profileData;
-            }
-          }
-          
-          let metrics = {
-            cta_clicks: 0,
-            pin_clicks: 0,
-            page_views: 0,
-            total_7d: 0,
-            last_hour: 0
-          };
-
-          // Use the new RPC for precise metrics - NO LIMITS!
-          if (tagIds.length > 0) {
-            const { data: counters, error: countersError } = await supabase
-              .rpc('get_campaign_counters', {
-                campaign_ids: [campaign.id]
-              });
-
-            if (!countersError && counters && counters.length > 0) {
-              const counter = counters[0];
-              metrics = {
-                cta_clicks: Number(counter.cta_clicks) || 0,
-                pin_clicks: Number(counter.pin_clicks) || 0,
-                page_views: Number(counter.page_views) || 0,
-                total_7d: Number(counter.total_7d) || 0,
-                last_hour: Number(counter.last_hour) || 0
-              };
-              
-              console.log(`Campaign ${campaign.name} metrics (unlimited):`, metrics);
-            }
-          }
-
-          // Calculate derived status based on last hour activity (we already have this from metrics)
-          const hasRecentActivity = metrics.last_hour > 0;
-
-          return {
-            ...campaign,
-            tags: campaign.tags || [],
-            profile,
-            campaign_group: (campaign as any).campaign_groups,
-            insertion_order: (campaign as any).insertion_orders,
-            metrics,
-            derivedStatus: hasRecentActivity ? 'active' : 'paused'
-          } as CampaignWithTags;
-        })
-      );
-
-      setCampaigns(campaignsWithMetrics);
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as campanhas.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, toast]);
+    await refetch();
+  }, [refetch]);
 
   const createCampaign = useCallback(async (campaignData: {
     name: string;
@@ -237,24 +133,9 @@ export const useCampaigns = () => {
 
       if (error) throw error;
 
-      // Add to campaigns list immediately for better UX
-      const newCampaignWithMetrics: CampaignWithTags = {
-        ...data,
-        user_id: data.user_id || '',
-        description: data.description || '',
-        status: (data.status || 'active') as 'active' | 'paused' | 'completed',
-        tags: [],
-        metrics: {
-          cta_clicks: 0,
-          pin_clicks: 0,
-          page_views: 0,
-          total_7d: 0,
-          last_hour: 0
-        },
-        derivedStatus: 'paused' // New campaigns start as paused until they have activity
-      };
-      
-      setCampaigns(prev => [newCampaignWithMetrics, ...prev]);
+      // Invalidate queries to refresh
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-groups'] });
 
       return { data, error: null };
     } catch (error) {
@@ -294,8 +175,8 @@ export const useCampaigns = () => {
 
       if (error) throw error;
 
-      // Update campaigns list immediately for better UX
-      await fetchCampaigns();
+      // Invalidate queries to refresh
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
 
       return { data, error: null };
     } catch (error) {
@@ -303,12 +184,6 @@ export const useCampaigns = () => {
       return { data: null, error };
     }
   }, [user, campaigns, fetchCampaigns]);
-
-  useEffect(() => {
-    if (user) {
-      fetchCampaigns();
-    }
-  }, [user]);
 
   const deleteTag = useCallback(async (tagId: string) => {
     if (!user) return { error: 'Not authenticated' };
@@ -321,17 +196,17 @@ export const useCampaigns = () => {
 
       if (error) throw error;
 
-      // Atualizar a lista de campanhas após deletar a tag
-      await fetchCampaigns();
+      // Invalidate queries to refresh
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       return { error: null };
     } catch (error) {
       console.error('Error deleting tag:', error);
       return { error };
     }
-  }, [user, fetchCampaigns]);
+  }, [user, queryClient]);
 
   return {
-    campaigns: memoizedCampaigns,
+    campaigns,
     loading,
     fetchCampaigns,
     createCampaign,
