@@ -85,7 +85,7 @@ export const useCampaigns = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: campaigns = [], isLoading: loading, refetch } = useCampaignsQuery();
+  const { data: campaigns = [], isLoading: loading, isFetching, refetch } = useCampaignsQuery();
 
   const fetchCampaigns = useCallback(async () => {
     await refetch();
@@ -208,6 +208,7 @@ export const useCampaigns = () => {
   return {
     campaigns,
     loading,
+    isFetching,
     fetchCampaigns,
     createCampaign,
     createTag,

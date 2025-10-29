@@ -56,13 +56,21 @@ export const useCampaignsQuery = (campaignGroupId?: string) => {
           : Promise.resolve({ data: [], error: null })
       ]);
 
+      // Log errors for debugging
+      if (metricsData.error) {
+        console.error('[useCampaignsQuery] Error fetching metrics:', metricsData.error);
+      }
+
       // Create lookup maps
       const profilesMap = new Map(
         (profilesData.data || []).map(p => [p.id, p])
       );
 
+      // Ensure metricsData is always a valid array
+      const metricsArray = Array.isArray(metricsData.data) ? metricsData.data : [];
+      
       const metricsMap = new Map(
-        (metricsData.data || []).map((m: any) => [
+        metricsArray.map((m: any) => [
           m.campaign_id,
           {
             cta_clicks: Number(m.cta_clicks) || 0,
@@ -100,8 +108,11 @@ export const useCampaignsQuery = (campaignGroupId?: string) => {
       return campaignsWithMetrics;
     },
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // 30 seconds (reduced from 2 minutes for fresher data)
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: 'always', // Always fetch fresh data when component mounts
+    retry: 2, // Retry twice if request fails
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   const prefetch = (groupId?: string) => {

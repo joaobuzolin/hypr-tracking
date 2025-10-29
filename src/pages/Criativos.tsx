@@ -237,7 +237,7 @@ const CreateCriativoDialog = ({
 };
 
 const Criativos = () => {
-  const { campaigns, loading, createCampaign } = useCampaigns();
+  const { campaigns, loading, createCampaign, isFetching } = useCampaigns();
   const { insertionOrders } = useInsertionOrders();
   const { campaignGroups } = useCampaignGroups();
   const { profiles } = useProfiles();
@@ -469,13 +469,9 @@ const Criativos = () => {
     >
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6 mb-6 md:mb-8">
-        {loading ? (
+        {(loading || isFetching) ? (
           Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-20 w-full" />
-              </CardContent>
-            </Card>
+            <Skeleton key={i} className="h-20 w-full" />
           ))
         ) : (
           <>
