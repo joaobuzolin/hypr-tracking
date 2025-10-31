@@ -115,6 +115,11 @@ const Reports = () => {
     );
   }, [campaigns, reportConfig.selectedInsertionOrders]);
 
+  // Check if report configuration is complete
+  const isConfigIncomplete = useMemo(() => {
+    return reportConfig.dimensions.length === 0;
+  }, [reportConfig.dimensions]);
+
   // Get effective campaign selection based on filters
   const effectiveCampaignIds = useMemo(() => {
     let filteredCampaigns = [...campaigns];
@@ -745,7 +750,35 @@ const Reports = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {eventsLoading ? (
+              {isConfigIncomplete ? (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">
+                    Configure seu relatório
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Para visualizar os dados, selecione:
+                  </p>
+                  <ul className="text-sm text-muted-foreground text-left inline-block space-y-1">
+                    <li className="flex items-center gap-2">
+                      {reportConfig.dimensions.length > 0 ? (
+                        <span className="text-green-500">✓</span>
+                      ) : (
+                        <span className="text-orange-500">○</span>
+                      )}
+                      <span>Uma ou mais dimensões</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      {reportConfig.metrics.length > 0 ? (
+                        <span className="text-green-500">✓</span>
+                      ) : (
+                        <span className="text-orange-500">○</span>
+                      )}
+                      <span>Uma ou mais métricas</span>
+                    </li>
+                  </ul>
+                </div>
+              ) : eventsLoading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-full" />
@@ -758,7 +791,10 @@ const Reports = () => {
                   <h3 className="text-lg font-medium text-destructive mb-2">
                     Erro ao carregar dados
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Ocorreu um erro técnico ao buscar os dados.
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded max-w-md mx-auto">
                     {eventsError}
                   </p>
                 </div>
