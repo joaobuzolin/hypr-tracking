@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InsertionOrderCard } from "@/components/InsertionOrderCard";
 import { EditInsertionOrderDialog } from "@/components/EditInsertionOrderDialog";
@@ -16,7 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Building, FolderOpen, MousePointer, Search, Filter, User, Activity } from "lucide-react";
+import { Plus, Building, FolderOpen, MousePointer, Search, Filter, User, Activity, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 
 const CreateInsertionOrderDialog = ({ onCreated }: { onCreated: () => void }) => {
@@ -140,6 +141,8 @@ const CreateInsertionOrderDialog = ({ onCreated }: { onCreated: () => void }) =>
   );
 };
 
+import React from "react";
+
 const InsertionOrders = () => {
   const { insertionOrders, loading, updateInsertionOrder, deleteInsertionOrder } = useInsertionOrders();
   const { profiles } = useProfiles();
@@ -149,6 +152,8 @@ const InsertionOrders = () => {
   const [editingOrder, setEditingOrder] = useState<InsertionOrderWithMetrics | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const { toast } = useToast();
 
   const { generateBreadcrumbs } = useBreadcrumbs();
@@ -190,6 +195,17 @@ const InsertionOrders = () => {
       return matchesSearch && matchesCreator && matchesStatus;
     });
   }, [insertionOrders, searchTerm, creatorFilter, statusFilter]);
+  
+  // Pagination logic
+  const totalPages = Math.ceil(filteredInsertionOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedInsertionOrders = filteredInsertionOrders.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, creatorFilter, statusFilter]);
   
   const totalOrders = filteredInsertionOrders.length;
   const activeOrders = filteredInsertionOrders.filter(o => o.status === 'active').length;
@@ -381,16 +397,69 @@ const InsertionOrders = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4">
-                {filteredInsertionOrders.map((order) => (
-                  <InsertionOrderCard 
-                    key={order.id} 
-                    insertionOrder={order}
-                    onEdit={handleEdit}
-                    onDelete={(id) => setDeletingOrder(id)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid gap-4">
+                  {paginatedInsertionOrders.map((order) => (
+                    <InsertionOrderCard 
+                      key={order.id} 
+                      insertionOrder={order}
+                      onEdit={handleEdit}
+                      onDelete={(id) => setDeletingOrder(id)}
+                    />
+                  ))}
+                </div>
+                
+                {totalPages > 1 && (
+                  <Pagination className="mt-6">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" />
+                          Anterior
+                        </Button>
+                      </PaginationItem>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                        .map((page, index, array) => (
+                          <React.Fragment key={page}>
+                            {index > 0 && array[index - 1] !== page - 1 && (
+                              <PaginationItem>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            )}
+                            <PaginationItem>
+                              <Button
+                                variant={currentPage === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentPage(page)}
+                              >
+                                {page}
+                              </Button>
+                            </PaginationItem>
+                          </React.Fragment>
+                        ))}
+                      
+                      <PaginationItem>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                        >
+                          Próxima
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </>
             )}
         </div>
 

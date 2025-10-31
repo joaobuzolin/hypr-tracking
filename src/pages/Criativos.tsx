@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useDeferredValue } from "react";
+import { useState, useMemo, useCallback, useDeferredValue, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CampaignCard } from "@/components/CampaignCard";
 import { MetricsCard } from "@/components/MetricsCard";
@@ -18,7 +18,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, BarChart3, MousePointer, Search, CalendarIcon, Filter, User, Activity, Building, Users, Target, Eye } from "lucide-react";
+import { Plus, BarChart3, MousePointer, Search, CalendarIcon, Filter, User, Activity, Building, Users, Target, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -236,6 +237,8 @@ const CreateCriativoDialog = ({
   );
 };
 
+import React from "react";
+
 const Criativos = () => {
   const { campaigns, loading, createCampaign, isFetching } = useCampaigns();
   const { insertionOrders } = useInsertionOrders();
@@ -251,6 +254,8 @@ const Criativos = () => {
   const [campaignFilter, setCampaignFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [insertionOrderFilter, setInsertionOrderFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   
   // Get current campaign group if we're in that context
   const currentCampaignGroup = useMemo(() => {
@@ -343,6 +348,17 @@ const Criativos = () => {
       return matchesSearch && matchesDateRange && matchesCreator && matchesCampaignGroup && matchesStatus && matchesInsertionOrder;
     });
   }, [campaigns, relevantCampaigns, deferredSearchTerm, dateRange, creatorFilter, campaignFilter, statusFilter, insertionOrderFilter, insertionOrderId]);
+  
+  // Pagination logic
+  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCampaigns = filteredCampaigns.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [deferredSearchTerm, dateRange, creatorFilter, campaignFilter, statusFilter, insertionOrderFilter]);
   
   const totalCampaigns = filteredCampaigns.length;
   const activeCampaigns = filteredCampaigns.filter(c => c.derivedStatus === 'active').length;
@@ -686,11 +702,64 @@ const Criativos = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {filteredCampaigns.map((campaign) => (
-              <CampaignCard key={campaign.id} campaign={campaign} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-4">
+              {paginatedCampaigns.map((campaign) => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
+            
+            {totalPages > 1 && (
+              <Pagination className="mt-6">
+                <PaginationContent>
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Anterior
+                    </Button>
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                    .map((page, index, array) => (
+                      <React.Fragment key={page}>
+                        {index > 0 && array[index - 1] !== page - 1 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+                        <PaginationItem>
+                          <Button
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                          >
+                            {page}
+                          </Button>
+                        </PaginationItem>
+                      </React.Fragment>
+                    ))}
+                  
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Próxima
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
         )}
       </div>
     </AppLayout>
