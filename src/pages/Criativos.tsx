@@ -326,12 +326,17 @@ const Criativos = () => {
         console.error('Error fetching campaigns with events:', error);
         setCampaignsWithEvents([]);
       } else {
-        setCampaignsWithEvents(data?.map((row: { campaign_id: string }) => row.campaign_id) || []);
+        // Filter only campaigns relevant to current context (campaign group)
+        const relevantIds = relevantCampaigns.map(c => c.id);
+        const filteredIds = data
+          ?.map((row: { campaign_id: string }) => row.campaign_id)
+          .filter((id: string) => relevantIds.includes(id)) || [];
+        setCampaignsWithEvents(filteredIds);
       }
     };
 
     fetchCampaignsWithEvents();
-  }, [dateRange]);
+  }, [dateRange, relevantCampaigns]);
 
 
   // Filtered campaigns based on all filters
