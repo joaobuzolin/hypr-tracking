@@ -46,6 +46,11 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
       <CardHeader className="pb-3 px-4 md:px-6 py-4 md:py-6">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
           <div className="flex-1 min-w-0">
+            {campaignGroup.insertion_order?.client_name && (
+              <Badge variant="outline" className="mb-2 text-xs">
+                {campaignGroup.insertion_order.client_name}
+              </Badge>
+            )}
             <CardTitle className="text-sm md:text-lg font-semibold break-words">
               {campaignGroup.name}
             </CardTitle>
