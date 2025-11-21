@@ -22,7 +22,7 @@ import { Plus, BarChart3, MousePointer, Search, CalendarIcon, Filter, User, Acti
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
@@ -320,9 +320,17 @@ const Criativos = () => {
       
       // Date range filter
       const campaignDate = new Date(campaign.created_at);
-      const matchesDateRange = 
-        (!dateRange?.from || campaignDate >= dateRange.from) &&
-        (!dateRange?.to || campaignDate <= dateRange.to);
+      const matchesDateRange = !dateRange?.from || (
+        dateRange.to 
+          ? isWithinInterval(campaignDate, {
+              start: startOfDay(dateRange.from),
+              end: endOfDay(dateRange.to)
+            })
+          : isWithinInterval(campaignDate, {
+              start: startOfDay(dateRange.from),
+              end: endOfDay(dateRange.from)
+            })
+      );
       
       // Creator filter
       const matchesCreator = 
