@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useDeferredValue, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CampaignCard } from "@/components/CampaignCard";
 import { MetricsCard } from "@/components/MetricsCard";
@@ -255,6 +256,7 @@ const Criativos = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [insertionOrderFilter, setInsertionOrderFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [campaignsWithEvents, setCampaignsWithEvents] = useState<string[]>([]);
   const itemsPerPage = 20;
   
   // Get current campaign group if we're in that context
@@ -307,6 +309,30 @@ const Criativos = () => {
     return creators.sort();
   }, [profiles, relevantCampaigns]);
 
+  // Fetch campaigns with events in date range
+  useEffect(() => {
+    const fetchCampaignsWithEvents = async () => {
+      if (!dateRange?.from) {
+        setCampaignsWithEvents([]);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('get_campaigns_with_events_in_daterange', {
+        p_start_date: startOfDay(dateRange.from).toISOString(),
+        p_end_date: endOfDay(dateRange.to || dateRange.from).toISOString()
+      });
+
+      if (error) {
+        console.error('Error fetching campaigns with events:', error);
+        setCampaignsWithEvents([]);
+      } else {
+        setCampaignsWithEvents(data?.map((row: { campaign_id: string }) => row.campaign_id) || []);
+      }
+    };
+
+    fetchCampaignsWithEvents();
+  }, [dateRange]);
+
 
   // Filtered campaigns based on all filters
   const filteredCampaigns = useMemo(() => {
@@ -318,19 +344,8 @@ const Criativos = () => {
         campaign.name.toLowerCase().includes(deferredSearchTerm.toLowerCase()) ||
         (campaign.description && campaign.description.toLowerCase().includes(deferredSearchTerm.toLowerCase()));
       
-      // Date range filter
-      const campaignDate = new Date(campaign.created_at);
-      const matchesDateRange = !dateRange?.from || (
-        dateRange.to 
-          ? isWithinInterval(campaignDate, {
-              start: startOfDay(dateRange.from),
-              end: endOfDay(dateRange.to)
-            })
-          : isWithinInterval(campaignDate, {
-              start: startOfDay(dateRange.from),
-              end: endOfDay(dateRange.from)
-            })
-      );
+      // Date range filter - now filters by event date instead of campaign creation date
+      const matchesDateRange = !dateRange?.from || campaignsWithEvents.includes(campaign.id);
       
       // Creator filter
       const matchesCreator = 

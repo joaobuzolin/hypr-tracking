@@ -380,6 +380,12 @@ export type Database = {
           total_events: number
         }[]
       }
+      get_campaigns_with_events_in_daterange: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          campaign_id: string
+        }[]
+      }
       get_realtime_event_counts: {
         Args: { p_since: string; p_tag_ids: string[] }
         Returns: {
