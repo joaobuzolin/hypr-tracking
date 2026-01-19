@@ -86,6 +86,11 @@ const Reports = () => {
     shortTokenFilter: ''
   });
 
+  // Search states for filters
+  const [ioSearchTerm, setIoSearchTerm] = useState("");
+  const [campaignSearchTerm, setCampaignSearchTerm] = useState("");
+  const [creativeSearchTerm, setCreativeSearchTerm] = useState("");
+
   // Get unique creatives from campaigns
   const availableCreatives = useMemo(() => {
     const creatives = campaigns.map(campaign => ({
@@ -114,6 +119,40 @@ const Reports = () => {
       reportConfig.selectedInsertionOrders.includes(campaign.insertion_order_id)
     );
   }, [campaigns, reportConfig.selectedInsertionOrders]);
+
+  // Filtered lists for search
+  const filteredInsertionOrders = useMemo(() => {
+    if (!ioSearchTerm.trim()) return insertionOrders;
+    const searchLower = ioSearchTerm.toLowerCase();
+    return insertionOrders.filter(io => 
+      io.client_name.toLowerCase().includes(searchLower)
+    );
+  }, [insertionOrders, ioSearchTerm]);
+
+  const searchedCampaignsForDropdown = useMemo(() => {
+    if (!campaignSearchTerm.trim()) return filteredCampaignsForDropdown;
+    
+    const searchLower = campaignSearchTerm.toLowerCase();
+    return filteredCampaignsForDropdown.filter(campaign => {
+      // Buscar pelo nome da campanha
+      if (campaign.name.toLowerCase().includes(searchLower)) return true;
+      // Buscar pela descrição
+      if (campaign.description?.toLowerCase().includes(searchLower)) return true;
+      // Buscar pelo nome da IO associada
+      const io = insertionOrders.find(io => io.id === campaign.insertion_order_id);
+      if (io?.client_name.toLowerCase().includes(searchLower)) return true;
+      return false;
+    });
+  }, [filteredCampaignsForDropdown, campaignSearchTerm, insertionOrders]);
+
+  const filteredCreatives = useMemo(() => {
+    if (!creativeSearchTerm.trim()) return availableCreatives;
+    const searchLower = creativeSearchTerm.toLowerCase();
+    return availableCreatives.filter(creative => 
+      creative.name.toLowerCase().includes(searchLower) ||
+      creative.description?.toLowerCase().includes(searchLower)
+    );
+  }, [availableCreatives, creativeSearchTerm]);
 
   // Check if report configuration is complete
   const isConfigIncomplete = useMemo(() => {
@@ -490,7 +529,7 @@ const Reports = () => {
               {/* Insertion Orders Multi-Select */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Insertion Orders</Label>
-                <Popover>
+                <Popover onOpenChange={(open) => { if (!open) setIoSearchTerm(""); }}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -504,25 +543,42 @@ const Reports = () => {
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <div className="p-3 border-b">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar IO..."
+                          value={ioSearchTerm}
+                          onChange={(e) => setIoSearchTerm(e.target.value)}
+                          className="pl-9 h-8"
+                        />
+                      </div>
+                    </div>
                     <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
-                      {insertionOrders.map((io) => (
-                        <div key={io.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`io-${io.id}`}
-                            checked={reportConfig.selectedInsertionOrders.includes(io.id)}
-                            onCheckedChange={(checked) => 
-                              handleInsertionOrderToggle(io.id, !!checked)
-                            }
-                          />
-                          <Label 
-                            htmlFor={`io-${io.id}`} 
-                            className="text-sm cursor-pointer flex-1"
-                          >
-                            {io.client_name}
-                          </Label>
-                        </div>
-                      ))}
+                      {filteredInsertionOrders.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                          Nenhuma IO encontrada
+                        </p>
+                      ) : (
+                        filteredInsertionOrders.map((io) => (
+                          <div key={io.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`io-${io.id}`}
+                              checked={reportConfig.selectedInsertionOrders.includes(io.id)}
+                              onCheckedChange={(checked) => 
+                                handleInsertionOrderToggle(io.id, !!checked)
+                              }
+                            />
+                            <Label 
+                              htmlFor={`io-${io.id}`} 
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {io.client_name}
+                            </Label>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -547,7 +603,7 @@ const Reports = () => {
               {/* Campaigns Multi-Select */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Campanhas</Label>
-                <Popover>
+                <Popover onOpenChange={(open) => { if (!open) setCampaignSearchTerm(""); }}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -561,30 +617,50 @@ const Reports = () => {
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <div className="p-3 border-b">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar campanha ou IO..."
+                          value={campaignSearchTerm}
+                          onChange={(e) => setCampaignSearchTerm(e.target.value)}
+                          className="pl-9 h-8"
+                        />
+                      </div>
+                    </div>
                     <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
-                      {filteredCampaignsForDropdown.map((campaign) => (
-                        <div key={campaign.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`campaign-${campaign.id}`}
-                            checked={reportConfig.selectedCampaigns.includes(campaign.id)}
-                            onCheckedChange={(checked) => 
-                              handleCampaignToggle(campaign.id, !!checked)
-                            }
-                          />
-                          <div className="flex-1 min-w-0">
-                            <Label 
-                              htmlFor={`campaign-${campaign.id}`} 
-                              className="text-sm cursor-pointer block"
-                            >
-                              {campaign.name}
-                            </Label>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {campaign.description}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                      {searchedCampaignsForDropdown.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                          Nenhuma campanha encontrada
+                        </p>
+                      ) : (
+                        searchedCampaignsForDropdown.map((campaign) => {
+                          const io = insertionOrders.find(io => io.id === campaign.insertion_order_id);
+                          return (
+                            <div key={campaign.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`campaign-${campaign.id}`}
+                                checked={reportConfig.selectedCampaigns.includes(campaign.id)}
+                                onCheckedChange={(checked) => 
+                                  handleCampaignToggle(campaign.id, !!checked)
+                                }
+                              />
+                              <div className="flex-1 min-w-0">
+                                <Label 
+                                  htmlFor={`campaign-${campaign.id}`} 
+                                  className="text-sm cursor-pointer block"
+                                >
+                                  {campaign.name}
+                                </Label>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {io?.client_name || campaign.description || 'Sem IO'}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -643,7 +719,7 @@ const Reports = () => {
               {/* Creative Formats Multi-Select */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Criativos</Label>
-                <Popover>
+                <Popover onOpenChange={(open) => { if (!open) setCreativeSearchTerm(""); }}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -657,30 +733,47 @@ const Reports = () => {
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <div className="p-3 border-b">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar criativo..."
+                          value={creativeSearchTerm}
+                          onChange={(e) => setCreativeSearchTerm(e.target.value)}
+                          className="pl-9 h-8"
+                        />
+                      </div>
+                    </div>
                     <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
-                      {availableCreatives.map((creative) => (
-                        <div key={creative.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`creative-${creative.id}`}
-                            checked={reportConfig.selectedCreatives.includes(creative.id)}
-                            onCheckedChange={(checked) => 
-                              handleCreativeToggle(creative.id, !!checked)
-                            }
-                          />
-                          <div className="flex-1 min-w-0">
-                            <Label 
-                              htmlFor={`creative-${creative.id}`} 
-                              className="text-sm cursor-pointer block"
-                            >
-                              {creative.name}
-                            </Label>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {creative.description}
-                            </p>
+                      {filteredCreatives.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                          Nenhum criativo encontrado
+                        </p>
+                      ) : (
+                        filteredCreatives.map((creative) => (
+                          <div key={creative.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`creative-${creative.id}`}
+                              checked={reportConfig.selectedCreatives.includes(creative.id)}
+                              onCheckedChange={(checked) => 
+                                handleCreativeToggle(creative.id, !!checked)
+                              }
+                            />
+                            <div className="flex-1 min-w-0">
+                              <Label 
+                                htmlFor={`creative-${creative.id}`} 
+                                className="text-sm cursor-pointer block"
+                              >
+                                {creative.name}
+                              </Label>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {creative.description}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </PopoverContent>
                 </Popover>
