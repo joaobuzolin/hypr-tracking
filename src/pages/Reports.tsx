@@ -115,10 +115,23 @@ const Reports = () => {
     }
     
     // Filtrar campanhas que pertencem às IOs selecionadas
-    return campaigns.filter(campaign => 
-      reportConfig.selectedInsertionOrders.includes(campaign.insertion_order_id)
-    );
-  }, [campaigns, reportConfig.selectedInsertionOrders]);
+    // Considera tanto o insertion_order_id direto da campanha quanto
+    // o insertion_order_id do campaign_group ao qual a campanha pertence
+    return campaigns.filter(campaign => {
+      // Check direct insertion_order_id on campaign
+      if (campaign.insertion_order_id && reportConfig.selectedInsertionOrders.includes(campaign.insertion_order_id)) {
+        return true;
+      }
+      
+      // Check insertion_order_id via campaign_group
+      const campaignGroup = campaignGroups.find(cg => cg.id === campaign.campaign_group_id);
+      if (campaignGroup?.insertion_order_id && reportConfig.selectedInsertionOrders.includes(campaignGroup.insertion_order_id)) {
+        return true;
+      }
+      
+      return false;
+    });
+  }, [campaigns, reportConfig.selectedInsertionOrders, campaignGroups]);
 
   // Filtered lists for search
   const filteredInsertionOrders = useMemo(() => {
