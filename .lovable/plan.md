@@ -1,27 +1,24 @@
 
-
-## Plano: Corrigir Timeout na Query de Relatórios
+## Plano: Corrigir Erro de Coluna Ambígua
 
 ### Problema Identificado
 
-O erro **"canceling statement due to statement timeout"** ocorre porque a RPC `get_report_from_events` está demorando mais que o limite padrão do Supabase (8 segundos).
+O erro `column reference "campaign_id" is ambiguous` ocorre porque:
+- A CTE `campaign_tags` seleciona uma coluna chamada `campaign_id`
+- O `RETURNS TABLE` da função também declara uma coluna `campaign_id`
+- O PostgreSQL não consegue distinguir qual é qual
 
-**Causa raiz:** A query atual faz JOIN entre `events` e `tags` e usa `HAVING SUM(1) > 0`, forçando varredura completa antes de aplicar filtros.
+### Solucao
 
-### Solução: Otimizar a RPC com Subconsulta
-
-Vou reescrever a função para:
-1. Primeiro buscar os `tag_ids` das campanhas selecionadas (query rápida na tabela tags)
-2. Depois filtrar `events` diretamente pelos `tag_ids` (usa o índice `idx_events_tag_id`)
-3. Remover o `HAVING` desnecessário
+Usar um alias diferente na CTE para evitar o conflito com o nome da coluna de retorno.
 
 ---
 
-## Mudanças
+## Mudancas
 
-### 1. Atualizar a RPC `get_report_from_events`
+### Nova Migration - Corrigir Alias na RPC
 
-**Arquivo:** Nova migration SQL
+**Arquivo:** `supabase/migrations/[timestamp]_fix_ambiguous_column.sql`
 
 ```sql
 CREATE OR REPLACE FUNCTION public.get_report_from_events(
@@ -50,10 +47,9 @@ BEGIN
   
   RETURN QUERY
   WITH campaign_tags AS (
-    -- Pre-filter tag IDs for selected campaigns (fast index lookup)
-    SELECT id, campaign_id 
-    FROM tags 
-    WHERE (p_campaign_ids IS NULL OR campaign_id = ANY(p_campaign_ids))
+    SELECT t.id as tag_id, t.campaign_id as cid   -- <-- Usar aliases diferentes
+    FROM tags t
+    WHERE (p_campaign_ids IS NULL OR t.campaign_id = ANY(p_campaign_ids))
   )
   SELECT 
     CASE p_group_by
@@ -61,12 +57,12 @@ BEGIN
       WHEN 'month' THEN date_trunc('month', e.created_at)
       ELSE date_trunc('day', e.created_at)
     END as period_start,
-    ct.campaign_id,
+    ct.cid as campaign_id,   -- <-- Referencia o alias da CTE
     COUNT(*) FILTER (WHERE e.event_type = 'page_view')::bigint as page_views,
     COUNT(*) FILTER (WHERE e.event_type = 'click')::bigint as cta_clicks,
     COUNT(*) FILTER (WHERE e.event_type = 'pin_click')::bigint as pin_clicks
   FROM events e
-  JOIN campaign_tags ct ON e.tag_id = ct.id
+  JOIN campaign_tags ct ON e.tag_id = ct.tag_id
   WHERE e.created_at >= start_date_filter
     AND e.created_at < (end_date_filter + INTERVAL '1 day')
     AND (auth.uid() IS NOT NULL)
@@ -76,62 +72,26 @@ BEGIN
       WHEN 'month' THEN date_trunc('month', e.created_at)
       ELSE date_trunc('day', e.created_at)
     END,
-    ct.campaign_id
-  ORDER BY period_start DESC, ct.campaign_id;
+    ct.cid
+  ORDER BY period_start DESC, ct.cid;
 END;
 $$;
 ```
 
-### 2. Corrigir Filtro de Insertion Orders
-
-Além disso, há um bug no filtro `effectiveCampaignIds` que não considera campanhas vinculadas via `campaign_group`.
-
-**Arquivo:** `src/pages/Reports.tsx`
-
-**Mudança:** Atualizar a lógica para incluir campanhas via `campaign_group`:
-
-```typescript
-// Linhas 194-233: Corrigir filtro
-const effectiveCampaignIds = useMemo(() => {
-  let filteredCampaigns = [...campaigns];
-  
-  // Filter by selected insertion orders if any
-  if (reportConfig.selectedInsertionOrders.length > 0) {
-    filteredCampaigns = filteredCampaigns.filter(campaign => {
-      // Check direct insertion_order_id
-      if (campaign.insertion_order_id && 
-          reportConfig.selectedInsertionOrders.includes(campaign.insertion_order_id)) {
-        return true;
-      }
-      // Check via campaign_group
-      const campaignGroup = campaignGroups.find(cg => cg.id === campaign.campaign_group_id);
-      if (campaignGroup?.insertion_order_id && 
-          reportConfig.selectedInsertionOrders.includes(campaignGroup.insertion_order_id)) {
-        return true;
-      }
-      return false;
-    });
-  }
-  // ... resto do código
-}, [campaigns, reportConfig, campaignGroups]);
-```
-
 ---
 
-## Detalhes Técnicos
+## Detalhes Tecnicos
 
 ### Arquivos Modificados:
-1. **Nova migration SQL** - Otimiza a RPC `get_report_from_events`
-2. **`src/pages/Reports.tsx`** - Corrige filtro de Insertion Orders
+1. **Nova migration SQL** - Corrige os aliases na CTE
 
-### Por que funciona:
-- **CTE `campaign_tags`**: Pré-filtra as tags antes do JOIN, reduzindo a quantidade de dados
-- **`COUNT(*) FILTER`**: Mais eficiente que `SUM(CASE WHEN...)`
-- **Remoção do `HAVING`**: Elimina agregação desnecessária
-- **Índice `idx_tags_campaign_id`**: Query rápida na tabela tags
+### Mudancas principais:
+- `campaign_id` na CTE renomeado para `cid`
+- `id` na CTE renomeado para `tag_id` 
+- Todas as referencias atualizadas para usar os novos aliases
+- Adiciona alias de tabela `t` na CTE para maior clareza
 
 ### Resultado Esperado:
-- Query executa em menos de 2 segundos (vs timeout atual)
-- Dados de Panasonic carregam corretamente
-- Filtro por Insertion Order funciona via campaign_group
-
+- Erro de coluna ambigua resolvido
+- Query executa corretamente
+- Dados de Panasonic carregam no relatorio
