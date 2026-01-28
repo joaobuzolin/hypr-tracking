@@ -70,7 +70,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
     const to = new Date();
     const from = subDays(to, 30);
     return { from, to };
-  }, [dateRange]);
+  }, [dateRange?.from?.getTime(), dateRange?.to?.getTime()]);
 
   const fetchReportData = useCallback(async () => {
     if (selectedCampaignIds.length === 0) {
@@ -319,7 +319,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
     } finally {
       setLoading(false);
     }
-  }, [selectedCampaignIds, effectiveDateRange, groupBy, selectedDimensions]);
+  }, [JSON.stringify(selectedCampaignIds), effectiveDateRange.from.getTime(), effectiveDateRange.to.getTime(), groupBy, JSON.stringify(selectedDimensions)]);
 
   useEffect(() => {
     fetchReportData();

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useInsertionOrders } from "@/hooks/useInsertionOrders";
@@ -12,15 +12,15 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Download, Filter, CalendarIcon, FileSpreadsheet, FileText, Search, Eye, MousePointer, MapPin, Target, ChevronDown, X, AlertCircle } from "lucide-react";
+import { Download, Filter, FileSpreadsheet, FileText, Search, Eye, MousePointer, MapPin, Target, ChevronDown, X, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
+import { DateRangePicker } from "@/components/DateRangePicker";
 
 import * as XLSX from 'xlsx';
 
@@ -422,93 +422,10 @@ const Reports = () => {
     });
   };
 
-  const DateRangePicker = () => {
-    // Calcular data mínima (90 dias atrás)
-    const minDate = useMemo(() => {
-      const date = new Date();
-      date.setDate(date.getDate() - 90);
-      return date;
-    }, []);
-
-    // Validar ao selecionar data range
-    const handleDateSelect = (dateRange: DateRange | undefined) => {
-      if (!dateRange?.from || !dateRange?.to) {
-        setReportConfig(prev => ({ ...prev, dateRange }));
-        return;
-      }
-
-      // Verificar se o intervalo é maior que 90 dias
-      const diffInDays = Math.ceil(
-        (dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (diffInDays > 90) {
-        toast({
-          title: "Período muito longo",
-          description: "O período selecionado não pode exceder 90 dias. Por favor, selecione um intervalo menor.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Verificar se a data inicial é muito antiga
-      if (dateRange.from < minDate) {
-        toast({
-          title: "Data indisponível",
-          description: "Dados anteriores aos últimos 90 dias não estão disponíveis no sistema.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setReportConfig(prev => ({ ...prev, dateRange }));
-    };
-
-    return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "justify-start text-left font-normal",
-              !reportConfig.dateRange?.from && !reportConfig.dateRange?.to && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {reportConfig.dateRange?.from ? (
-              reportConfig.dateRange.to ? (
-                <>
-                  {format(reportConfig.dateRange.from, "dd/MM/yy")} - {format(reportConfig.dateRange.to, "dd/MM/yy")}
-                </>
-              ) : (
-                format(reportConfig.dateRange.from, "dd/MM/yyyy")
-              )
-            ) : (
-              <span>Período</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={reportConfig.dateRange?.from}
-            selected={reportConfig.dateRange}
-            onSelect={handleDateSelect}
-            numberOfMonths={2}
-            className="p-3"
-            disabled={(date) => {
-              // Desabilitar datas futuras
-              if (date > new Date()) return true;
-              // Desabilitar datas com mais de 90 dias no passado
-              if (date < minDate) return true;
-              return false;
-            }}
-          />
-        </PopoverContent>
-      </Popover>
-    );
-  };
+  // Stable callback for date range changes
+  const handleDateRangeChange = useCallback((newRange: DateRange | undefined) => {
+    setReportConfig(prev => ({ ...prev, dateRange: newRange }));
+  }, []);
 
   return (
     <AppLayout 
@@ -901,7 +818,10 @@ const Reports = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <DateRangePicker />
+                <DateRangePicker 
+                  dateRange={reportConfig.dateRange} 
+                  onDateSelect={handleDateRangeChange} 
+                />
               </div>
               
               <div className="space-y-2">

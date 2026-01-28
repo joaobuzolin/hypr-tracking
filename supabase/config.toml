@@ -2,3 +2,6 @@ project_id = "wmwpzmpgaokjplhyyktv"
 
 [functions.track-event]
 verify_jwt = false
+
+[functions.refresh-metrics]
+verify_jwt = false
