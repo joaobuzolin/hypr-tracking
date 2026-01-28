@@ -53,4 +53,3 @@ Isso garantiria que dados recentes sempre apareçam, independente do refresh da 
 **Solução de longo prazo:**
 - Configurar um cron job no Supabase para executar o refresh diariamente às 3h da manhã
 - Ou: implementar a RPC híbrida que não depende 100% da view atualizada
-
