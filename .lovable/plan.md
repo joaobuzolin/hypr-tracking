@@ -1,26 +1,29 @@
 
 
-## Plano: Query Direto da Tabela Events (Sem Dependência da View)
+## Plano: Corrigir Timeout na Query de Relatórios
 
-### Problema Confirmado
-- **Materialized view `campaign_metrics_daily`:** dados até 06/01/2026
-- **Tabela `events`:** dados até 28/01/2026 (hoje)
-- O frontend usa a RPC `get_report_from_materialized_view` que só lê da view desatualizada
+### Problema Identificado
 
-### Solução: Nova RPC que Consulta Events Diretamente
+O erro **"canceling statement due to statement timeout"** ocorre porque a RPC `get_report_from_events` está demorando mais que o limite padrão do Supabase (8 segundos).
 
-Vou criar uma nova função RPC que consulta a tabela `events` diretamente, eliminando a dependência da materialized view.
+**Causa raiz:** A query atual faz JOIN entre `events` e `tags` e usa `HAVING SUM(1) > 0`, forçando varredura completa antes de aplicar filtros.
+
+### Solução: Otimizar a RPC com Subconsulta
+
+Vou reescrever a função para:
+1. Primeiro buscar os `tag_ids` das campanhas selecionadas (query rápida na tabela tags)
+2. Depois filtrar `events` diretamente pelos `tag_ids` (usa o índice `idx_events_tag_id`)
+3. Remover o `HAVING` desnecessário
 
 ---
 
 ## Mudanças
 
-### 1. Nova Migration - RPC para Query Direto
+### 1. Atualizar a RPC `get_report_from_events`
 
-**Arquivo:** `supabase/migrations/[timestamp]_direct_events_report_rpc.sql`
+**Arquivo:** Nova migration SQL
 
 ```sql
--- Create function to get report data directly from events table
 CREATE OR REPLACE FUNCTION public.get_report_from_events(
   p_campaign_ids uuid[] DEFAULT NULL,
   p_start_date date DEFAULT NULL,
@@ -46,84 +49,89 @@ BEGIN
   end_date_filter := COALESCE(p_end_date, CURRENT_DATE);
   
   RETURN QUERY
+  WITH campaign_tags AS (
+    -- Pre-filter tag IDs for selected campaigns (fast index lookup)
+    SELECT id, campaign_id 
+    FROM tags 
+    WHERE (p_campaign_ids IS NULL OR campaign_id = ANY(p_campaign_ids))
+  )
   SELECT 
     CASE p_group_by
       WHEN 'week' THEN date_trunc('week', e.created_at)
       WHEN 'month' THEN date_trunc('month', e.created_at)
       ELSE date_trunc('day', e.created_at)
     END as period_start,
-    t.campaign_id,
-    SUM(CASE WHEN e.event_type = 'page_view' THEN 1 ELSE 0 END)::bigint as page_views,
-    SUM(CASE WHEN e.event_type = 'click' THEN 1 ELSE 0 END)::bigint as cta_clicks,
-    SUM(CASE WHEN e.event_type = 'pin_click' THEN 1 ELSE 0 END)::bigint as pin_clicks
+    ct.campaign_id,
+    COUNT(*) FILTER (WHERE e.event_type = 'page_view')::bigint as page_views,
+    COUNT(*) FILTER (WHERE e.event_type = 'click')::bigint as cta_clicks,
+    COUNT(*) FILTER (WHERE e.event_type = 'pin_click')::bigint as pin_clicks
   FROM events e
-  JOIN tags t ON e.tag_id = t.id
-  WHERE (auth.uid() IS NOT NULL)
-    AND (p_campaign_ids IS NULL OR t.campaign_id = ANY(p_campaign_ids))
-    AND e.created_at >= start_date_filter
+  JOIN campaign_tags ct ON e.tag_id = ct.id
+  WHERE e.created_at >= start_date_filter
     AND e.created_at < (end_date_filter + INTERVAL '1 day')
+    AND (auth.uid() IS NOT NULL)
   GROUP BY 
     CASE p_group_by
       WHEN 'week' THEN date_trunc('week', e.created_at)
       WHEN 'month' THEN date_trunc('month', e.created_at)
       ELSE date_trunc('day', e.created_at)
     END,
-    t.campaign_id
-  HAVING SUM(1) > 0
-  ORDER BY period_start DESC, t.campaign_id;
+    ct.campaign_id
+  ORDER BY period_start DESC, ct.campaign_id;
 END;
 $$;
 ```
 
-### 2. Atualizar Hook useReportEvents
+### 2. Corrigir Filtro de Insertion Orders
 
-**Arquivo:** `src/hooks/useReportEvents.tsx`
+Além disso, há um bug no filtro `effectiveCampaignIds` que não considera campanhas vinculadas via `campaign_group`.
 
-**Mudança:** Trocar a chamada de `get_report_from_materialized_view` para `get_report_from_events`
+**Arquivo:** `src/pages/Reports.tsx`
+
+**Mudança:** Atualizar a lógica para incluir campanhas via `campaign_group`:
 
 ```typescript
-// ANTES (linha 92-98):
-const { data: aggregatedData, error: aggregatedError } = await supabase
-  .rpc('get_report_from_materialized_view', {
-    p_campaign_ids: selectedCampaignIds,
-    p_start_date: startDate,
-    p_end_date: endDate,
-    p_group_by: groupBy
-  });
-
-// DEPOIS:
-const { data: aggregatedData, error: aggregatedError } = await supabase
-  .rpc('get_report_from_events', {
-    p_campaign_ids: selectedCampaignIds,
-    p_start_date: startDate,
-    p_end_date: endDate,
-    p_group_by: groupBy
-  });
+// Linhas 194-233: Corrigir filtro
+const effectiveCampaignIds = useMemo(() => {
+  let filteredCampaigns = [...campaigns];
+  
+  // Filter by selected insertion orders if any
+  if (reportConfig.selectedInsertionOrders.length > 0) {
+    filteredCampaigns = filteredCampaigns.filter(campaign => {
+      // Check direct insertion_order_id
+      if (campaign.insertion_order_id && 
+          reportConfig.selectedInsertionOrders.includes(campaign.insertion_order_id)) {
+        return true;
+      }
+      // Check via campaign_group
+      const campaignGroup = campaignGroups.find(cg => cg.id === campaign.campaign_group_id);
+      if (campaignGroup?.insertion_order_id && 
+          reportConfig.selectedInsertionOrders.includes(campaignGroup.insertion_order_id)) {
+        return true;
+      }
+      return false;
+    });
+  }
+  // ... resto do código
+}, [campaigns, reportConfig, campaignGroups]);
 ```
-
-### 3. Atualizar Types do Supabase
-
-**Arquivo:** `src/integrations/supabase/types.ts`
-
-Adicionar a nova função RPC aos tipos TypeScript.
 
 ---
 
 ## Detalhes Técnicos
 
 ### Arquivos Modificados:
-1. **Nova migration SQL** - Cria a RPC `get_report_from_events`
-2. **`src/hooks/useReportEvents.tsx`** - Usa a nova RPC
-3. **`src/integrations/supabase/types.ts`** - Tipos TypeScript
+1. **Nova migration SQL** - Otimiza a RPC `get_report_from_events`
+2. **`src/pages/Reports.tsx`** - Corrige filtro de Insertion Orders
 
 ### Por que funciona:
-- Query direto na tabela `events` = sempre dados em tempo real
-- Não depende de refresh da materialized view
-- Performance otimizada com os índices já existentes na tabela events
-- Mantém os mesmos parâmetros e formato de retorno
+- **CTE `campaign_tags`**: Pré-filtra as tags antes do JOIN, reduzindo a quantidade de dados
+- **`COUNT(*) FILTER`**: Mais eficiente que `SUM(CASE WHEN...)`
+- **Remoção do `HAVING`**: Elimina agregação desnecessária
+- **Índice `idx_tags_campaign_id`**: Query rápida na tabela tags
 
 ### Resultado Esperado:
-- Dados de 01/01/2026 até 28/01/2026 aparecerão no relatório
-- Sem necessidade de ação manual no Supabase
-- Filtro por data funcionará corretamente
+- Query executa em menos de 2 segundos (vs timeout atual)
+- Dados de Panasonic carregam corretamente
+- Filtro por Insertion Order funciona via campaign_group
 
