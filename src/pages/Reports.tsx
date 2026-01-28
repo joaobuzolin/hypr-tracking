@@ -196,9 +196,20 @@ const Reports = () => {
     
     // Filter by selected insertion orders if any
     if (reportConfig.selectedInsertionOrders.length > 0) {
-      filteredCampaigns = filteredCampaigns.filter(campaign => 
-        reportConfig.selectedInsertionOrders.includes(campaign.insertion_order_id)
-      );
+      filteredCampaigns = filteredCampaigns.filter(campaign => {
+        // Check direct insertion_order_id on campaign
+        if (campaign.insertion_order_id && 
+            reportConfig.selectedInsertionOrders.includes(campaign.insertion_order_id)) {
+          return true;
+        }
+        // Check insertion_order_id via campaign_group
+        const campaignGroup = campaignGroups.find(cg => cg.id === campaign.campaign_group_id);
+        if (campaignGroup?.insertion_order_id && 
+            reportConfig.selectedInsertionOrders.includes(campaignGroup.insertion_order_id)) {
+          return true;
+        }
+        return false;
+      });
     }
     
     // Filter by selected creatives if any
@@ -230,7 +241,7 @@ const Reports = () => {
     
     // Return empty array if no filters applied
     return [];
-  }, [campaigns, reportConfig.selectedCampaigns, reportConfig.selectedInsertionOrders, reportConfig.selectedCreatives, reportConfig.shortTokenFilter]);
+  }, [campaigns, reportConfig.selectedCampaigns, reportConfig.selectedInsertionOrders, reportConfig.selectedCreatives, reportConfig.shortTokenFilter, campaignGroups]);
 
   // Fetch aggregated report data
   const { data: reportEvents, loading: eventsLoading, error: eventsError } = useReportEvents({
