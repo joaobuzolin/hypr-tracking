@@ -171,7 +171,11 @@ const CreateCriativoDialog = ({
           {!campaignGroupId && (
             <div className="space-y-2">
               <Label htmlFor="campaign-group">Grupo de Campanha *</Label>
-              <Select value={selectedCampaignGroupId} onValueChange={setSelectedCampaignGroupId} disabled={loading}>
+              <Select value={selectedCampaignGroupId} onValueChange={(val) => {
+                setSelectedCampaignGroupId(val);
+                const group = campaignGroups.find((g: any) => g.id === val);
+                setSelectedInsertionOrderId(group?.insertion_order_id || "");
+              }} disabled={loading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o grupo de campanha" />
                 </SelectTrigger>
@@ -186,24 +190,31 @@ const CreateCriativoDialog = ({
             </div>
           )}
 
-          {/* Insertion Order Selection - Only show if not in context */}
-          {!insertionOrderId && (
-            <div className="space-y-2">
-              <Label htmlFor="insertion-order">Insertion Order</Label>
-              <Select value={selectedInsertionOrderId} onValueChange={setSelectedInsertionOrderId} disabled={loading}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o insertion order (opcional)" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md z-50">
-                  {insertionOrders.map((io) => (
-                    <SelectItem key={io.id} value={io.id}>
-                      {io.client_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {/* Insertion Order Selection - auto-filtered by selected campaign group */}
+          {!insertionOrderId && (() => {
+            const activeGroupId = selectedCampaignGroupId || campaignGroupId;
+            const selectedGroup = campaignGroups.find((g: any) => g.id === activeGroupId);
+            const filteredIOs = selectedGroup?.insertion_order_id
+              ? insertionOrders.filter((io: any) => io.id === selectedGroup.insertion_order_id)
+              : insertionOrders;
+            return (
+              <div className="space-y-2">
+                <Label htmlFor="insertion-order">Insertion Order</Label>
+                <Select value={selectedInsertionOrderId} onValueChange={setSelectedInsertionOrderId} disabled={loading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o insertion order (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border shadow-md z-50">
+                    {filteredIOs.map((io: any) => (
+                      <SelectItem key={io.id} value={io.id}>
+                        {io.client_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            );
+          })()}
 
           <div className="space-y-2">
             <Label htmlFor="iab-format">Formato IAB *</Label>
