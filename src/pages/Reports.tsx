@@ -92,7 +92,7 @@ const Reports = () => {
   const [campaignSearchTerm, setCampaignSearchTerm] = useState("");
   const [creativeSearchTerm, setCreativeSearchTerm] = useState("");
   const [previewPage, setPreviewPage] = useState(1);
-  const PREVIEW_PAGE_SIZE = 50;
+  const PREVIEW_PAGE_SIZE = 30;
 
   // Get unique creatives from campaigns
   const availableCreatives = useMemo(() => {
