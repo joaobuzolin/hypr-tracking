@@ -54,6 +54,16 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
       return;
     }
 
+    // Safety limit: prevent querying too many campaigns at once (causes timeouts on 50M+ events)
+    const MAX_CAMPAIGNS = 30;
+    const limitedCampaignIds = selectedCampaignIds.length > MAX_CAMPAIGNS 
+      ? selectedCampaignIds.slice(0, MAX_CAMPAIGNS) 
+      : selectedCampaignIds;
+
+    if (selectedCampaignIds.length > MAX_CAMPAIGNS) {
+      console.warn(`Limiting report to ${MAX_CAMPAIGNS} campaigns (${selectedCampaignIds.length} selected). Select specific campaigns for complete data.`);
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -61,16 +71,12 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
       const startDate = effectiveDateRange.from.toISOString().split('T')[0];
       const endDate = effectiveDateRange.to.toISOString().split('T')[0];
       
-      // Determine if we need tag breakdown
-      const needsTagBreakdown = selectedDimensions.includes('campaign_tags');
-      
       // Try materialized view first (fast), fallback to events table if empty
       let aggregatedData: any[] | null = null;
-      let aggregatedError: any = null;
       
       const { data: mvData, error: mvError } = await supabase
         .rpc('get_report_from_materialized_view' as any, {
-          p_campaign_ids: selectedCampaignIds,
+          p_campaign_ids: limitedCampaignIds,
           p_start_date: startDate,
           p_end_date: endDate,
           p_group_by: groupBy
@@ -84,23 +90,27 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
       if (!mvError && mvData && mvData.length > 0) {
         aggregatedData = mvData;
       } else {
-        // Fallback to direct events query
+        // Fallback to direct events query — limited to prevent timeouts
         console.log('Materialized view empty or failed, using get_report_from_events fallback');
         const { data: eventsData, error: eventsError } = await supabase
           .rpc('get_report_from_events' as any, {
-            p_campaign_ids: selectedCampaignIds,
+            p_campaign_ids: limitedCampaignIds,
             p_start_date: startDate,
             p_end_date: endDate,
             p_group_by: groupBy
           });
         
         if (eventsError) {
+          // Provide a friendlier error for timeouts
+          if (eventsError.message.includes('statement timeout')) {
+            throw new Error('A consulta demorou demais. Tente selecionar menos campanhas ou um período menor.');
+          }
           throw new Error(`Erro ao buscar dados: ${eventsError.message}`);
         }
         aggregatedData = eventsData;
       }
       
-      console.log('Report aggregated data (unlimited):', aggregatedData);
+      console.log('Report aggregated data:', aggregatedData?.length, 'rows');
       
       if (!aggregatedData || aggregatedData.length === 0) {
         setData([]);
