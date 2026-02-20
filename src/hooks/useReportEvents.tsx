@@ -71,7 +71,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
       const startDate = effectiveDateRange.from.toISOString().split('T')[0];
       const endDate = effectiveDateRange.to.toISOString().split('T')[0];
       
-      // Try materialized view first (fast), fallback to events table if empty
+      // Try materialized view first (fast), fallback to events table if empty or stale
       let aggregatedData: any[] | null = null;
       
       const { data: mvData, error: mvError } = await supabase
@@ -86,12 +86,30 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
         console.warn('Materialized view query failed, falling back to events:', mvError.message);
       }
       
-      // If materialized view returned data, use it
+      // Check if MV data covers the requested date range (detect stale MV)
+      let mvIsStale = false;
       if (!mvError && mvData && mvData.length > 0) {
+        const mvMaxDate = mvData.reduce((max: string, row: any) => {
+          return row.period_start > max ? row.period_start : max;
+        }, '');
+        // If the MV's latest data is more than 2 days before the requested end date, it's stale
+        if (mvMaxDate) {
+          const mvLatest = new Date(mvMaxDate).getTime();
+          const requestedEnd = new Date(endDate).getTime();
+          const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+          if (requestedEnd - mvLatest > twoDaysMs) {
+            console.warn('Materialized view is stale (latest:', mvMaxDate, ', requested end:', endDate, '). Falling back to events.');
+            mvIsStale = true;
+          }
+        }
+      }
+      
+      // If materialized view returned fresh data, use it
+      if (!mvError && mvData && mvData.length > 0 && !mvIsStale) {
         aggregatedData = mvData;
       } else {
-        // Fallback to direct events query — limited to prevent timeouts
-        console.log('Materialized view empty or failed, using get_report_from_events fallback');
+        // Fallback to direct events query
+        console.log('Using get_report_from_events fallback (MV empty, failed, or stale)');
         const { data: eventsData, error: eventsError } = await supabase
           .rpc('get_report_from_events' as any, {
             p_campaign_ids: limitedCampaignIds,
@@ -101,7 +119,6 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
           });
         
         if (eventsError) {
-          // Provide a friendlier error for timeouts
           if (eventsError.message.includes('statement timeout')) {
             throw new Error('A consulta demorou demais. Tente selecionar menos campanhas ou um período menor.');
           }
