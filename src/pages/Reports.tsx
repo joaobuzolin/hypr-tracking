@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Download, Filter, FileSpreadsheet, FileText, Search, Eye, MousePointer, MapPin, Target, ChevronDown, X, AlertCircle } from "lucide-react";
+import { PaginationControls } from "@/components/PaginationControls";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -90,6 +91,8 @@ const Reports = () => {
   const [ioSearchTerm, setIoSearchTerm] = useState("");
   const [campaignSearchTerm, setCampaignSearchTerm] = useState("");
   const [creativeSearchTerm, setCreativeSearchTerm] = useState("");
+  const [previewPage, setPreviewPage] = useState(1);
+  const PREVIEW_PAGE_SIZE = 50;
 
   // Get unique creatives from campaigns
   const availableCreatives = useMemo(() => {
@@ -319,6 +322,17 @@ const Reports = () => {
       return row;
     });
   }, [reportEvents, reportConfig]);
+
+  // Reset page when data changes
+  useEffect(() => {
+    setPreviewPage(1);
+  }, [reportData.length, reportConfig.groupBy, reportConfig.dimensions]);
+
+  const previewTotalPages = Math.ceil(reportData.length / PREVIEW_PAGE_SIZE);
+  const paginatedReportData = useMemo(() => {
+    const start = (previewPage - 1) * PREVIEW_PAGE_SIZE;
+    return reportData.slice(start, start + PREVIEW_PAGE_SIZE);
+  }, [reportData, previewPage]);
 
   // Clean up invalid campaign selections when IOs change
   useEffect(() => {
@@ -941,28 +955,35 @@ const Reports = () => {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        {Object.keys(reportData[0]).map((column) => (
-                          <TableHead key={column}>{column}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData.map((row, index) => (
-                        <TableRow key={index}>
-                          {Object.values(row).map((value, cellIndex) => (
-                            <TableCell key={cellIndex}>
-                              {String(value)}
-                            </TableCell>
+                <>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {Object.keys(reportData[0]).map((column) => (
+                            <TableHead key={column}>{column}</TableHead>
                           ))}
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedReportData.map((row, index) => (
+                          <TableRow key={index}>
+                            {Object.values(row).map((value, cellIndex) => (
+                              <TableCell key={cellIndex}>
+                                {String(value)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <PaginationControls
+                    currentPage={previewPage}
+                    totalPages={previewTotalPages}
+                    onPageChange={setPreviewPage}
+                  />
+                </>
               )}
             </CardContent>
           </Card>
