@@ -32,30 +32,6 @@ interface UseReportEventsProps {
   selectedDimensions: string[];
 }
 
-// Função utilitária para classificar eventos baseado no tipo da tag
-const classifyEventByTagType = (event: any, tagType: string) => {
-  // Se o event_type já está correto, use ele
-  if (event.event_type === 'page_view' || event.event_type === 'pin_click' || event.event_type === 'click') {
-    return event.event_type;
-  }
-  
-  // Para eventos antigos ou inconsistentes, classifique baseado no tipo da tag
-  if (event.event_type === 'view') {
-    switch (tagType) {
-      case 'page-view':
-        return 'page_view';
-      case 'pin':
-        return 'pin_click';
-      case 'click-button':
-        return 'click';
-      default:
-        return event.event_type;
-    }
-  }
-  
-  // Fallback para outros casos
-  return event.event_type;
-};
 
 export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selectedDimensions }: UseReportEventsProps) => {
   const [data, setData] = useState<ReportEvent[]>([]);

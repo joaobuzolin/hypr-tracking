@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CampaignCard } from "@/components/CampaignCard";
 import { MetricsCard } from "@/components/MetricsCard";
+import { CreateCriativoDialog } from "@/components/CreateCriativoDialog";
+import { PaginationControls } from "@/components/PaginationControls";
 import { useBreadcrumbs } from "@/components/Breadcrumb";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useCampaignGroups } from "@/hooks/useCampaignGroups";
@@ -13,241 +15,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, BarChart3, MousePointer, Search, CalendarIcon, Filter, User, Activity, Building, Users, Target, Eye, ChevronLeft, ChevronRight } from "lucide-react";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
+import { Plus, BarChart3, MousePointer, Search, CalendarIcon, Filter, User, Activity, Building, Users, Target, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useNavigate } from "react-router-dom";
-import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
-
-// Componentes otimizados agora estão em arquivos separados
-
-// Common IAB standard formats
-const IAB_FORMATS = [
-  { value: '300x250', label: '300x250 - Medium Rectangle' },
-  { value: '300x600', label: '300x600 - Half Page' },
-  { value: '970x250', label: '970x250 - Billboard' },
-  { value: '728x90', label: '728x90 - Leaderboard' },
-  { value: '320x50', label: '320x50 - Mobile Banner' },
-  { value: '160x600', label: '160x600 - Wide Skyscraper' },
-  { value: '970x90', label: '970x90 - Super Leaderboard' },
-  { value: '300x50', label: '300x50 - Mobile Banner Large' },
-  { value: '320x100', label: '320x100 - Large Mobile Banner' },
-  { value: '336x280', label: '336x280 - Large Rectangle' }
-];
-
-const CreateCriativoDialog = ({ 
-  onCriativoCreated,
-  insertionOrderId,
-  campaignGroupId,
-  createCampaign,
-  campaignGroups = [],
-  insertionOrders = []
-}: { 
-  onCriativoCreated: () => void;
-  insertionOrderId?: string;
-  campaignGroupId?: string;
-  createCampaign: (data: any) => Promise<any>;
-  campaignGroups?: any[];
-  insertionOrders?: any[];
-}) => {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [shortToken, setShortToken] = useState("");
-  const [iabFormat, setIabFormat] = useState("300x250");
-  const [selectedCampaignGroupId, setSelectedCampaignGroupId] = useState(campaignGroupId || "");
-  const [selectedInsertionOrderId, setSelectedInsertionOrderId] = useState(insertionOrderId || "");
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    setLoading(true);
-
-    const { error } = await createCampaign({
-      name: name.trim(),
-      description: description.trim(),
-      short_token: shortToken.trim() || undefined,
-      insertion_order_id: selectedInsertionOrderId || insertionOrderId,
-      campaign_group_id: selectedCampaignGroupId || campaignGroupId,
-      creative_format: iabFormat
-    });
-
-    if (error) {
-      toast({
-        title: "Erro",
-        description: typeof error === 'string' ? error : "Não foi possível criar o criativo.",
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Criativo criado!",
-        description: "Acesse os detalhes do criativo para adicionar tags de tracking.",
-      });
-      
-      // Reset form
-      setName("");
-      setDescription("");
-      setShortToken("");
-      setIabFormat("300x250");
-      setSelectedCampaignGroupId(campaignGroupId || "");
-      setSelectedInsertionOrderId(insertionOrderId || "");
-      setOpen(false);
-      onCriativoCreated();
-    }
-
-    setLoading(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Criativo
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Criar Novo Criativo</DialogTitle>
-          <DialogDescription>
-            Crie um novo criativo. Você poderá adicionar tags de tracking após a criação.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome do Criativo *</Label>
-            <Input
-              id="name"
-              placeholder="Ex: Banner Black Friday 2024"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              placeholder="Descrição opcional do criativo"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              disabled={loading}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="short-token">Short Token</Label>
-            <Input
-              id="short-token"
-              placeholder="Ex: TBGJ1R (6 caracteres)"
-              value={shortToken}
-              onChange={(e) => {
-                const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                if (value.length <= 6) {
-                  setShortToken(value);
-                }
-              }}
-              maxLength={6}
-              disabled={loading}
-              className="font-mono"
-            />
-            <p className="text-xs text-muted-foreground">
-              Opcional. Código alfanumérico de 6 caracteres (letras e números).
-            </p>
-          </div>
-          {/* Campaign Group Selection - Only show if not in context */}
-          {!campaignGroupId && (
-            <div className="space-y-2">
-              <Label htmlFor="campaign-group">Grupo de Campanha *</Label>
-              <Select value={selectedCampaignGroupId} onValueChange={(val) => {
-                setSelectedCampaignGroupId(val);
-                const group = campaignGroups.find((g: any) => g.id === val);
-                setSelectedInsertionOrderId(group?.insertion_order_id || "");
-              }} disabled={loading}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o grupo de campanha" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md z-50">
-                  {campaignGroups.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Insertion Order Selection - auto-filtered by selected campaign group */}
-          {!insertionOrderId && (() => {
-            const activeGroupId = selectedCampaignGroupId || campaignGroupId;
-            const selectedGroup = campaignGroups.find((g: any) => g.id === activeGroupId);
-            const filteredIOs = selectedGroup?.insertion_order_id
-              ? insertionOrders.filter((io: any) => io.id === selectedGroup.insertion_order_id)
-              : insertionOrders;
-            return (
-              <div className="space-y-2">
-                <Label htmlFor="insertion-order">Insertion Order</Label>
-                <Select value={selectedInsertionOrderId} onValueChange={setSelectedInsertionOrderId} disabled={loading}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o insertion order (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border shadow-md z-50">
-                    {filteredIOs.map((io: any) => (
-                      <SelectItem key={io.id} value={io.id}>
-                        {io.client_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            );
-          })()}
-
-          <div className="space-y-2">
-            <Label htmlFor="iab-format">Formato IAB *</Label>
-            <Select value={iabFormat} onValueChange={setIabFormat} disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o formato IAB" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border shadow-md z-50">
-                {IAB_FORMATS.map((format) => (
-                  <SelectItem key={format.value} value={format.value}>
-                    {format.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1" disabled={loading}>
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
-              className="flex-1" 
-              disabled={loading || (!campaignGroupId && !selectedCampaignGroupId)}
-            >
-              {loading ? 'Criando...' : 'Criar Criativo'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 import React from "react";
 
@@ -317,12 +94,9 @@ const Criativos = () => {
 
   // Get unique creators for filter options - show all registered users
   const uniqueCreators = useMemo(() => {
-    // Use all profiles if available, fallback to campaign creators
     if (profiles.length > 0) {
       return profiles.map(p => p.email).sort();
     }
-    
-    // Fallback to existing logic if profiles not loaded
     const creators = relevantCampaigns
       .filter(c => c.profile?.email)
       .map(c => c.profile!.email)
@@ -343,7 +117,6 @@ const Criativos = () => {
       const startDate = startOfDay(dateRange.from);
       const endDate = endOfDay(dateRange.to || dateRange.from);
 
-      // Get campaigns with events in date range
       const { data, error } = await supabase.rpc('get_campaigns_with_events_in_daterange', {
         p_start_date: startDate.toISOString(),
         p_end_date: endDate.toISOString()
@@ -357,7 +130,6 @@ const Criativos = () => {
         return;
       }
 
-      // Filter only campaigns relevant to current context (campaign group)
       const relevantIds = relevantCampaigns.map(c => c.id);
       const filteredIds = data
         ?.map((row: { campaign_id: string }) => row.campaign_id)
@@ -371,7 +143,6 @@ const Criativos = () => {
         return;
       }
 
-      // Fetch individual campaign metrics
       const { data: individualMetrics, error: metricsError } = await supabase.rpc(
         'get_metrics_by_campaign_and_daterange',
         {
@@ -395,7 +166,6 @@ const Criativos = () => {
         setCampaignMetricsMap(metricsMap);
       }
 
-      // Fetch aggregated metrics
       const { data: aggData, error: aggError } = await supabase.rpc('get_aggregated_metrics_for_campaigns', {
         p_campaign_ids: filteredIds,
         p_start_date: startDate.toISOString(),
@@ -419,32 +189,26 @@ const Criativos = () => {
     let campaignsToFilter = (insertionOrderId || campaignGroupId) ? relevantCampaigns : campaigns;
     
     return campaignsToFilter.filter(campaign => {
-      // Search filter
       const matchesSearch = 
         campaign.name.toLowerCase().includes(deferredSearchTerm.toLowerCase()) ||
         (campaign.description && campaign.description.toLowerCase().includes(deferredSearchTerm.toLowerCase()));
       
-      // Date range filter - now filters by event date instead of campaign creation date
       const matchesDateRange = !dateRange?.from || campaignsWithEvents.includes(campaign.id);
       
-      // Creator filter
       const matchesCreator = 
         creatorFilter === "all" || 
         campaign.profile?.email === creatorFilter;
       
-      // Campaign group filter
       const matchesCampaignGroup = 
         campaignFilter === "all" || 
         campaign.campaign_group_id === campaignFilter;
       
-      // Status filter
       const matchesStatus = 
         statusFilter === "all" || 
         campaign.derivedStatus === statusFilter;
       
-      // Insertion Order filter (only when not in IO context)
       const matchesInsertionOrder = 
-        insertionOrderId || // Skip filter if we're already in IO context
+        insertionOrderId ||
         insertionOrderFilter === "all" || 
         campaign.insertion_order_id === insertionOrderFilter;
       
@@ -455,7 +219,6 @@ const Criativos = () => {
   // Enrich campaigns with filtered metrics when date range is active
   const campaignsWithFilteredMetrics = useMemo(() => {
     return filteredCampaigns.map(campaign => {
-      // If date filter is active AND we have filtered metrics for this campaign
       if (dateRange?.from && campaignMetricsMap.has(campaign.id)) {
         const filteredMetrics = campaignMetricsMap.get(campaign.id)!;
         return {
@@ -468,7 +231,6 @@ const Criativos = () => {
           }
         };
       }
-      // No date filter, use historical metrics
       return campaign;
     });
   }, [filteredCampaigns, campaignMetricsMap, dateRange]);
@@ -487,7 +249,6 @@ const Criativos = () => {
   const totalCampaigns = filteredCampaigns.length;
   const activeCampaigns = filteredCampaigns.filter(c => c.derivedStatus === 'active').length;
   
-  // Use filtered metrics when date range is active, otherwise use campaign totals
   const totalPinClicks = filteredMetrics 
     ? filteredMetrics.totalPinClicks
     : filteredCampaigns.reduce((sum, c) => sum + c.metrics.pin_clicks, 0);
@@ -515,7 +276,6 @@ const Criativos = () => {
     // Campaigns will be refreshed automatically by the hook
   }, []);
 
-  // Generate breadcrumbs based on current context
   const breadcrumbItems = generateBreadcrumbs();
 
   const DateRangePicker = () => (
@@ -556,7 +316,6 @@ const Criativos = () => {
     </Popover>
   );
 
-  // Create context bar for campaign group selector
   const contextBar = currentCampaignGroup ? (
     <div className="flex items-center justify-between">
       <div>
@@ -599,7 +358,6 @@ const Criativos = () => {
     </div>
   ) : null;
 
-  // Actions for the layout
   const actions = (
     <CreateCriativoDialog 
       onCriativoCreated={handleCriativoCreated} 
@@ -679,7 +437,6 @@ const Criativos = () => {
       <Card className="mb-6 md:mb-8 mx-1 section-surface">
         <CardContent className="p-4 md:p-6">
           <div className="space-y-4">
-            {/* First row: Search and Date Range */}
             <div className="flex flex-col gap-3 md:gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -695,7 +452,6 @@ const Criativos = () => {
               </div>
             </div>
             
-            {/* Second row: Filters */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {!insertionOrderId && !campaignGroupId && (
                 <Select value={insertionOrderFilter} onValueChange={setInsertionOrderFilter}>
@@ -759,7 +515,6 @@ const Criativos = () => {
               </Select>
             </div>
             
-            {/* Results and clear filters */}
             {(searchTerm || dateRange?.from || dateRange?.to || creatorFilter !== "all" || campaignFilter !== "all" || statusFilter !== "all" || insertionOrderFilter !== "all") && (
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">
@@ -844,56 +599,11 @@ const Criativos = () => {
               ))}
             </div>
             
-            {totalPages > 1 && (
-              <Pagination className="mt-6">
-                <PaginationContent>
-                  <PaginationItem>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Anterior
-                    </Button>
-                  </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
-                    .map((page, index, array) => (
-                      <React.Fragment key={page}>
-                        {index > 0 && array[index - 1] !== page - 1 && (
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        )}
-                        <PaginationItem>
-                          <Button
-                            variant={currentPage === page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setCurrentPage(page)}
-                          >
-                            {page}
-                          </Button>
-                        </PaginationItem>
-                      </React.Fragment>
-                    ))}
-                  
-                  <PaginationItem>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Próxima
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </>
         )}
       </div>

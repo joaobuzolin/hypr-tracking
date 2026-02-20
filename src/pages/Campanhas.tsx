@@ -13,8 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, Users, MousePointer, Search, Filter, Calendar, Building, ChevronLeft, ChevronRight } from "lucide-react";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
+import { BarChart3, Users, MousePointer, Search, Filter, Calendar, Building } from "lucide-react";
+import { PaginationControls } from "@/components/PaginationControls";
 import { useParams, useNavigate } from "react-router-dom";
 
 import React from "react";
@@ -321,56 +321,11 @@ const Campanhas = () => {
                   ))}
                 </div>
                 
-                {totalPages > 1 && (
-                  <Pagination className="mt-6">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                        >
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                          Anterior
-                        </Button>
-                      </PaginationItem>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
-                        .map((page, index, array) => (
-                          <React.Fragment key={page}>
-                            {index > 0 && array[index - 1] !== page - 1 && (
-                              <PaginationItem>
-                                <PaginationEllipsis />
-                              </PaginationItem>
-                            )}
-                            <PaginationItem>
-                              <Button
-                                variant={currentPage === page ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setCurrentPage(page)}
-                              >
-                                {page}
-                              </Button>
-                            </PaginationItem>
-                          </React.Fragment>
-                        ))}
-                      
-                      <PaginationItem>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                        >
-                          Próxima
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                )}
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
               </>
             )}
         </section>

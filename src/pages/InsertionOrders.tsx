@@ -3,6 +3,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { InsertionOrderCard } from "@/components/InsertionOrderCard";
 import { EditInsertionOrderDialog } from "@/components/EditInsertionOrderDialog";
 import { MetricsCard } from "@/components/MetricsCard";
+import { CreateInsertionOrderDialog } from "@/components/CreateInsertionOrderDialog";
+import { PaginationControls } from "@/components/PaginationControls";
 import { useBreadcrumbs } from "@/components/Breadcrumb";
 import { useInsertionOrders, type InsertionOrderWithMetrics } from "@/hooks/useInsertionOrders";
 import { useProfiles } from "@/hooks/useProfiles";
@@ -10,136 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Building, FolderOpen, MousePointer, Search, Filter, User, Activity, ChevronLeft, ChevronRight } from "lucide-react";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
+import { Building, FolderOpen, Search, Filter, User, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const CreateInsertionOrderDialog = ({ onCreated }: { onCreated: () => void }) => {
-  const [open, setOpen] = useState(false);
-  const [clientName, setClientName] = useState("");
-  const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { createInsertionOrder } = useInsertionOrders();
-  const { toast } = useToast();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clientName.trim()) return;
-
-    setLoading(true);
-
-    const { error } = await createInsertionOrder({
-      client_name: clientName.trim(),
-      description: description.trim() || undefined,
-      start_date: startDate || undefined,
-      end_date: endDate || undefined
-    });
-
-    if (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível criar a insertion order.",
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Insertion Order criada!",
-        description: "Agora você pode criar criativos dentro desta insertion order.",
-      });
-      
-      // Reset form
-      setClientName("");
-      setDescription("");
-      setStartDate("");
-      setEndDate("");
-      setOpen(false);
-      onCreated();
-    }
-
-    setLoading(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="w-4 h-4" />
-          Nova Insertion Order
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Criar Nova Insertion Order</DialogTitle>
-          <DialogDescription>
-            Crie uma nova insertion order para organizar seus criativos por cliente/projeto.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="clientName">Nome do Cliente *</Label>
-            <Input
-              id="clientName"
-              placeholder="Ex: Acme Corporation"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              placeholder="Descrição opcional do projeto"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              disabled={loading}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Data de Início</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate">Data de Fim</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-          </div>
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1" disabled={loading}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
-              {loading ? 'Criando...' : 'Criar Insertion Order'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 import React from "react";
 
@@ -159,14 +36,10 @@ const InsertionOrders = () => {
   const { generateBreadcrumbs } = useBreadcrumbs();
   const breadcrumbs = generateBreadcrumbs();
   
-  // Get unique creators for filter options - show all registered users
   const uniqueCreators = useMemo(() => {
-    // Use all profiles if available, fallback to insertion order creators
     if (profiles.length > 0) {
       return profiles.map(p => p.email).sort();
     }
-    
-    // Fallback to existing logic if profiles not loaded
     const creators = insertionOrders
       .filter(io => io.profile?.email)
       .map(io => io.profile!.email)
@@ -174,35 +47,26 @@ const InsertionOrders = () => {
     return creators.sort();
   }, [profiles, insertionOrders]);
 
-  // Filtered insertion orders
   const filteredInsertionOrders = useMemo(() => {
     return insertionOrders.filter(order => {
-      // Search filter
       const matchesSearch = 
         order.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (order.description && order.description.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-      // Creator filter
       const matchesCreator = 
         creatorFilter === "all" || 
         order.profile?.email === creatorFilter;
-      
-      // Status filter
       const matchesStatus = 
         statusFilter === "all" || 
         order.status === statusFilter;
-      
       return matchesSearch && matchesCreator && matchesStatus;
     });
   }, [insertionOrders, searchTerm, creatorFilter, statusFilter]);
   
-  // Pagination logic
   const totalPages = Math.ceil(filteredInsertionOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedInsertionOrders = filteredInsertionOrders.slice(startIndex, endIndex);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, creatorFilter, statusFilter]);
@@ -217,9 +81,7 @@ const InsertionOrders = () => {
     setStatusFilter("all");
   };
 
-  const handleCreated = useCallback(() => {
-    // Orders will be refreshed automatically by the hook
-  }, []);
+  const handleCreated = useCallback(() => {}, []);
 
   const handleEdit = (order: InsertionOrderWithMetrics) => {
     setEditingOrder(order);
@@ -249,8 +111,6 @@ const InsertionOrders = () => {
       breadcrumbs={breadcrumbs}
       actions={<CreateInsertionOrderDialog onCreated={handleCreated} />}
     >
-          
-        {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -262,43 +122,19 @@ const InsertionOrders = () => {
               ))
             ) : (
               <>
-                <MetricsCard
-                  icon={Building}
-                  value={totalOrders}
-                  label="Insertion Orders"
-                />
-                
-                <MetricsCard
-                  icon={Activity}
-                  value={activeOrders}
-                  label="Ativas"
-                  className="bg-muted"
-                  iconColor="text-green-600"
-                />
-                
-                <MetricsCard
-                  icon={FolderOpen}
-                   value={totalCampaigns}
-                   label="Total de Criativos"
-                  className="bg-muted"
-                  iconColor="text-blue-600"
-                />
+                <MetricsCard icon={Building} value={totalOrders} label="Insertion Orders" />
+                <MetricsCard icon={Activity} value={activeOrders} label="Ativas" className="bg-muted" iconColor="text-green-600" />
+                <MetricsCard icon={FolderOpen} value={totalCampaigns} label="Total de Criativos" className="bg-muted" iconColor="text-blue-600" />
               </>
             )}
           </div>
 
-        {/* Filters Section */}
         <div className="p-4 section-surface rounded-lg border mb-6">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Buscar insertion orders..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+                  <Input placeholder="Buscar insertion orders..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
                 </div>
                 
                 <Select value={creatorFilter} onValueChange={setCreatorFilter}>
@@ -309,9 +145,7 @@ const InsertionOrders = () => {
                   <SelectContent>
                     <SelectItem value="all">Todos os criadores</SelectItem>
                     {uniqueCreators.map((creator) => (
-                      <SelectItem key={creator} value={creator}>
-                        {creator}
-                      </SelectItem>
+                      <SelectItem key={creator} value={creator}>{creator}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -335,12 +169,7 @@ const InsertionOrders = () => {
                   <Badge variant="secondary" className="text-xs">
                     {filteredInsertionOrders.length} resultado{filteredInsertionOrders.length !== 1 ? 's' : ''}
                   </Badge>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={clearFilters}
-                    className="text-xs h-8"
-                  >
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs h-8">
                     Limpar filtros
                   </Button>
                 </div>
@@ -348,7 +177,6 @@ const InsertionOrders = () => {
             </div>
           </div>
 
-        {/* Insertion Orders List */}
         <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-medium">Insertion Orders</h2>
@@ -378,13 +206,7 @@ const InsertionOrders = () => {
                       <>
                         <Filter className="w-12 h-12 mx-auto mb-2 opacity-40" />
                         <p>Nenhuma insertion order encontrada com os filtros aplicados</p>
-                        <Button 
-                          variant="link" 
-                          onClick={clearFilters}
-                          className="text-sm mt-2"
-                        >
-                          Limpar filtros
-                        </Button>
+                        <Button variant="link" onClick={clearFilters} className="text-sm mt-2">Limpar filtros</Button>
                       </>
                     ) : (
                       <>
@@ -409,68 +231,21 @@ const InsertionOrders = () => {
                   ))}
                 </div>
                 
-                {totalPages > 1 && (
-                  <Pagination className="mt-6">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                        >
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                          Anterior
-                        </Button>
-                      </PaginationItem>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
-                        .map((page, index, array) => (
-                          <React.Fragment key={page}>
-                            {index > 0 && array[index - 1] !== page - 1 && (
-                              <PaginationItem>
-                                <PaginationEllipsis />
-                              </PaginationItem>
-                            )}
-                            <PaginationItem>
-                              <Button
-                                variant={currentPage === page ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setCurrentPage(page)}
-                              >
-                                {page}
-                              </Button>
-                            </PaginationItem>
-                          </React.Fragment>
-                        ))}
-                      
-                      <PaginationItem>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                        >
-                          Próxima
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                )}
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
               </>
             )}
         </div>
 
-      {/* Edit Dialog */}
       <EditInsertionOrderDialog 
         insertionOrder={editingOrder}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
       />
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingOrder} onOpenChange={() => setDeletingOrder(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
