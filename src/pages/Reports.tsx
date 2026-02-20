@@ -341,9 +341,23 @@ const Reports = () => {
       if (typeof valA === 'number' && typeof valB === 'number') {
         return sortDirection === 'asc' ? valA - valB : valB - valA;
       }
-      // String sort
+      // Date sort: detect dd/MM/yyyy or MM/yyyy or "Semana dd/MM/yyyy"
+      const parseDateStr = (v: string): number | null => {
+        const cleaned = v.replace(/^Semana\s+/, '');
+        const ddMMyyyy = cleaned.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (ddMMyyyy) return new Date(+ddMMyyyy[3], +ddMMyyyy[2] - 1, +ddMMyyyy[1]).getTime();
+        const mmYyyy = cleaned.match(/^(\d{2})\/(\d{4})$/);
+        if (mmYyyy) return new Date(+mmYyyy[2], +mmYyyy[1] - 1, 1).getTime();
+        return null;
+      };
       const strA = String(valA ?? '');
       const strB = String(valB ?? '');
+      const dateA = parseDateStr(strA);
+      const dateB = parseDateStr(strB);
+      if (dateA !== null && dateB !== null) {
+        return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+      // String sort
       return sortDirection === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
     });
   }, [reportData, sortColumn, sortDirection]);
