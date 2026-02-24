@@ -1,88 +1,51 @@
 
 
-# Plano: Corrigir Dados Zerados na Pagina de Criativos
+# Plano: Recarregar Dados Somente Quando o Usuario Pedir
 
-## Diagnostico
+## Situacao Atual
 
-O problema e claro e confirmado com dados reais:
+O hook `useCampaignsQuery` tem um `refetchInterval: 60 * 1000` que faz o sistema buscar dados no banco **a cada 1 minuto automaticamente**, mesmo que o usuario esteja parado na pagina. Isso gera requisicoes desnecessarias ao banco.
 
-A funcao `get_campaign_counters` (usada pela pagina de Criativos para exibir metricas) le EXCLUSIVAMENTE da view materializada `campaign_metrics_summary`. Essa view esta **incompleta e desatualizada** -- contem apenas 83 campanhas, enquanto a `campaign_metrics_daily` tem dados reais para as campanhas do Boticario.
+Os outros hooks nao tem refresh automatico, mas alguns tem `staleTime` curto (1-2 min), o que faz com que ao navegar entre paginas, os dados sejam buscados novamente rapidamente.
 
-Dados reais confirmados:
+## Mudancas Propostas
 
-```text
-campaign_metrics_summary (usada pelo sistema): 0 linhas para Boticario
-campaign_metrics_daily (nao usada):             158k+ CTA clicks, 28k+ PIN clicks
-events table (fonte real):                      191k+ eventos para Boticario
-```
+### 1. Remover refresh automatico do `useCampaignsQuery`
 
-O refresh da `campaign_metrics_summary` provavelmente esta falhando porque ela escaneia a tabela `events` inteira (50M+ linhas) em uma unica query com JOINs pesados.
+Remover a linha `refetchInterval: 60 * 1000` para que os dados so sejam buscados novamente quando:
+- O usuario recarrega a pagina manualmente (F5)
+- O cache expira e o usuario navega para a pagina
 
-## Solucao
+### 2. Aumentar staleTime para evitar recargas desnecessarias
 
-### Alterar `get_campaign_counters` para usar `campaign_metrics_daily`
+Padronizar todos os hooks com `staleTime: 10 * 60 * 1000` (10 minutos) para que os dados fiquem em cache por mais tempo e so sejam rebuscados quando realmente necessario.
 
-Em vez de depender da `campaign_metrics_summary` (que falha ao atualizar), a funcao passara a agregar dados da `campaign_metrics_daily`, que ja esta sendo atualizada com sucesso pelo cron Job 6.
+| Hook | staleTime atual | staleTime novo |
+|---|---|---|
+| `useCampaignsQuery` | 5 min | 10 min |
+| `useCampaignGroupsQuery` | 2 min | 10 min |
+| `useCampaignDetailsQuery` | 2 min | 10 min |
+| `useInsertionOrdersQuery` | 5 min | 10 min |
+| `useReportEvents` | 5 min | 10 min |
+| `useSingleCampaignQuery` | 1 min | 10 min |
 
-A alteracao sera feita via migration SQL:
+### 3. Manter `refetchOnMount: false` em todos
 
-```text
-CREATE OR REPLACE FUNCTION get_campaign_counters(campaign_ids uuid[])
-RETURNS TABLE(
-  campaign_id uuid,
-  page_views bigint,
-  cta_clicks bigint,
-  pin_clicks bigint,
-  total_7d bigint,
-  last_hour bigint
-)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  RETURN QUERY
-  SELECT
-    uid as campaign_id,
-    COALESCE(agg.page_views, 0::bigint),
-    COALESCE(agg.cta_clicks, 0::bigint),
-    COALESCE(agg.pin_clicks, 0::bigint),
-    COALESCE(agg.total_7d, 0::bigint),
-    0::bigint as last_hour  -- daily granularity cant track hourly
-  FROM unnest(campaign_ids) AS uid
-  LEFT JOIN (
-    SELECT
-      cmd.campaign_id,
-      SUM(cmd.page_views)::bigint as page_views,
-      SUM(cmd.cta_clicks)::bigint as cta_clicks,
-      SUM(cmd.pin_clicks)::bigint as pin_clicks,
-      SUM(CASE WHEN cmd.metric_date >= CURRENT_DATE - INTERVAL '7 days'
-          THEN cmd.page_views + cmd.cta_clicks + cmd.pin_clicks ELSE 0 END)::bigint as total_7d
-    FROM campaign_metrics_daily cmd
-    WHERE cmd.campaign_id = ANY(campaign_ids)
-    GROUP BY cmd.campaign_id
-  ) agg ON agg.campaign_id = uid
-  WHERE (auth.uid() IS NOT NULL);
-END;
-$$;
-```
+Isso garante que ao navegar entre paginas, se o cache ainda for valido (dentro do staleTime de 10 min), os dados nao sao buscados novamente.
 
-### O que muda
+## Arquivos Modificados
 
-- **Fonte de dados**: `campaign_metrics_summary` -> `campaign_metrics_daily` (que esta atualizada e funcionando)
-- **last_hour**: Sera sempre 0 pois a daily nao tem granularidade horaria. O status "ativo/inativo" baseado em last_hour ficara sempre "inativo" mas isso ja acontecia antes (a summary tambem estava zerada)
-- **Performance**: A query agrega da `campaign_metrics_daily` que e indexada por campaign_id -- rapida e eficiente
-- **Nenhuma mudanca no frontend**: A funcao mantem a mesma assinatura, entao toda a UI continua funcionando sem alteracoes
+1. `src/hooks/queries/useCampaignsQuery.tsx` -- Remover `refetchInterval`, aumentar `staleTime` para 10 min
+2. `src/hooks/queries/useCampaignGroupsQuery.tsx` -- Aumentar `staleTime` para 10 min
+3. `src/hooks/queries/useCampaignDetailsQuery.tsx` -- Aumentar `staleTime` para 10 min
+4. `src/hooks/queries/useSingleCampaignQuery.tsx` -- Aumentar `staleTime` para 10 min
+5. `src/hooks/queries/useInsertionOrdersQuery.tsx` -- Aumentar `staleTime` para 10 min (ja esta em 5, subir para 10)
+6. `src/hooks/useReportEvents.tsx` -- Aumentar `staleTime` para 10 min (ja esta em 5, subir para 10)
 
-### Impacto no derivedStatus
+## Resultado
 
-Como `last_hour` sera sempre 0, o status derivado das campanhas sera baseado nas datas (start_date/end_date) em vez de atividade recente. Campanhas dentro do periodo valido mostrarao "paused" em vez de "active", o que ja era o comportamento atual com a summary quebrada.
-
-### Arquivos modificados
-
-1. `supabase/migrations/` -- Nova migration para recriar a funcao `get_campaign_counters`
-
-### Resultado esperado
-
-- Dados do Boticario aparecerao corretamente (158k+ CTA clicks, 28k+ PIN clicks, etc.)
-- Todas as outras campanhas tambem mostrarao dados reais da MV daily
-- Sem risco de timeout pois nao toca a tabela events diretamente
-- Sistema confiavel pois depende da MV que esta sendo atualizada pelo cron funcionando (Job 6)
+- Dados so recarregam quando o usuario faz F5 ou apos 10 minutos de cache expirado
+- Zero requisicoes automaticas em background
+- Navegacao entre paginas usa cache sem rebuscar
+- Menos carga no banco de dados
 
