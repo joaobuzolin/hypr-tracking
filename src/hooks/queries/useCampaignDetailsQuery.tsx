@@ -83,6 +83,8 @@ export const useCampaignDetailsQuery = (campaignId?: string) => {
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
     retryDelay: 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const prefetch = (id: string) => {

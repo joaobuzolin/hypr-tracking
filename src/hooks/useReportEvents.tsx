@@ -239,5 +239,9 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
     data: query.data ?? [],
     loading: query.isLoading,
     error: query.error?.message ?? null,
+    refetch: query.refetch,
+    isFetching: query.isFetching,
+    isStale: query.isStale,
+    dataUpdatedAt: query.dataUpdatedAt,
   };
 };

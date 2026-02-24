@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Download, Filter, FileSpreadsheet, FileText, Search, Eye, MousePointer, MapPin, Target, ChevronDown, X, AlertCircle } from "lucide-react";
+import { Download, Filter, FileSpreadsheet, FileText, Search, Eye, MousePointer, MapPin, Target, ChevronDown, X, AlertCircle, RefreshCw, Clock } from "lucide-react";
 import { PaginationControls } from "@/components/PaginationControls";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -250,7 +250,7 @@ const Reports = () => {
   }, [campaigns, reportConfig.selectedCampaigns, reportConfig.selectedInsertionOrders, reportConfig.selectedCreatives, reportConfig.shortTokenFilter, campaignGroups]);
 
   // Fetch aggregated report data
-  const { data: reportEvents, loading: eventsLoading, error: eventsError } = useReportEvents({
+  const { data: reportEvents, loading: eventsLoading, error: eventsError, refetch: refetchEvents, isFetching, dataUpdatedAt } = useReportEvents({
     selectedCampaignIds: effectiveCampaignIds,
     dateRange: reportConfig.dateRange?.from && reportConfig.dateRange?.to ? 
       { from: reportConfig.dateRange.from, to: reportConfig.dateRange.to } : undefined,
@@ -926,9 +926,23 @@ const Reports = () => {
                     Visualize os dados antes de exportar
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {reportData.length} linha{reportData.length !== 1 ? 's' : ''}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {dataUpdatedAt > 0 && !eventsLoading && !isFetching && reportData.length > 0 && (
+                    <Badge variant="outline" className="text-xs gap-1 text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      Cache {format(new Date(dataUpdatedAt), 'HH:mm')}
+                    </Badge>
+                  )}
+                  {isFetching && !eventsLoading && (
+                    <Badge variant="outline" className="text-xs gap-1 text-muted-foreground">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Atualizando...
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-xs">
+                    {reportData.length} linha{reportData.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -969,16 +983,20 @@ const Reports = () => {
                 </div>
               ) : eventsError ? (
                 <div className="text-center py-12">
-                  <FileText className="w-12 h-12 text-destructive mx-auto mb-4" />
+                  <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-destructive mb-2">
                     Erro ao carregar dados
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Ocorreu um erro técnico ao buscar os dados.
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Não foi possível buscar os dados do relatório. Isso pode ser temporário.
                   </p>
-                  <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded max-w-md mx-auto">
+                  <p className="text-xs text-muted-foreground font-mono bg-muted p-2 rounded max-w-md mx-auto mb-4">
                     {eventsError}
                   </p>
+                  <Button onClick={() => refetchEvents()} variant="outline" className="gap-2">
+                    <RefreshCw className="w-4 h-4" />
+                    Tentar novamente
+                  </Button>
                 </div>
               ) : effectiveCampaignIds.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
