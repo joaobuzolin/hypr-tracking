@@ -53,12 +53,24 @@ export const useCampaignsQuery = (campaignGroupId?: string) => {
           : Promise.resolve({ data: [], error: null }),
         campaignIds.length > 0
           ? supabase.rpc('get_campaign_counters', { campaign_ids: campaignIds })
+              .then(result => {
+                // If first attempt fails, retry once after 1s
+                if (result.error) {
+                  console.warn('[useCampaignsQuery] Metrics fetch failed, retrying...', result.error.message);
+                  return new Promise<typeof result>(resolve => 
+                    setTimeout(async () => {
+                      resolve(await supabase.rpc('get_campaign_counters', { campaign_ids: campaignIds }));
+                    }, 1000)
+                  );
+                }
+                return result;
+              })
           : Promise.resolve({ data: [], error: null })
       ]);
 
-      // Log errors for debugging
+      // Log errors for debugging but don't throw - show stale/zero data instead
       if (metricsData.error) {
-        console.error('[useCampaignsQuery] Error fetching metrics:', metricsData.error);
+        console.error('[useCampaignsQuery] Error fetching metrics (will show zeros):', metricsData.error);
       }
 
       // Create lookup maps

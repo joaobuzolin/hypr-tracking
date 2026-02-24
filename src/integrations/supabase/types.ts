@@ -474,6 +474,8 @@ export type Database = {
         Returns: string
       }
       refresh_campaign_metrics: { Args: never; Returns: undefined }
+      refresh_campaign_metrics_daily: { Args: never; Returns: undefined }
+      refresh_campaign_metrics_summary: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
