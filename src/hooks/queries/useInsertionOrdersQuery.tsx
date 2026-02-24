@@ -12,7 +12,7 @@ export const useInsertionOrdersQuery = () => {
     queryFn: async () => {
       if (!user) return [];
 
-      // Fetch insertion orders with campaigns, tags and profiles in PARALLEL
+      // Fetch insertion orders with profiles and campaign IDs only (NO events!)
       const { data: insertionOrdersData, error } = await supabase
         .from('insertion_orders')
         .select(`
@@ -20,15 +20,36 @@ export const useInsertionOrdersQuery = () => {
           profiles!insertion_orders_user_id_fkey(email),
           campaigns(
             id,
-            tags(
-              id,
-              events(event_type)
-            )
+            tags(id)
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      // Collect all campaign IDs to fetch metrics from materialized view
+      const allCampaignIds: string[] = [];
+      (insertionOrdersData || []).forEach((io: any) => {
+        (io.campaigns || []).forEach((c: any) => {
+          allCampaignIds.push(c.id);
+        });
+      });
+
+      // Fetch metrics from materialized view (fast!) instead of scanning 50M+ events
+      let metricsMap = new Map<string, { cta_clicks: number; pin_clicks: number }>();
+      if (allCampaignIds.length > 0) {
+        const { data: metricsData } = await supabase
+          .rpc('get_campaign_counters', { campaign_ids: allCampaignIds });
+
+        if (Array.isArray(metricsData)) {
+          metricsData.forEach((m: any) => {
+            metricsMap.set(m.campaign_id, {
+              cta_clicks: Number(m.cta_clicks) || 0,
+              pin_clicks: Number(m.pin_clicks) || 0,
+            });
+          });
+        }
+      }
 
       // Process data to calculate metrics
       const processedData: InsertionOrderWithMetrics[] = (insertionOrdersData || []).map((io: any) => {
@@ -42,12 +63,10 @@ export const useInsertionOrdersQuery = () => {
           const tags = campaign.tags || [];
           total_tags += tags.length;
 
-          tags.forEach((tag: any) => {
-            const events = tag.events || [];
-            total_clicks += events.filter((e: any) => 
-              e.event_type === 'click' || e.event_type === 'pin_click'
-            ).length;
-          });
+          const metrics = metricsMap.get(campaign.id);
+          if (metrics) {
+            total_clicks += metrics.cta_clicks + metrics.pin_clicks;
+          }
         });
 
         return {
@@ -62,8 +81,8 @@ export const useInsertionOrdersQuery = () => {
       return processedData;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes (changes less frequently)
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const prefetch = () => {
