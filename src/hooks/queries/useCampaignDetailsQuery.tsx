@@ -79,7 +79,7 @@ export const useCampaignDetailsQuery = (campaignId?: string) => {
       return campaignWithMetrics;
     },
     enabled: !!user && !!campaignId,
-    staleTime: 2 * 60 * 1000, // 2 minutes - fresher data for details page
+    staleTime: 10 * 60 * 1000, // 10 minutes - only refresh on manual reload
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
     retryDelay: 1000,

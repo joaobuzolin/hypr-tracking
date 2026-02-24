@@ -81,7 +81,7 @@ export const useInsertionOrdersQuery = () => {
       return processedData;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: 2,
     retryDelay: 1000,

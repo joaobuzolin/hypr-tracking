@@ -81,7 +81,7 @@ export const useSingleCampaignQuery = (campaignId: string) => {
       return campaign;
     },
     enabled: !!user && !!campaignId,
-    staleTime: 1 * 60 * 1000, // 1 minute (details page should be fresher)
+    staleTime: 10 * 60 * 1000, // 10 minutes - only refresh on manual reload
     gcTime: 5 * 60 * 1000,
     // Use cached data while fetching fresh data
     initialData: () => {

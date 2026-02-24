@@ -227,7 +227,7 @@ export const useReportEvents = ({ selectedCampaignIds, dateRange, groupBy, selec
       return transformRows(mvData, campaignsRes.data || [], campaignGroupsRes.data || [], groupBy, selectedDimensions);
     },
     enabled: limitedCampaignIds.length > 0,
-    staleTime: 5 * 60 * 1000,       // 5 min cache
+    staleTime: 10 * 60 * 1000,      // 10 min cache - only refresh on manual reload
     gcTime: 15 * 60 * 1000,          // 15 min gc
     refetchOnWindowFocus: false,
     refetchOnMount: false,

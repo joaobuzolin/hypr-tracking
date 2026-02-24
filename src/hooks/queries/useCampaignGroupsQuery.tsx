@@ -88,7 +88,7 @@ export const useCampaignGroupsQuery = () => {
       return processedGroups;
     },
     enabled: !!user,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 2,
     retryDelay: 1000,
