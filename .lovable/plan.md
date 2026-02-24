@@ -1,112 +1,101 @@
 
-# Refactoring Plan: Maintainability and Performance Improvements
 
-## Summary
+# Plano: Sistema Robusto de Dados para Relatorios
 
-After a thorough review, I identified **6 key areas** for refactoring. The codebase has grown organically and accumulated duplicated patterns, oversized page components, and unused code that should be cleaned up.
+## Diagnostico Raiz
 
----
+A investigacao revelou **3 problemas criticos interligados** que causam os erros recorrentes:
 
-## 1. Extract `CreateCriativoDialog` from `Criativos.tsx` (904 lines)
+### 1. Cron Job quebrado consumindo o banco (CRITICO)
+O **Job 3** (antigo) esta rodando a cada **5 minutos** e **falhando sempre** com "statement timeout". Ele tenta atualizar DUAS materialized views em uma unica transacao, que nao cabe no timeout de 2 minutos do pg_cron. Isso consome conexoes do pool e gera contenção massiva no banco.
 
-`Criativos.tsx` is the largest file at 904 lines. It contains an inline `CreateCriativoDialog` component (lines 46-250) that should be its own file, matching the pattern already used for `CreateCampaignGroupDialog`.
+### 2. Jobs novos nunca executaram
+Os jobs 5 e 6 (criados na sessao anterior para substituir o job 3) **nunca rodaram** -- provavelmente a migration falhou silenciosamente ou os IDs conflitaram com jobs existentes.
 
-**What changes:**
-- Move `CreateCriativoDialog` to `src/components/CreateCriativoDialog.tsx`
-- Move the `IAB_FORMATS` constant to a shared constants file or into the new component
-- Reduces `Criativos.tsx` by ~250 lines
+### 3. Fallback perigoso para tabela de 50M+ linhas
+Quando a materialized view retorna vazio (por contenção do banco), o codigo faz fallback para `get_report_from_events` que escaneia a tabela `events` completa, causando timeout de 15s e o erro que voce ve na tela.
 
----
+## Solucao Proposta
 
-## 2. Extract `CreateInsertionOrderDialog` from `InsertionOrders.tsx`
+### Parte 1: Limpar infraestrutura de cron (Banco de Dados)
 
-Same pattern -- `InsertionOrders.tsx` (497 lines) has an inline `CreateInsertionOrderDialog` (lines 23-142) that should be extracted.
+- **Remover Job 3** (cron quebrado rodando a cada 5 min)
+- **Remover Job 4** (HTTP-based, redundante)
+- **Recriar Jobs 5 e 6** com nomes unicos garantidos:
+  - Job: `refresh-summary-v2` -- a cada 30 minutos, executa apenas `refresh_campaign_metrics_summary()`
+  - Job: `refresh-daily-v2` -- a cada hora, executa apenas `refresh_campaign_metrics_daily()`
 
-**What changes:**
-- Move to `src/components/CreateInsertionOrderDialog.tsx`
-- Reduces `InsertionOrders.tsx` by ~120 lines
+### Parte 2: Eliminar fallback perigoso (Frontend)
 
----
+Modificar `src/hooks/useReportEvents.tsx`:
 
-## 3. Remove duplicated `classifyEventByTagType` function
+- **Remover completamente** o fallback para `get_report_from_events` (a funcao que escaneia 50M+ linhas)
+- Se a materialized view retornar vazio, mostrar mensagem amigavel: "Dados sendo processados, tente novamente em alguns minutos"
+- Remover a logica de deteccao de "MV stale" que forçava o fallback
+- Adicionar **retry automatico** (1 tentativa apos 2s) antes de mostrar erro
 
-This exact function is copy-pasted in **3 files**:
-- `src/hooks/useCampaigns.tsx` (lines 60-82)
-- `src/hooks/useReportEvents.tsx` (lines 36-58)
-- `src/pages/CriativoDetails.tsx` (lines 30-52)
+### Parte 3: Resiliencia no frontend (useReportEvents.tsx)
 
-It is only actually used in `CriativoDetails.tsx`. The copies in `useCampaigns.tsx` and `useReportEvents.tsx` are dead code.
+- Migrar de `useState` + `useEffect` para `useQuery` do TanStack (mesmo padrao do resto do app)
+- Beneficios:
+  - Cache automatico (evita re-fetch desnecessario)
+  - Retry automatico com backoff
+  - Estado de loading/error consistente
+  - `staleTime` de 5 minutos (dados nao mudam a cada segundo)
+  - Deduplicacao de requests identicos
 
-**What changes:**
-- Keep the function only in `CriativoDetails.tsx` (or move to a shared util)
-- Remove the unused copies from the other two files
+### Parte 4: Otimizacao do carregamento geral
 
----
+- Adicionar `refetchOnWindowFocus: false` nos queries de Reports para evitar re-fetches desnecessarios
+- Manter o limite de 30 campanhas por consulta
 
-## 4. Remove unused hooks: `useDataCache`, `useOptimizedData`, `useVirtualScroll`, `useInfiniteScroll`
+## Detalhes Tecnicos
 
-These hooks were created as performance utilities but are **never imported anywhere** in the codebase. The project uses TanStack Query for caching and standard pagination instead:
+### Migration SQL
 
-- `useDataCache.tsx` -- custom cache, fully replaced by TanStack Query
-- `useOptimizedData.tsx` -- custom memoization wrappers, never used
-- `useVirtualScroll.tsx` -- never used (pagination is used instead)
-- `useInfiniteScroll.tsx` -- never used (pagination is used instead)
+```text
+-- 1. Remover todos os cron jobs antigos
+SELECT cron.unschedule(3);
+SELECT cron.unschedule(4);
+SELECT cron.unschedule(5);
+SELECT cron.unschedule(6);
 
-**What changes:**
-- Delete all 4 files
+-- 2. Recriar com statement_timeout adequado
+SELECT cron.schedule(
+  'refresh-summary-v2',
+  '*/30 * * * *',
+  $$SET statement_timeout = '120s'; SELECT public.refresh_campaign_metrics_summary();$$
+);
 
----
+SELECT cron.schedule(
+  'refresh-daily-v2',
+  '0 * * * *',
+  $$SET statement_timeout = '180s'; SELECT public.refresh_campaign_metrics_daily();$$
+);
+```
 
-## 5. Migrate `useProfiles` to TanStack Query
+### Refatoracao de useReportEvents.tsx
 
-`useProfiles.tsx` is the only data-fetching hook still using raw `useState`/`useEffect` instead of TanStack Query. This means it:
-- Re-fetches on every mount with no caching
-- Has no stale/gc time management
-- Doesn't match the pattern of the rest of the app
+```text
+Antes (problematico):
+  MV query → se vazio → fallback para events (50M rows) → timeout → erro
 
-**What changes:**
-- Create `src/hooks/queries/useProfilesQuery.tsx` using `useQuery`
-- Simplify `useProfiles.tsx` to wrap the query (same pattern as `useCampaigns` / `useCampaignGroups`)
+Depois (robusto):
+  MV query → se vazio → mensagem "dados sendo processados"
+  useQuery com retry automatico e cache de 5 min
+```
 
----
+### Arquivos modificados
 
-## 6. Extract duplicated pagination UI into a shared component
+1. `supabase/migrations/` -- Nova migration para limpar e recriar cron jobs
+2. `src/hooks/useReportEvents.tsx` -- Refatorar para useQuery, remover fallback perigoso
+3. `src/pages/Reports.tsx` -- Adaptar ao novo formato do hook (minimas mudancas)
 
-The exact same pagination pattern (Previous/Next buttons + page numbers with ellipsis) is duplicated across 3 pages:
-- `Criativos.tsx`
-- `Campanhas.tsx`
-- `InsertionOrders.tsx`
+## Resultado Esperado
 
-**What changes:**
-- Create `src/components/PaginatedList.tsx` (or just a `PaginationControls` component)
-- Replace the ~40 lines of duplicated pagination JSX in each page with the shared component
+- Os dados carregarao em menos de 2 segundos (leitura direta da materialized view)
+- Sem mais timeouts: nenhuma query toca a tabela de 50M+ eventos
+- MVs atualizadas a cada 30min/1h de forma confiavel
+- Cache no frontend evita re-fetches desnecessarios
+- Sistema auto-recuperavel com retry automatico
 
----
-
-## Technical Details
-
-### Files to create:
-- `src/components/CreateCriativoDialog.tsx`
-- `src/components/CreateInsertionOrderDialog.tsx`
-- `src/components/PaginationControls.tsx`
-- `src/hooks/queries/useProfilesQuery.tsx`
-
-### Files to modify:
-- `src/pages/Criativos.tsx` -- remove dialog, use shared pagination
-- `src/pages/InsertionOrders.tsx` -- remove dialog, use shared pagination
-- `src/pages/Campanhas.tsx` -- use shared pagination
-- `src/hooks/useCampaigns.tsx` -- remove dead `classifyEventByTagType`
-- `src/hooks/useReportEvents.tsx` -- remove dead `classifyEventByTagType`
-- `src/hooks/useProfiles.tsx` -- wrap TanStack Query
-
-### Files to delete:
-- `src/hooks/useDataCache.tsx`
-- `src/hooks/useOptimizedData.tsx`
-- `src/hooks/useVirtualScroll.tsx`
-- `src/hooks/useInfiniteScroll.tsx`
-
-### Impact:
-- ~500 lines removed across dead code and deduplication
-- Consistent data-fetching pattern (all hooks use TanStack Query)
-- Smaller, more focused page components
-- No behavioral or UI changes -- purely structural refactoring
