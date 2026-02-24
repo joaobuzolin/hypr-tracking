@@ -1,62 +1,88 @@
 
 
-# Plano: Eliminar Job 3 e Blindar o Sistema
+# Plano: Corrigir Dados Zerados na Pagina de Criativos
 
-## Problema Encontrado
+## Diagnostico
 
-O **Job 3** (cron antigo) continua rodando a cada 5 minutos e **falhando 100% das vezes** com "statement timeout". A migration anterior para removê-lo não funcionou. Ele está consumindo conexões do banco continuamente, causando lentidão em todas as páginas.
+O problema e claro e confirmado com dados reais:
 
-Além disso, o **Job 4** (HTTP-based) também continua ativo e é redundante com os Jobs 5/6 novos.
+A funcao `get_campaign_counters` (usada pela pagina de Criativos para exibir metricas) le EXCLUSIVAMENTE da view materializada `campaign_metrics_summary`. Essa view esta **incompleta e desatualizada** -- contem apenas 83 campanhas, enquanto a `campaign_metrics_daily` tem dados reais para as campanhas do Boticario.
 
-Evidência dos logs do cron:
+Dados reais confirmados:
+
 ```text
-Job 3: a cada 5 min -> "ERROR: canceling statement due to statement timeout" (14 falhas seguidas)
-Job 4: ativo, redundante
-Job 5: refresh-metrics-summary -> rodando (OK)
-Job 6: refresh-metrics-daily -> ativo (OK)
+campaign_metrics_summary (usada pelo sistema): 0 linhas para Boticario
+campaign_metrics_daily (nao usada):             158k+ CTA clicks, 28k+ PIN clicks
+events table (fonte real):                      191k+ eventos para Boticario
 ```
+
+O refresh da `campaign_metrics_summary` provavelmente esta falhando porque ela escaneia a tabela `events` inteira (50M+ linhas) em uma unica query com JOINs pesados.
 
 ## Solucao
 
-### Parte 1: Remover Jobs 3 e 4 via SQL direto
+### Alterar `get_campaign_counters` para usar `campaign_metrics_daily`
 
-Usar o SQL Editor do Supabase (nao migration, pois migrations anteriores falharam silenciosamente) para executar:
+Em vez de depender da `campaign_metrics_summary` (que falha ao atualizar), a funcao passara a agregar dados da `campaign_metrics_daily`, que ja esta sendo atualizada com sucesso pelo cron Job 6.
+
+A alteracao sera feita via migration SQL:
 
 ```text
-SELECT cron.unschedule(3);
-SELECT cron.unschedule(4);
+CREATE OR REPLACE FUNCTION get_campaign_counters(campaign_ids uuid[])
+RETURNS TABLE(
+  campaign_id uuid,
+  page_views bigint,
+  cta_clicks bigint,
+  pin_clicks bigint,
+  total_7d bigint,
+  last_hour bigint
+)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    uid as campaign_id,
+    COALESCE(agg.page_views, 0::bigint),
+    COALESCE(agg.cta_clicks, 0::bigint),
+    COALESCE(agg.pin_clicks, 0::bigint),
+    COALESCE(agg.total_7d, 0::bigint),
+    0::bigint as last_hour  -- daily granularity cant track hourly
+  FROM unnest(campaign_ids) AS uid
+  LEFT JOIN (
+    SELECT
+      cmd.campaign_id,
+      SUM(cmd.page_views)::bigint as page_views,
+      SUM(cmd.cta_clicks)::bigint as cta_clicks,
+      SUM(cmd.pin_clicks)::bigint as pin_clicks,
+      SUM(CASE WHEN cmd.metric_date >= CURRENT_DATE - INTERVAL '7 days'
+          THEN cmd.page_views + cmd.cta_clicks + cmd.pin_clicks ELSE 0 END)::bigint as total_7d
+    FROM campaign_metrics_daily cmd
+    WHERE cmd.campaign_id = ANY(campaign_ids)
+    GROUP BY cmd.campaign_id
+  ) agg ON agg.campaign_id = uid
+  WHERE (auth.uid() IS NOT NULL);
+END;
+$$;
 ```
 
-Isso elimina imediatamente a contenção no banco.
+### O que muda
 
-### Parte 2: Adicionar resiliencia nos hooks de queries restantes
+- **Fonte de dados**: `campaign_metrics_summary` -> `campaign_metrics_daily` (que esta atualizada e funcionando)
+- **last_hour**: Sera sempre 0 pois a daily nao tem granularidade horaria. O status "ativo/inativo" baseado em last_hour ficara sempre "inativo" mas isso ja acontecia antes (a summary tambem estava zerada)
+- **Performance**: A query agrega da `campaign_metrics_daily` que e indexada por campaign_id -- rapida e eficiente
+- **Nenhuma mudanca no frontend**: A funcao mantem a mesma assinatura, entao toda a UI continua funcionando sem alteracoes
 
-Alguns hooks ainda nao tem as mesmas protecoes que o `useCampaignsQuery`:
+### Impacto no derivedStatus
 
-1. **`useInsertionOrdersQuery.tsx`** -- Adicionar `retry: 2`, `retryDelay: 1000`, `refetchOnWindowFocus: false`, `refetchOnMount: false`
-2. **`useCampaignGroupsQuery.tsx`** -- Adicionar `retry: 2`, `retryDelay: 1000`, `refetchOnWindowFocus: false`, `refetchOnMount: false`
-3. **`useCampaignDetailsQuery.tsx`** -- Adicionar `refetchOnWindowFocus: false`, `refetchOnMount: false`
+Como `last_hour` sera sempre 0, o status derivado das campanhas sera baseado nas datas (start_date/end_date) em vez de atividade recente. Campanhas dentro do periodo valido mostrarao "paused" em vez de "active", o que ja era o comportamento atual com a summary quebrada.
 
-### Parte 3: Adicionar indicador de "dados em cache" na UI
+### Arquivos modificados
 
-Na pagina de Reports, quando os dados vêm do cache (nao esta fazendo fetch), mostrar uma badge discreta "Dados em cache" para que o usuario saiba que os dados sao recentes mas podem nao ser em tempo real.
+1. `supabase/migrations/` -- Nova migration para recriar a funcao `get_campaign_counters`
 
-### Parte 4: Adicionar error boundary leve na pagina de Reports
+### Resultado esperado
 
-Se o `useReportEvents` falhar depois de todos os retries, mostrar uma mensagem amigavel com botao "Tentar novamente" em vez de tela branca ou erro generico.
-
-## Arquivos Modificados
-
-1. `src/hooks/queries/useInsertionOrdersQuery.tsx` -- Adicionar retry e cache settings
-2. `src/hooks/queries/useCampaignGroupsQuery.tsx` -- Adicionar retry e cache settings  
-3. `src/hooks/queries/useCampaignDetailsQuery.tsx` -- Adicionar refetch settings
-4. `src/pages/Reports.tsx` -- Adicionar tratamento de erro amigavel com botao retry
-5. SQL direto no Supabase para remover Jobs 3 e 4
-
-## Resultado Esperado
-
-- Banco liberado da contenção do Job 3 (impacto imediato em todas as paginas)
-- Todas as queries com retry automatico e cache consistente
-- Erros de relatorio mostram mensagem amigavel com opcao de retry
-- Sistema mais resiliente a falhas temporarias do banco
+- Dados do Boticario aparecerao corretamente (158k+ CTA clicks, 28k+ PIN clicks, etc.)
+- Todas as outras campanhas tambem mostrarao dados reais da MV daily
+- Sem risco de timeout pois nao toca a tabela events diretamente
+- Sistema confiavel pois depende da MV que esta sendo atualizada pelo cron funcionando (Job 6)
 
