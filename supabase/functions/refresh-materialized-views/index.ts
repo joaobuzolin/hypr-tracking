@@ -14,20 +14,52 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      db: { schema: 'public' },
+      global: { headers: { 'x-connection-encrypted': 'true' } }
+    });
 
-    const { error } = await supabase.rpc("refresh_campaign_metrics");
+    const results: Record<string, string> = {};
 
-    if (error) {
-      console.error("Error refreshing materialized views:", error.message);
-      return new Response(JSON.stringify({ success: false, error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Refresh summary view first (smaller, used by counters)
+    try {
+      const { error: summaryError } = await supabase.rpc("refresh_campaign_metrics_summary" as any);
+      if (summaryError) {
+        console.error("Error refreshing summary view:", summaryError.message);
+        results.summary = `error: ${summaryError.message}`;
+      } else {
+        console.log("campaign_metrics_summary refreshed successfully");
+        results.summary = "ok";
+      }
+    } catch (e) {
+      console.error("Exception refreshing summary:", e);
+      results.summary = `exception: ${String(e)}`;
     }
 
-    console.log("Materialized views refreshed successfully at", new Date().toISOString());
-    return new Response(JSON.stringify({ success: true, refreshed_at: new Date().toISOString() }), {
+    // Then refresh daily view (larger, used by reports)
+    try {
+      const { error: dailyError } = await supabase.rpc("refresh_campaign_metrics_daily" as any);
+      if (dailyError) {
+        console.error("Error refreshing daily view:", dailyError.message);
+        results.daily = `error: ${dailyError.message}`;
+      } else {
+        console.log("campaign_metrics_daily refreshed successfully");
+        results.daily = "ok";
+      }
+    } catch (e) {
+      console.error("Exception refreshing daily:", e);
+      results.daily = `exception: ${String(e)}`;
+    }
+
+    const allOk = results.summary === "ok" && results.daily === "ok";
+    console.log("Refresh completed at", new Date().toISOString(), results);
+
+    return new Response(JSON.stringify({ 
+      success: allOk, 
+      results,
+      refreshed_at: new Date().toISOString() 
+    }), {
+      status: allOk ? 200 : 207,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
