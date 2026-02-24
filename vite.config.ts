@@ -18,13 +18,12 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "@tanstack/react-query"],
   },
   build: {
-    // Otimizações de bundle
     rollupOptions: {
       output: {
         manualChunks: {
-          // Separar bibliotecas grandes em chunks
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
           'chart-vendor': ['recharts'],
@@ -33,17 +32,15 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Aumentar limite de chunk para evitar avisos
     chunkSizeWarningLimit: 1000,
-    // Otimizar assets
     assetsInlineLimit: 4096,
   },
-  // Otimizar carregamento de dependências
   optimizeDeps: {
     include: [
       'react',
       'react-dom',
       'react-router-dom',
+      '@tanstack/react-query',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-select',
