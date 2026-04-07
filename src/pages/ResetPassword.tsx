@@ -108,7 +108,9 @@ const ResetPassword = () => {
               <img 
                 src="/lovable-uploads/34701aad-d67f-460e-9f6a-5c12858d6725.png" 
                 alt="HYPR Tracking" 
-                className="h-8 object-contain"
+                width="160"
+                height="32"
+                className="h-8 w-auto object-contain"
               />
             </div>
             <CardTitle className="text-2xl font-bold text-center text-destructive">
@@ -139,7 +141,9 @@ const ResetPassword = () => {
             <img 
               src="/lovable-uploads/34701aad-d67f-460e-9f6a-5c12858d6725.png" 
               alt="HYPR Tracking" 
-              className="h-8 object-contain"
+              width="160"
+              height="32"
+              className="h-8 w-auto object-contain"
             />
           </div>
           <CardTitle className="text-2xl font-bold text-center">
