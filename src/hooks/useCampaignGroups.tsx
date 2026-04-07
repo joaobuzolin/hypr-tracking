@@ -49,9 +49,6 @@ export const useCampaignGroups = () => {
   const queryClient = useQueryClient();
   const { data: campaignGroups = [], isLoading: loading, refetch } = useCampaignGroupsQuery();
 
-  const fetchCampaignGroups = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
 
   const createCampaignGroup = useCallback(async (data: CreateCampaignGroupData) => {
     if (!user) return { error: 'User not authenticated' };
@@ -77,7 +74,7 @@ export const useCampaignGroups = () => {
       console.error('Error creating campaign group:', error);
       return { error: 'Failed to create campaign group' };
     }
-  }, [user, fetchCampaignGroups]);
+  }, [user, queryClient]);
 
   const updateCampaignGroup = useCallback(async (id: string, data: UpdateCampaignGroupData) => {
     try {
@@ -122,7 +119,6 @@ export const useCampaignGroups = () => {
   return {
     campaignGroups,
     loading,
-    fetchCampaignGroups,
     createCampaignGroup,
     updateCampaignGroup,
     deleteCampaignGroup

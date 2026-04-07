@@ -63,9 +63,6 @@ export const useCampaigns = () => {
   const queryClient = useQueryClient();
   const { data: campaigns = [], isLoading: loading, isFetching, refetch } = useCampaignsQuery();
 
-  const fetchCampaigns = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
 
   const createCampaign = useCallback(async (campaignData: {
     name: string;
@@ -159,7 +156,7 @@ export const useCampaigns = () => {
       console.error('Error creating tag:', error);
       return { data: null, error };
     }
-  }, [user, campaigns, fetchCampaigns]);
+  }, [user, campaigns, queryClient]);
 
   const deleteTag = useCallback(async (tagId: string) => {
     if (!user) return { error: 'Not authenticated' };
@@ -185,7 +182,6 @@ export const useCampaigns = () => {
     campaigns,
     loading,
     isFetching,
-    fetchCampaigns,
     createCampaign,
     createTag,
     deleteTag

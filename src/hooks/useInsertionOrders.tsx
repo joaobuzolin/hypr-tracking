@@ -32,9 +32,6 @@ export const useInsertionOrders = () => {
   const queryClient = useQueryClient();
   const { data: insertionOrders = [], isLoading: loading, refetch } = useInsertionOrdersQuery();
 
-  const fetchInsertionOrders = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
 
   const createInsertionOrder = async (orderData: {
     client_name: string;
@@ -120,7 +117,6 @@ export const useInsertionOrders = () => {
   return {
     insertionOrders,
     loading,
-    fetchInsertionOrders,
     createInsertionOrder,
     updateInsertionOrder,
     deleteInsertionOrder

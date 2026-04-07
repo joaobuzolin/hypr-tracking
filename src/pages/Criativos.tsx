@@ -26,7 +26,7 @@ import { format, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
-import React from "react";
+
 
 const Criativos = () => {
   const { campaigns, loading, createCampaign, isFetching } = useCampaigns();
@@ -272,9 +272,7 @@ const Criativos = () => {
     setInsertionOrderFilter("all");
   };
 
-  const handleCriativoCreated = useCallback(() => {
-    // Campaigns will be refreshed automatically by the hook
-  }, []);
+  const handleCriativoCreated = useCallback(() => {}, []);
 
   const breadcrumbItems = generateBreadcrumbs();
 

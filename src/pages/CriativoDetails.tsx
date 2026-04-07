@@ -25,32 +25,6 @@ interface DailyMetric {
   page_views: number;
 }
 
-
-// Função utilitária para classificar eventos baseado no tipo da tag
-const classifyEventByTagType = (event: any, tagType: string) => {
-  // Se o event_type já está correto, use ele
-  if (event.event_type === 'page_view' || event.event_type === 'pin_click' || event.event_type === 'click') {
-    return event.event_type;
-  }
-  
-  // Para eventos antigos ou inconsistentes, classifique baseado no tipo da tag
-  if (event.event_type === 'view') {
-    switch (tagType) {
-      case 'page-view':
-        return 'page_view';
-      case 'pin':
-        return 'pin_click';
-      case 'click-button':
-        return 'click';
-      default:
-        return event.event_type;
-    }
-  }
-  
-  // Fallback para outros casos
-  return event.event_type;
-};
-
 const formatDate = (dateString: string) => {
   // If it's already in YYYY-MM-DD format, convert directly to pt-BR format
   if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -86,7 +60,6 @@ const CampaignDetails = () => {
     return insertionOrders.find(io => io.id === campaign.insertion_order_id);
   }, [campaign, insertionOrders]);
 
-  // Define functions before useEffect calls to avoid temporal dead zone
   const loadRealtimeStats = async () => {
     if (!campaign) return;
     
@@ -101,7 +74,6 @@ const CampaignDetails = () => {
         return;
       }
 
-      // Use RPC function to get aggregated counts without 1000-row limit
       const { data: realtimeData, error } = await supabase.rpc('get_realtime_event_counts', {
         p_tag_ids: tagIds,
         p_since: fifteenMinutesAgo.toISOString()
@@ -112,7 +84,6 @@ const CampaignDetails = () => {
         return;
       }
 
-      // Build stats object from RPC results
       const stats: any = {};
       campaign.tags.forEach(tag => {
         const tagData = realtimeData?.find(d => d.tag_id === tag.id);
@@ -621,7 +592,7 @@ const CampaignDetails = () => {
                         </div>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" aria-label="Deletar tag">
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>

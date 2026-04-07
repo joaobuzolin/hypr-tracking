@@ -17,7 +17,7 @@ import { BarChart3, Users, MousePointer, Search, Filter, Calendar, Building } fr
 import { PaginationControls } from "@/components/PaginationControls";
 import { useParams, useNavigate } from "react-router-dom";
 
-import React from "react";
+
 
 const Campanhas = () => {
   const { campaignGroups, loading } = useCampaignGroups();
