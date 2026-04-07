@@ -355,6 +355,10 @@ export type Database = {
       }
     }
     Functions: {
+      backfill_campaign_metrics_daily: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
       cleanup_old_events: { Args: never; Returns: undefined }
       get_aggregated_metrics_for_campaigns: {
         Args: {
