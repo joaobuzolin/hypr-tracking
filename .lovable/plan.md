@@ -1,146 +1,116 @@
 
 
-# Auditoria e Limpeza de Codigo -- Relatorio de Diagnostico
+# Relatorio de Auditoria CSS/HTML
 
-## Resumo Executivo
+## 1. Cores Hardcoded (Tailwind vanilla em vez de variaveis CSS do design system)
 
-Auditoria completa do projeto React/TypeScript (HYPR Tracking). Encontrados **18 problemas** organizados por categoria. Nenhum risco a funcionalidade existente.
+O projeto define variaveis CSS para `--blue-500`, `--green-500`, `--purple-500`, `--orange-500` (com suporte a dark mode), mas **quase nenhum componente as usa**. Em vez disso, usam classes Tailwind vanilla (`bg-blue-50`, `text-green-600`) que **ignoram o dark mode** completamente.
+
+| Arquivo | Classes hardcoded (exemplos) | Problema |
+|---|---|---|
+| `CriativoDetails.tsx` | `bg-blue-50`, `text-blue-600`, `bg-green-50`, `text-green-600`, `bg-purple-50`, `text-purple-600`, `bg-orange-50`, `text-orange-600` | 4 cards de metricas com cores vanilla. Quebra no dark mode. |
+| `CriativoDetails.tsx` | `bg-blue-50 text-blue-700 border-blue-200`, `bg-green-50 text-green-700 border-green-200`, `bg-purple-50 text-purple-700 border-purple-200` | Badges de tipo de tag (duplicado 2x no mesmo arquivo) |
+| `CriativoDetails.tsx` | `text-purple-600`, `text-blue-600`, `text-green-600` | Widget realtime stats - cores inline |
+| `CriativoDetails.tsx` | `text-neutral-600` (4x) | Usa `text-neutral-600` em vez de `text-muted-foreground`. Inconsistente com o resto do app. |
+| `CampaignGroupCard.tsx` | `bg-blue-50`, `text-blue-600`, `bg-purple-50`, `text-purple-600`, `bg-green-50`, `text-green-600` | 3 celulas de metricas com cores vanilla |
+| `CampaignCard.tsx` | `bg-green-50 text-green-700 border-green-200`, `bg-yellow-50 text-yellow-700 border-yellow-200` | Badge "Ult. hora" |
+| `CampaignCard.tsx` | `hover:text-blue-600` | Link hover color hardcoded |
+| `Campanhas.tsx` | `bg-green-50 dark:bg-green-950`, `text-green-600 dark:text-green-400` | Unico local que tenta suportar dark mode, mas usa cores vanilla em vez das variaveis CSS |
+| `InsertionOrders.tsx` | `text-green-600`, `text-blue-600` | MetricsCard iconColor |
+| `Criativos.tsx` | `bg-orange-500/5`, `text-orange-500`, `bg-blue-500/5`, `text-blue-500`, `bg-purple-500/5`, `text-purple-500` | Usa variaveis do design system via Tailwind config (correto), mas inconsistente com outros arquivos |
+| `Auth.tsx` | `bg-green-500/20`, `border-green-500/30`, `text-green-100` | Feedback de reset de senha |
+
+**Total: ~90 ocorrencias de cores hardcoded espalhadas em 7 arquivos.**
 
 ---
 
-## 1. Codigo Morto
+## 2. Breakpoints Inconsistentes
 
-### 1.1 Arquivos inteiros nao utilizados
+O projeto usa breakpoints Tailwind (`sm`, `md`, `lg`, `xl`) mas de forma inconsistente entre paginas que fazem a mesma coisa:
 
-| Arquivo | Motivo |
+| Padrao | Onde | Inconsistencia |
+|---|---|---|
+| Grid de metricas | `Criativos.tsx` | `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6` |
+| Grid de metricas | `Campanhas.tsx` | `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` |
+| Grid de metricas | `InsertionOrders.tsx` | `grid-cols-1 md:grid-cols-3` |
+| Grid de metricas | `CriativoDetails.tsx` | `grid-cols-1 md:grid-cols-2 lg:grid-cols-4` |
+| Input height | `Campanhas.tsx` | `h-9 md:h-10` (responsivo) |
+| Input height | `InsertionOrders.tsx` | sem altura definida (default) |
+| Spacing abaixo de cards | `Criativos.tsx` | `mb-6 md:mb-8` |
+| Spacing abaixo de cards | `Campanhas.tsx` | `mb-4 md:mb-6` |
+| Spacing abaixo de cards | `InsertionOrders.tsx` | `mb-6` (sem responsivo) |
+| Card padding | `CampaignGroupCard.tsx` | `px-4 md:px-6 py-4 md:py-6` |
+| Card padding | `InsertionOrderCard.tsx` | `px-4 md:px-6 py-4 md:py-6` (igual) |
+| Card padding | `CampaignCard.tsx` | `px-3 md:px-4 py-3 md:py-4` (menor) |
+| Metrica cell padding | `CampaignGroupCard.tsx` | `p-2 md:p-3` |
+| Metrica cell padding | `InsertionOrderCard.tsx` | `p-1.5 md:p-2` |
+| Metrica cell padding | `CampaignCard.tsx` | `p-2` (sem responsivo) |
+
+---
+
+## 3. Propriedades Duplicadas / Estilos Sobrescrevendo Sem Necessidade
+
+### 3.1 Badge de tipo de tag (duplicado identico)
+`CriativoDetails.tsx` linhas 505-510 e 573-578: **exato mesmo bloco** de classes condicionais para badges de tipo de tag. Deveria ser extraido para funcao ou componente.
+
+### 3.2 Card base classes repetidas
+Toda Card no projeto repete `border shadow-sm`. A propria Card ja tem `border` e `shadow-sm` no componente base (`card.tsx` linha 13: `"rounded-lg border bg-card text-card-foreground shadow-sm"`). Adicionar `border shadow-sm` de novo e redundante -- **nao causa dano visual** mas e codigo duplicado.
+
+Arquivos afetados: `CriativoDetails.tsx` (6x), `Campanhas.tsx` (4x), `InsertionOrders.tsx` (3x), `Criativos.tsx` (2x).
+
+### 3.3 `SelectContent` com `bg-background border shadow-md z-50`
+Repetido em `Criativos.tsx` (5x), `Campanhas.tsx` (3x). Essas propriedades ja sao parte do estilo base do `SelectContent` (popover styling via Radix). `InsertionOrders.tsx` nao adiciona -- e funciona igual.
+
+### 3.4 Header reimplementado em `CriativoDetails.tsx`
+Linhas 341-385: Reimplementa o header sticky com `backdrop-blur-lg bg-background/95 backdrop-saturate-150`. O `AppLayout` faz o mesmo com `backdrop-blur-sm bg-background/95 backdrop-saturate-150`. Inconsistencia: `blur-lg` vs `blur-sm`.
+
+---
+
+## 4. Classes CSS Utilitarias Nao Utilizadas em `index.css`
+
+| Classe | Usada? |
 |---|---|
-| `src/utils/imageOptimization.ts` | Zero imports em todo o projeto. Nenhum componente usa `generateSrcSet`, `createImageLoader` ou `getOptimalImageSize`. |
-| `src/utils/performance.ts` | Zero imports em todo o projeto. `getCachedData`, `setCachedData`, `fastClick`, `debounce`, `throttle`, `deepMemo`, `RequestBatcher`, `PerformanceMonitor` -- nada e usado. |
-| `src/components/LazyImage.tsx` | Zero imports fora do proprio arquivo. Nunca renderizado. |
+| `.gpu-accelerated` | Sim (1x, CampaignCard) |
+| `.container-query` | Nao |
+| `.text-fluid-xs/sm/base/lg/xl` | Nao |
+| `.space-responsive` | Nao |
+| `.touch-target` | Sim (3x, CampaignCard) |
+| `.safe-top/bottom/left/right` | Nao |
+| `.smooth-scroll` | Nao |
+| `.focus-visible-ring` | Nao |
+| `.section-surface` | Sim (7x, varios) |
 
-### 1.2 Funcoes/variaveis mortas dentro de arquivos usados
-
-| Arquivo | Item morto |
-|---|---|
-| `src/pages/CriativoDetails.tsx` | `classifyEventByTagType()` (linhas 30-52) -- definida mas nunca chamada. |
-| `src/hooks/useCampaigns.tsx` | `fetchCampaigns` -- exportado mas nunca consumido por nenhuma pagina ou componente. O `refetch` do TanStack Query ja e chamado internamente. |
-| `src/hooks/useCampaignGroups.tsx` | `fetchCampaignGroups` -- idem, nunca consumido externamente. |
-| `src/hooks/useInsertionOrders.tsx` | `fetchInsertionOrders` -- idem. |
-| `src/pages/Criativos.tsx` | `handleCriativoCreated` (linha 275) -- callback vazio com `useCallback` e array de deps vazio. Existe apenas como prop mas nao faz nada. |
-
-### 1.3 Imports nao utilizados
-
-| Arquivo | Import morto |
-|---|---|
-| `src/pages/Criativos.tsx` | `import React from "react"` (linha 29) -- React nao precisa ser importado com JSX transform. |
-| `src/pages/Campanhas.tsx` | `import React from "react"` (linha 20) -- idem. |
-| `src/pages/InsertionOrders.tsx` | `import React from "react"` (linha 21) -- idem. |
-| `src/pages/Criativos.tsx` | `Label` importado de `@/components/ui/label` -- usado apenas dentro do `contextBar` que ja e condicional, porem na verdade e usado. (confirmar) |
+**7 de 12 classes utilitarias custom nunca sao usadas.** Peso morto no CSS.
 
 ---
 
-## 2. Redundancias
+## 5. Resumo por Nivel de Risco
 
-### 2.1 DateRangePicker duplicado
+**Risco zero (limpeza CSS morto):**
+1. Remover 7 classes utilitarias nao usadas de `index.css` (container-query, text-fluid-*, space-responsive, safe-*, smooth-scroll, focus-visible-ring)
 
-`Criativos.tsx` define um componente local `DateRangePicker` (linhas 281-317) que reimplementa a logica do componente compartilhado `src/components/DateRangePicker.tsx` (ja usado em `Reports.tsx`). O local e mais simples mas cria duplicacao.
+**Risco baixo (padronizacao):**
+2. Substituir `text-neutral-600` por `text-muted-foreground` em CriativoDetails (4 ocorrencias)
+3. Remover `border shadow-sm` redundante de Cards que ja herdam do componente base (~15 ocorrencias)
+4. Remover `bg-background border shadow-md z-50` redundante de SelectContent (~8 ocorrencias)
+5. Extrair logica de badge de tipo de tag (click-button/pin/page-view) para funcao reutilizavel em CriativoDetails
 
-### 2.2 Padrao fetch wrapper redundante
+**Risco medio (dark mode + consistencia):**
+6. Substituir cores vanilla (`bg-blue-50`, `text-blue-600`) pelas variaveis do design system (`bg-blue-500/10`, `text-blue-500`) em CriativoDetails e CampaignGroupCard -- alinha com o padrao ja usado em Criativos.tsx
+7. Padronizar breakpoints de grid de metricas entre as 4 paginas
+8. Padronizar spacing (mb) entre secoes das 3 paginas de listagem
 
-Os 3 hooks (`useCampaigns`, `useCampaignGroups`, `useInsertionOrders`) exportam funcoes `fetchX = useCallback(() => refetch(), [refetch])` que sao wrappers 1:1 do `refetch` do TanStack Query. Nunca consumidas externamente. Podem ser removidas.
+**Sinalizado (nao mexer sem aprovacao explicita):**
+9. Migrar CriativoDetails para usar AppLayout (mudanca estrutural significativa)
+10. Unificar blur do header (`blur-sm` vs `blur-lg`)
 
-### 2.3 `useCampaigns.createTag` depende de `campaigns` e `fetchCampaigns`
-
-O `useCallback` de `createTag` lista `[user, campaigns, fetchCampaigns]` nas deps, mas `fetchCampaigns` nunca e chamado dentro da funcao. E `campaigns` so e usado para lookup de nome (poderia ser feito de outra forma). Nao e critico mas e deps desnecessaria.
-
----
-
-## 3. Problemas de Organizacao
-
-### 3.1 `CriativoDetails.tsx` -- 814 linhas, monolito
-
-Uma unica pagina com:
-- Funcoes utilitarias (`formatDate`, `calculateCTR`, `classifyEventByTagType`)
-- Logica de fetch de metricas realtime
-- Logica de fetch de metricas diarias
-- Geracao de pixel URLs
-- Logica de export CSV
-- UI completa com tags, metricas, tabelas
-
-**Sugestao**: Extrair funcoes utilitarias e logica de fetch para hooks dedicados. Nao mexer agora (risco).
-
-### 3.2 `Criativos.tsx` -- 614 linhas
-
-Similar ao acima: filtros, metricas, paginacao, estado local complexo com 8+ `useState`. Funcional mas denso.
-
-### 3.3 `Reports.tsx` -- 1071 linhas
-
-O maior arquivo do projeto. Mesma situacao.
-
-**Nota**: Nao recomendo refatorar esses arquivos nesta etapa. Sinalizado para consciencia.
-
----
-
-## 4. Oportunidades de Performance
-
-### 4.1 `CriativoDetails.tsx` -- polling de 30s para realtime stats
-
-Linha 225: `setInterval(loadRealtimeStats, 30000)` faz queries ao banco a cada 30s, mesmo quando o usuario nao esta interagindo. Isso contradiz a decisao recente de "so recarregar quando o usuario pedir". Considerar remover o interval e manter apenas o botao "Recarregar".
-
-### 4.2 `CriativoDetails.tsx` -- query direta na tabela `events`
-
-Linhas 156-161: Faz `SELECT id FROM events WHERE tag_id IN (...) AND created_at >= ...` direto na tabela de 32M+ linhas para checar atividade recente. Isso ja e coberto pelo campo `last_hour` do `get_campaign_counters`. Redundante e potencialmente lento.
-
-### 4.3 `main.tsx` -- staleTime global de 5 min conflita com hooks
-
-O QueryClient global define `staleTime: 5 * 60 * 1000`, mas todos os hooks individualmente definem `staleTime: 10 * 60 * 1000`. O global e ignorado (override local ganha), porem cria confusao.
-
----
-
-## 5. Acessibilidade
-
-### 5.1 `CriativoDetails.tsx` -- nao usa `AppLayout`
-
-Esta pagina reimplementa header/layout manualmente (linhas 368-414) em vez de usar `AppLayout` como todas as outras paginas. Resultado: estrutura de headings inconsistente, sem breadcrumbs padronizados no fluxo visual.
-
-### 5.2 Botao de delete sem label acessivel
-
-`CriativoDetails.tsx` linha 624: botao de lixeira tem `size="sm"` com apenas icone, sem `aria-label`. Leitores de tela nao conseguem identificar a acao.
-
----
-
-## Plano de Execucao Proposto (apos aprovacao)
-
-Dividido em niveis de risco:
-
-**Risco zero (deletar codigo morto):**
-1. Deletar `src/utils/imageOptimization.ts`
-2. Deletar `src/utils/performance.ts`
-3. Deletar `src/components/LazyImage.tsx`
-4. Remover `classifyEventByTagType` de `CriativoDetails.tsx`
-5. Remover `import React from "react"` de 3 arquivos
-6. Remover wrappers `fetchX` dos 3 hooks (e suas refs nas deps de useCallback)
-
-**Risco baixo (limpeza leve):**
-7. Simplificar `handleCriativoCreated` (callback vazio)
-8. Alinhar `staleTime` global do QueryClient com valor real (10 min)
-9. Adicionar `aria-label="Deletar tag"` no botao de delete
-
-**Risco medio (sinalizado, nao mexer sem aprovacao explicita):**
-10. Remover polling de 30s do realtime stats
-11. Remover query direta a tabela `events` em `CriativoDetails.tsx` (usar `last_hour` ja disponivel)
-12. Substituir `DateRangePicker` local em Criativos pelo componente compartilhado
-
-**Arquivos modificados:**
-- `src/utils/imageOptimization.ts` (deletar)
-- `src/utils/performance.ts` (deletar)
-- `src/components/LazyImage.tsx` (deletar)
-- `src/pages/CriativoDetails.tsx` (remover funcao morta, aria-label)
-- `src/pages/Criativos.tsx` (remover import React, simplificar callback)
-- `src/pages/Campanhas.tsx` (remover import React)
-- `src/pages/InsertionOrders.tsx` (remover import React)
-- `src/hooks/useCampaigns.tsx` (remover fetchCampaigns wrapper)
-- `src/hooks/useCampaignGroups.tsx` (remover fetchCampaignGroups wrapper)
-- `src/hooks/useInsertionOrders.tsx` (remover fetchInsertionOrders wrapper)
-- `src/main.tsx` (alinhar staleTime global)
+### Arquivos a modificar
+- `src/index.css` (remover classes mortas)
+- `src/pages/CriativoDetails.tsx` (cores, redundancias, badge helper)
+- `src/components/CampaignGroupCard.tsx` (cores vanilla)
+- `src/components/CampaignCard.tsx` (cores vanilla, border redundante)
+- `src/components/InsertionOrderCard.tsx` (border redundante)
+- `src/pages/Campanhas.tsx` (border redundante, SelectContent)
+- `src/pages/InsertionOrders.tsx` (border redundante)
+- `src/pages/Criativos.tsx` (border redundante, SelectContent)
 
