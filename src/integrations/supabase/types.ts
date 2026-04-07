@@ -61,6 +61,33 @@ export type Database = {
           },
         ]
       }
+      campaign_metrics_daily: {
+        Row: {
+          campaign_id: string
+          cta_clicks: number
+          metric_date: string
+          page_views: number
+          pin_clicks: number
+          total_events: number
+        }
+        Insert: {
+          campaign_id: string
+          cta_clicks?: number
+          metric_date: string
+          page_views?: number
+          pin_clicks?: number
+          total_events?: number
+        }
+        Update: {
+          campaign_id?: string
+          cta_clicks?: number
+          metric_date?: string
+          page_views?: number
+          pin_clicks?: number
+          total_events?: number
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           campaign_group_id: string
@@ -278,32 +305,6 @@ export type Database = {
       }
     }
     Views: {
-      campaign_metrics_daily: {
-        Row: {
-          campaign_id: string | null
-          cta_clicks: number | null
-          metric_date: string | null
-          page_views: number | null
-          pin_clicks: number | null
-          total_events: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tags_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_metrics_summary"
-            referencedColumns: ["campaign_id"]
-          },
-          {
-            foreignKeyName: "tags_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       campaign_metrics_summary: {
         Row: {
           campaign_id: string | null
@@ -475,6 +476,10 @@ export type Database = {
       }
       refresh_campaign_metrics: { Args: never; Returns: undefined }
       refresh_campaign_metrics_daily: { Args: never; Returns: undefined }
+      refresh_campaign_metrics_daily_incremental: {
+        Args: never
+        Returns: undefined
+      }
       refresh_campaign_metrics_summary: { Args: never; Returns: undefined }
     }
     Enums: {
