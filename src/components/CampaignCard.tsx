@@ -32,7 +32,7 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
   return (
     <Link to={`/criativos/${campaign.id}`} className="block group">
       <Card className="hover:shadow-md transition-all duration-200 cursor-pointer h-full group-hover:scale-[1.02] gpu-accelerated section-surface">
-        <CardHeader className="pb-2 px-3 md:px-4 py-3 md:py-4">
+        <CardHeader className="pb-2 px-4 md:px-6 py-4 md:py-6">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-2 lg:gap-3">
             <div className="flex-1 min-w-0">
               {/* Campaign Group and Insertion Order Info - optimized */}
@@ -93,21 +93,21 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-0 px-3 md:px-4 pb-3 md:pb-4" onClick={(e) => e.preventDefault()}>
+        <CardContent className="pt-0 px-4 md:px-6 pb-4 md:pb-6" onClick={(e) => e.preventDefault()}>
           <div className="space-y-2 md:space-y-3">
             {/* Métricas responsivas - stack no mobile, grid no desktop */}
-            <div className="flex flex-col sm:grid sm:grid-cols-3 gap-1.5 md:gap-2">
-              <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 bg-background rounded border touch-target">
+            <div className="flex flex-col sm:grid sm:grid-cols-3 gap-2 md:gap-3">
+              <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-background rounded border touch-target">
                 <div className="sm:hidden text-xs text-muted-foreground">Click Button</div>
                 <div className="text-sm md:text-base lg:text-lg font-semibold">{campaign.metrics.cta_clicks}</div>
                 <div className="hidden sm:block text-xs text-muted-foreground">Click Button</div>
               </div>
-              <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 bg-background rounded border touch-target">
+              <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-background rounded border touch-target">
                 <div className="sm:hidden text-xs text-muted-foreground">PIN Clicks</div>
                 <div className="text-sm md:text-base lg:text-lg font-semibold">{campaign.metrics.pin_clicks}</div>
                 <div className="hidden sm:block text-xs text-muted-foreground">PIN Clicks</div>
               </div>
-              <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 bg-background rounded border touch-target">
+              <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-background rounded border touch-target">
                 <div className="sm:hidden text-xs text-muted-foreground">CTR</div>
                 <div className="text-sm md:text-base lg:text-lg font-semibold">{ctr}%</div>
                 <div className="hidden sm:block text-xs text-muted-foreground">CTR</div>

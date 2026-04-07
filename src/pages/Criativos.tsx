@@ -376,7 +376,7 @@ const Criativos = () => {
       contextBar={contextBar}
     >
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
         {(loading || isFetching) ? (
           Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-20 w-full" />
@@ -433,8 +433,8 @@ const Criativos = () => {
       </div>
 
       {/* Filters Section */}
-      <Card className="mb-6 md:mb-8 mx-1 section-surface">
-        <CardContent className="p-4 md:p-6">
+      <Card className="mb-4 md:mb-6 section-surface">
+        <CardContent className="p-3 md:p-4">
           <div className="space-y-4">
             <div className="flex flex-col gap-3 md:gap-4">
               <div className="relative flex-1">
@@ -535,7 +535,7 @@ const Criativos = () => {
       </Card>
 
       {/* Campaigns List */}
-      <div className="space-y-6 px-1">
+      <div className="space-y-3 md:space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <h2 className="text-lg md:text-xl font-semibold">
             Seus Criativos {currentCampaignGroup ? `- ${currentCampaignGroup.name}` : ''}
@@ -560,7 +560,7 @@ const Criativos = () => {
           </div>
         ) : filteredCampaigns.length === 0 ? (
           <Card>
-            <CardContent className="p-8 md:p-12 text-center">
+            <CardContent className="p-6 md:p-8 text-center">
               <div className="text-muted-foreground">
                 {searchTerm || dateRange?.from || dateRange?.to || creatorFilter !== "all" || campaignFilter !== "all" || statusFilter !== "all" ? (
                   <>

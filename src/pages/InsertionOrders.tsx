@@ -112,7 +112,7 @@ const InsertionOrders = () => {
       breadcrumbs={breadcrumbs}
       actions={<CreateInsertionOrderDialog onCreated={handleCreated} />}
     >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i}>
@@ -130,7 +130,7 @@ const InsertionOrders = () => {
             )}
           </div>
 
-        <div className="p-4 section-surface rounded-lg border mb-6">
+        <div className="p-3 md:p-4 section-surface rounded-lg border mb-4 md:mb-6">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1 max-w-sm">
@@ -178,7 +178,7 @@ const InsertionOrders = () => {
             </div>
           </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-medium">Insertion Orders</h2>
               <Badge variant="outline" className="text-xs">
@@ -201,7 +201,7 @@ const InsertionOrders = () => {
               </div>
             ) : filteredInsertionOrders.length === 0 ? (
               <Card>
-                <CardContent className="p-8 text-center">
+                <CardContent className="p-6 md:p-8 text-center">
                   <div className="text-muted-foreground mb-4">
                     {searchTerm || creatorFilter !== "all" || statusFilter !== "all" ? (
                       <>
@@ -221,7 +221,7 @@ const InsertionOrders = () => {
               </Card>
             ) : (
               <>
-                <div className="grid gap-4">
+                <div className="grid gap-3 md:gap-4">
                   {paginatedInsertionOrders.map((order) => (
                     <InsertionOrderCard 
                       key={order.id} 
