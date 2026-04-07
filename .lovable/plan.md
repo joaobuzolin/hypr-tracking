@@ -1,117 +1,114 @@
 
 
-# Auditoria de Performance -- Relatorio de Diagnostico
+# Auditoria UX -- Friccao, Affordances e Feedback
 
-## 1. Recursos Externos que Bloqueiam Renderizacao
+## Prioridade 1 — Alto Impacto
 
-### 1.1 Google Fonts -- render-blocking (ALTO IMPACTO)
+### 1.1 Navegacao entre niveis e completamente flat — sem indicacao de hierarquia
 
-`index.html` linha 14:
-```html
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-```
+**Problema**: O app tem 3 niveis hierarquicos (Insertion Orders → Campanhas → Criativos), mas o breadcrumb sempre mostra os mesmos 3 links estaticos independentemente de onde o usuario esta. Nao reflete o caminho real (ex: "IO X → Campanha Y → Criativos"). O usuario perde contexto de *qual* IO ou campanha esta vendo.
 
-Apesar de usar `display=swap`, o `<link rel="stylesheet">` no `<head>` e **render-blocking**. O browser precisa baixar e parsear o CSS da Google antes de renderizar qualquer coisa. Em conexoes lentas, isso pode adicionar 200-500ms ao First Contentful Paint.
+**Por que importa**: Usuarios que navegam para dentro de uma IO especifica e depois para seus criativos nao conseguem voltar ao nivel intermediario correto. O breadcrumb e decorativo, nao funcional.
 
-Alem disso, carrega **5 pesos** (300, 400, 500, 600, 700). Auditoria rapida nos componentes mostra uso real de `font-light` (300), `font-medium` (500), `font-semibold` (600) e `font-bold` (700). O peso 400 (normal) e implicito. Porem, `font-light` (300) aparece em zero componentes apos a limpeza anterior -- e peso morto.
+**Correcao**: Breadcrumb dinamico que reflita o caminho real: `Insertion Orders / [Nome da IO] / Campanhas / [Nome da Campanha] / Criativos`. Usar os dados de `currentInsertionOrder` e `currentCampaignGroup` que ja existem no state.
 
-**Correcao**: Usar `<link rel="preload" as="style" onload="this.rel='stylesheet'">` com fallback `<noscript>`, e remover peso 300.
+### 1.2 Cards clicaveis sem affordance clara
 
-### 1.2 Preload de imagem do Auth na pagina principal (MEDIO IMPACTO)
+**Problema**: `InsertionOrderCard` e `CampaignGroupCard` sao inteiramente clicaveis (`role="button"`, `cursor-pointer`), mas visualmente parecem cards estaticos. O unico indicador e `hover:shadow-lg`, que nao existe no mobile. Nao ha seta, chevron, ou qualquer elemento visual que diga "clique para ver mais".
 
-`index.html` linha 17:
-```html
-<link rel="preload" href="/lovable-uploads/d177fad6-08ba-4f61-b459-0f35fe3e81f4.png" as="image" fetchpriority="high">
-```
+**Por que importa**: Usuarios de mobile nunca veem o hover state. Mesmo no desktop, cards com dados densos (metricas, tags, badges) nao comunicam que sao navegaveis vs. informativos.
 
-Esta imagem e o **background da pagina de Auth** (login). Para usuarios ja autenticados (maioria dos acessos), essa imagem nunca sera exibida, mas consome bandwidth e compete com recursos criticos. E `fetchpriority="high"`, roubando prioridade do JS do app.
+**Correcao**: Adicionar um chevron-right (`→`) sutil no canto do card, ou um link textual "Ver detalhes" no footer. Para mobile, considerar um affordance persistente como borda-left colorida ou icone de navegacao.
 
-**Correcao**: Remover o preload do `index.html`. A imagem ja tem `loading="eager"` e `fetchPriority="high"` no componente `Auth.tsx` -- ela sera carregada naturalmente quando a pagina de login for acessada.
+### 1.3 CriativoDetails — layout proprio quebra consistencia total
 
----
+**Problema**: `CriativoDetails.tsx` reimplementa header, breadcrumb, e layout inteiro fora do `AppLayout`. O usuario ve um header diferente (com botao "Voltar" solto, sem logo), breadcrumb em posicao diferente, e espacamento distinto.
 
-## 2. Imagens sem Dimensoes Definidas (CLS)
+**Por que importa**: Quebra de consistencia e o problema UX #1 em ferramentas internas. O usuario perde a "ancora visual" do app. O botao "Voltar" aponta para `/criativos` generico, nao para a campanha de onde veio.
 
-Todas as `<img>` do projeto carecem de `width` e `height` explicitos, causando Layout Shift (CLS) ate o carregamento:
+**Correcao**: Migrar `CriativoDetails` para usar `AppLayout` com `backButton` prop. O botao "Voltar" deve apontar para a rota de origem (campanha especifica), nao para a listagem generica.
 
-| Arquivo | Imagem | Problema |
-|---|---|---|
-| `AppLayout.tsx` L45-49 | Logo HYPR header | `className="h-5 md:h-7"` mas sem `width`/`height` HTML. Browser nao reserva espaco. |
-| `Auth.tsx` L93 | Background fullscreen | Sem `width`/`height`. Ocupara a tela toda via CSS, mas antes do load a div colapsa. |
-| `Auth.tsx` L98 | Logo desktop | Sem `width`/`height`. |
-| `Auth.tsx` L106 | Logo mobile | Sem `width`/`height`. |
-| `ResetPassword.tsx` L108-110, L139-141 | Logo (2x) | Sem `width`/`height`. |
-| `CriativoDetails.tsx` L262 | Pixel img tag (gerado) | 1x1, ja tem `width="1" height="1"` -- OK. |
+### 1.4 Nenhum feedback de loading ao aplicar filtros
 
-**Correcao**: Adicionar atributos `width` e `height` que reflitam o aspect ratio real (ex: logo `width="120" height="28"`), mantendo o CSS responsivo via `className`. Isso permite o browser reservar espaco antes do load.
+**Problema**: Nas 3 paginas de listagem, quando o usuario aplica filtros (busca, status, IO), o conteudo simplesmente muda sem transicao. Se a lista filtrada estiver vazia, aparece um empty state identico ao de "sem dados", so diferenciado por texto.
+
+**Por que importa**: Sem feedback transitorio (skeleton, spinner, ou animacao), o usuario nao sabe se a acao funcionou ou se ha um bug. Para filtros que fazem RPC (date range em Criativos), nao ha indicacao de loading durante a consulta.
+
+**Correcao**: Adicionar um estado de loading especifico para filtragem (distinto do loading inicial). Para o date range filter em Criativos, mostrar skeleton/spinner enquanto a RPC `get_campaigns_with_events_in_daterange` roda.
 
 ---
 
-## 3. Imagens sem Lazy Loading
+## Prioridade 2 — Medio Impacto
 
-| Arquivo | Imagem | Deveria ter lazy? |
-|---|---|---|
-| `Auth.tsx` L93 | Background | Nao -- e above-the-fold, `loading="eager"` correto. |
-| `Auth.tsx` L98 | Logo desktop | Nao -- above-the-fold. |
-| `Auth.tsx` L106 | Logo mobile | Nao -- above-the-fold (condicional, mas small). |
-| `AppLayout.tsx` L45 | Logo header | Nao -- always visible no header. |
-| `ResetPassword.tsx` | Logos (2x) | Nao -- above-the-fold. |
+### 2.1 Botao "Nova Campanha" dentro de InsertionOrderCard confuso
 
-**Veredicto**: Nenhuma imagem precisa de lazy loading. Todas sao above-the-fold ou logos pequenos no header. Correto como esta.
+**Problema**: Cada `InsertionOrderCard` tem um botao "Nova Campanha" no footer que navega para `/insertion-orders/:id/campanhas` — a mesma acao que clicar no card inteiro. O botao usa icone `MousePointer` (nao intuitivo para "criar"). O `e.stopPropagation()` previne o click do card, mas o destino e o mesmo.
 
----
+**Por que importa**: O usuario clica no botao esperando criar algo diretamente, mas e levado para uma listagem. Acao ambigua.
 
-## 4. Polling e Event Listeners Redundantes
+**Correcao**: Ou (a) transformar o botao em "Ver Campanhas" com icone de chevron/seta, tornando a intencao clara; ou (b) fazer o botao abrir diretamente o dialog de criacao de campanha (se for a intencao real).
 
-### 4.1 `setInterval` de 30s em CriativoDetails (JA SINALIZADO)
+### 2.2 "Perfil (Em breve)" no UserMenu — feature anunciada sem entrega
 
-Linha 196: `setInterval(loadRealtimeStats, 30000)` faz RPC ao Supabase a cada 30s, mesmo com a tab em background. Consome recursos do banco sem necessidade.
+**Problema**: O dropdown do usuario mostra "Perfil (Em breve)" como item desabilitado. Nao oferece nenhum valor e ocupa espaco visual.
 
-Este item ja foi sinalizado na auditoria anterior como "risco medio". Mantenho a recomendacao: **remover o interval, manter apenas botao manual "Recarregar"**.
+**Por que importa**: Features "coming soon" em UI de producao transmitem a sensacao de produto inacabado. Para um publico design-focused, isso e especialmente notavel.
 
-### 4.2 `usePreloadPages` -- preload redundante com lazy loading
+**Correcao**: Remover o item ate que a feature exista. Manter o menu com apenas "Sair" e o email do usuario.
 
-O hook `usePreloadPages` faz `import()` de InsertionOrders, Campanhas e Criativos via `requestIdleCallback`. Porem, o App.tsx ja usa `React.lazy()` que carrega esses chunks sob demanda quando o usuario navega. O preload antecipa o download, mas:
-- Consome bandwidth desnecessariamente se o usuario so acessa 1 pagina
-- Para a rota `/` (InsertionOrders), o chunk ja carrega imediatamente -- preload e redundante
-- As outras 2 paginas serao carregadas em ~100ms quando acessadas (chunks pequenos)
+### 2.3 Copy-to-clipboard em CampaignCard nao funciona como esperado
 
-**Avaliacao**: Baixo impacto. Manter como esta (usa `requestIdleCallback`, nao bloqueia). Sinalizado apenas para consciencia.
+**Problema**: `CampaignCard` tem funcao `copyToClipboard` definida mas nunca chamada no template. Os codigos de tags sao exibidos mas nao ha affordance de copia. O `CardContent` tem `onClick={(e) => e.preventDefault()}` que provavelmente visava prevenir navegacao ao copiar, mas como nao ha botao de copia, so interfere com a interacao do card.
 
-### 4.3 Event listeners -- OK
+**Por que importa**: Usuarios veem codigos de tags e querem copia-los diretamente da listagem, mas precisam navegar para a pagina de detalhes.
 
-`use-mobile.tsx` usa `matchMedia.addEventListener("change")` com cleanup correto.
-`sidebar.tsx` usa `window.addEventListener("keydown")` com cleanup correto.
-Nenhum caso de delegation que faria diferenca (poucos listeners, todos em componentes React com lifecycle correto).
+**Correcao**: Ou (a) remover a funcao `copyToClipboard` e o `e.preventDefault()` morto; ou (b) adicionar botoes de copia ao lado dos codigos de tag no card.
 
----
+### 2.4 Contexto de IO/Campanha se perde na navegacao
 
-## 5. CSS Nao-Critico no Head
+**Problema**: Ao navegar de `InsertionOrders → Campanhas`, o contexto funciona (filtra por IO). Mas ao clicar em "Relatórios" no header, o usuario perde todo contexto — nao ha como gerar relatorio filtrado pelo contexto atual.
 
-O Vite ja faz bundle e injeta CSS via JS (module), entao nao ha `<link rel="stylesheet">` de CSS local no head -- isso e correto.
+**Por que importa**: O fluxo natural e "estou olhando as campanhas do cliente X → quero gerar um relatorio do cliente X". A quebra de contexto obriga o usuario a recomecar.
 
-O unico CSS externo no head e o Google Fonts (item 1.1 acima).
+**Correcao**: Passar parametros de contexto (insertionOrderId, campaignGroupId) como query params ao navegar para Reports, e usa-los como filtros iniciais.
 
-O `index.css` com todas as variaveis CSS e carregado via import no `main.tsx`, inline pelo Vite no bundle. Nao bloqueia separadamente.
+### 2.5 Metric cards nao sao interativos mas parecem ser
+
+**Problema**: `MetricsCard` tem `hover:shadow-md` e `transition-shadow`, sugerindo interatividade. Mas nao sao clicaveis — nao navegam, nao filtram, nao expandem.
+
+**Por que importa**: Affordance falsa. O usuario tenta clicar esperando drill-down e nada acontece.
+
+**Correcao**: Ou (a) remover o hover effect para comunicar que sao informativos; ou (b) tornar clicaveis com filtro aplicado (ex: clicar em "Ativas: 5" aplica filtro status=active).
 
 ---
 
-## Plano de Execucao
+## Prioridade 3 — Baixo Impacto (polish)
 
-### Risco zero:
-1. Remover `<link rel="preload" ...d177fad6...>` do `index.html` (imagem de Auth nao deve ser preloaded globalmente)
-2. Remover peso `300` do URL do Google Fonts (nao usado)
+### 3.1 Empty states genericos demais
 
-### Risco baixo:
-3. Tornar Google Fonts non-render-blocking com pattern `preload` + `onload`
-4. Adicionar `width`/`height` nas `<img>` de logo em `AppLayout.tsx`, `Auth.tsx`, `ResetPassword.tsx` (reduz CLS)
+Os empty states em todas as paginas usam icones genericos e texto padrao. Para um publico design-focused, poderiam ser mais uteis: mostrar passos ("1. Crie uma IO, 2. Adicione campanhas, 3. Crie criativos") em vez de apenas "Nenhum X criado ainda".
 
-### Risco medio (ja sinalizado anteriormente):
-5. Remover `setInterval` de 30s em `CriativoDetails.tsx`
+### 3.2 Acoes destrutivas sem protecao visual suficiente
 
-### Arquivos a modificar:
-- `index.html` (itens 1, 2, 3)
-- `src/components/layout/AppLayout.tsx` (item 4)
-- `src/pages/Auth.tsx` (item 4)
-- `src/pages/ResetPassword.tsx` (item 4)
+O botao "Excluir" no `AlertDialog` de InsertionOrders usa `bg-destructive` (correto), mas o `DropdownMenuItem` de excluir no card usa apenas `text-destructive` sem icone de alerta. A hierarquia visual da acao destrutiva nao e suficiente dentro do dropdown.
+
+### 3.3 Paginacao sem indicacao de total de itens
+
+`PaginationControls` mostra paginas mas nao diz "Mostrando 1-20 de 45". O badge de contagem existe na listagem acima, mas fica desconectado visualmente da paginacao.
+
+---
+
+## Plano de Execucao (ordenado por impacto)
+
+| # | Item | Arquivos | Risco |
+|---|---|---|---|
+| 1 | Breadcrumb dinamico com caminho real | `Breadcrumb.tsx`, todas as paginas que usam | Medio |
+| 2 | Affordance visual em cards clicaveis (chevron/seta) | `InsertionOrderCard`, `CampaignGroupCard` | Baixo |
+| 3 | Migrar CriativoDetails para AppLayout | `CriativoDetails.tsx` | Medio |
+| 4 | Loading state para filtragem com date range | `Criativos.tsx` | Baixo |
+| 5 | Corrigir botao "Nova Campanha" no IOCard | `InsertionOrderCard.tsx` | Baixo |
+| 6 | Remover "Perfil (Em breve)" do UserMenu | `UserMenu.tsx` | Zero |
+| 7 | Limpar copyToClipboard morto no CampaignCard | `CampaignCard.tsx` | Zero |
+| 8 | Remover hover de MetricsCard (affordance falsa) | `MetricsCard.tsx` | Zero |
+| 9 | Paginacao com "Mostrando X-Y de Z" | `PaginationControls.tsx` | Baixo |
 
