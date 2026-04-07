@@ -1,74 +1,146 @@
 
 
-# Plano: Corrigir Dados Zerados e Erro de Metricas Diarias
+# Auditoria e Limpeza de Codigo -- Relatorio de Diagnostico
 
-## Diagnostico Completo
+## Resumo Executivo
 
-Dois problemas raiz encontrados:
+Auditoria completa do projeto React/TypeScript (HYPR Tracking). Encontrados **18 problemas** organizados por categoria. Nenhum risco a funcionalidade existente.
 
-### Problema 1: `campaign_metrics_daily` (MV) parou de atualizar
+---
 
-O cron Job 6 que faz `REFRESH MATERIALIZED VIEW CONCURRENTLY campaign_metrics_daily` esta **falhando 100% desde 4 de abril** com "statement timeout" (180s). A MV escaneia 32M+ eventos e nao consegue completar a tempo.
+## 1. Codigo Morto
 
-```text
-Resultado: 76 de 113 campanhas tem dados na MV
-Campanhas novas (como Leroy Merlin, criada 04/04): 0 linhas na MV
-Eventos reais para Leroy Merlin: 122.040 eventos
-```
+### 1.1 Arquivos inteiros nao utilizados
 
-Isso explica porque os cards de criativos mostram Click Button: 0, PIN Clicks: 0 -- a funcao `get_campaign_counters` le da MV vazia.
+| Arquivo | Motivo |
+|---|---|
+| `src/utils/imageOptimization.ts` | Zero imports em todo o projeto. Nenhum componente usa `generateSrcSet`, `createImageLoader` ou `getOptimalImageSize`. |
+| `src/utils/performance.ts` | Zero imports em todo o projeto. `getCachedData`, `setCachedData`, `fastClick`, `debounce`, `throttle`, `deepMemo`, `RequestBatcher`, `PerformanceMonitor` -- nada e usado. |
+| `src/components/LazyImage.tsx` | Zero imports fora do proprio arquivo. Nunca renderizado. |
 
-### Problema 2: `get_report_aggregated` escaneia events direto
+### 1.2 Funcoes/variaveis mortas dentro de arquivos usados
 
-A funcao usada na pagina de detalhes do criativo (tabela de metricas diarias) faz JOIN direto na tabela `events` (32M+ linhas), causando timeout e o erro toast "Nao foi possivel carregar as metricas diarias".
+| Arquivo | Item morto |
+|---|---|
+| `src/pages/CriativoDetails.tsx` | `classifyEventByTagType()` (linhas 30-52) -- definida mas nunca chamada. |
+| `src/hooks/useCampaigns.tsx` | `fetchCampaigns` -- exportado mas nunca consumido por nenhuma pagina ou componente. O `refetch` do TanStack Query ja e chamado internamente. |
+| `src/hooks/useCampaignGroups.tsx` | `fetchCampaignGroups` -- idem, nunca consumido externamente. |
+| `src/hooks/useInsertionOrders.tsx` | `fetchInsertionOrders` -- idem. |
+| `src/pages/Criativos.tsx` | `handleCriativoCreated` (linha 275) -- callback vazio com `useCallback` e array de deps vazio. Existe apenas como prop mas nao faz nada. |
 
-## Solucao: Converter MV para Tabela Incremental
+### 1.3 Imports nao utilizados
 
-Em vez de reconstruir a MV inteira a cada hora (impossivel com 32M+ linhas), vamos:
+| Arquivo | Import morto |
+|---|---|
+| `src/pages/Criativos.tsx` | `import React from "react"` (linha 29) -- React nao precisa ser importado com JSX transform. |
+| `src/pages/Campanhas.tsx` | `import React from "react"` (linha 20) -- idem. |
+| `src/pages/InsertionOrders.tsx` | `import React from "react"` (linha 21) -- idem. |
+| `src/pages/Criativos.tsx` | `Label` importado de `@/components/ui/label` -- usado apenas dentro do `contextBar` que ja e condicional, porem na verdade e usado. (confirmar) |
 
-### 1. Converter `campaign_metrics_daily` de MV para tabela regular
+---
 
-- Drop da MV
-- Criar tabela regular com mesma estrutura
-- Popular com dados existentes da MV (76 campanhas ja processadas)
+## 2. Redundancias
 
-### 2. Criar funcao de refresh incremental
+### 2.1 DateRangePicker duplicado
 
-Nova funcao que processa apenas eventos dos ultimos 3 dias (cobrindo gaps), fazendo UPSERT (INSERT ON CONFLICT UPDATE). Cada execucao processa poucos milhares de linhas em vez de 32M.
+`Criativos.tsx` define um componente local `DateRangePicker` (linhas 281-317) que reimplementa a logica do componente compartilhado `src/components/DateRangePicker.tsx` (ja usado em `Reports.tsx`). O local e mais simples mas cria duplicacao.
 
-### 3. Atualizar `get_report_aggregated` para usar a tabela
+### 2.2 Padrao fetch wrapper redundante
 
-Em vez de escanear a tabela `events` diretamente, a funcao passara a ler da tabela `campaign_metrics_daily`, que e ordens de magnitude menor.
+Os 3 hooks (`useCampaigns`, `useCampaignGroups`, `useInsertionOrders`) exportam funcoes `fetchX = useCallback(() => refetch(), [refetch])` que sao wrappers 1:1 do `refetch` do TanStack Query. Nunca consumidas externamente. Podem ser removidas.
 
-### 4. Popular dados faltantes
+### 2.3 `useCampaigns.createTag` depende de `campaigns` e `fetchCampaigns`
 
-Funcao de backfill que processa campanhas sem dados na tabela, em lotes para evitar timeout.
+O `useCallback` de `createTag` lista `[user, campaigns, fetchCampaigns]` nas deps, mas `fetchCampaigns` nunca e chamado dentro da funcao. E `campaigns` so e usado para lookup de nome (poderia ser feito de outra forma). Nao e critico mas e deps desnecessaria.
 
-## Migration SQL (resumo)
+---
 
-```text
-1. DROP MATERIALIZED VIEW campaign_metrics_daily CASCADE
-2. CREATE TABLE campaign_metrics_daily (same columns + UNIQUE constraint)
-3. CREATE indexes
-4. INSERT initial data from events (limited to recent 90 days, batched)
-5. CREATE FUNCTION refresh_campaign_metrics_daily_incremental()
-   - Processa apenas ultimos 3 dias
-   - UPSERT (ON CONFLICT UPDATE)
-   - Timeout 60s (vs 180s anterior)
-6. UPDATE cron Job 6 to use new function
-7. CREATE OR REPLACE get_report_aggregated to read from table
-```
+## 3. Problemas de Organizacao
 
-## Arquivos Modificados
+### 3.1 `CriativoDetails.tsx` -- 814 linhas, monolito
 
-1. `supabase/migrations/` -- Migration com toda a conversao
-2. `src/pages/CriativoDetails.tsx` -- Atualizar `fetchDailyMetrics` para usar a tabela diretamente via query simples (fallback se RPC falhar)
+Uma unica pagina com:
+- Funcoes utilitarias (`formatDate`, `calculateCTR`, `classifyEventByTagType`)
+- Logica de fetch de metricas realtime
+- Logica de fetch de metricas diarias
+- Geracao de pixel URLs
+- Logica de export CSV
+- UI completa com tags, metricas, tabelas
 
-## Resultado Esperado
+**Sugestao**: Extrair funcoes utilitarias e logica de fetch para hooks dedicados. Nao mexer agora (risco).
 
-- Refresh incremental completa em segundos (vs timeout de 180s)
-- Todas as 113 campanhas terao dados atualizados
-- Pagina de detalhes carrega metricas diarias sem erro
-- Cards de criativos mostram dados reais (clicks, pins, page views)
-- Cron Job 6 volta a funcionar com sucesso
+### 3.2 `Criativos.tsx` -- 614 linhas
+
+Similar ao acima: filtros, metricas, paginacao, estado local complexo com 8+ `useState`. Funcional mas denso.
+
+### 3.3 `Reports.tsx` -- 1071 linhas
+
+O maior arquivo do projeto. Mesma situacao.
+
+**Nota**: Nao recomendo refatorar esses arquivos nesta etapa. Sinalizado para consciencia.
+
+---
+
+## 4. Oportunidades de Performance
+
+### 4.1 `CriativoDetails.tsx` -- polling de 30s para realtime stats
+
+Linha 225: `setInterval(loadRealtimeStats, 30000)` faz queries ao banco a cada 30s, mesmo quando o usuario nao esta interagindo. Isso contradiz a decisao recente de "so recarregar quando o usuario pedir". Considerar remover o interval e manter apenas o botao "Recarregar".
+
+### 4.2 `CriativoDetails.tsx` -- query direta na tabela `events`
+
+Linhas 156-161: Faz `SELECT id FROM events WHERE tag_id IN (...) AND created_at >= ...` direto na tabela de 32M+ linhas para checar atividade recente. Isso ja e coberto pelo campo `last_hour` do `get_campaign_counters`. Redundante e potencialmente lento.
+
+### 4.3 `main.tsx` -- staleTime global de 5 min conflita com hooks
+
+O QueryClient global define `staleTime: 5 * 60 * 1000`, mas todos os hooks individualmente definem `staleTime: 10 * 60 * 1000`. O global e ignorado (override local ganha), porem cria confusao.
+
+---
+
+## 5. Acessibilidade
+
+### 5.1 `CriativoDetails.tsx` -- nao usa `AppLayout`
+
+Esta pagina reimplementa header/layout manualmente (linhas 368-414) em vez de usar `AppLayout` como todas as outras paginas. Resultado: estrutura de headings inconsistente, sem breadcrumbs padronizados no fluxo visual.
+
+### 5.2 Botao de delete sem label acessivel
+
+`CriativoDetails.tsx` linha 624: botao de lixeira tem `size="sm"` com apenas icone, sem `aria-label`. Leitores de tela nao conseguem identificar a acao.
+
+---
+
+## Plano de Execucao Proposto (apos aprovacao)
+
+Dividido em niveis de risco:
+
+**Risco zero (deletar codigo morto):**
+1. Deletar `src/utils/imageOptimization.ts`
+2. Deletar `src/utils/performance.ts`
+3. Deletar `src/components/LazyImage.tsx`
+4. Remover `classifyEventByTagType` de `CriativoDetails.tsx`
+5. Remover `import React from "react"` de 3 arquivos
+6. Remover wrappers `fetchX` dos 3 hooks (e suas refs nas deps de useCallback)
+
+**Risco baixo (limpeza leve):**
+7. Simplificar `handleCriativoCreated` (callback vazio)
+8. Alinhar `staleTime` global do QueryClient com valor real (10 min)
+9. Adicionar `aria-label="Deletar tag"` no botao de delete
+
+**Risco medio (sinalizado, nao mexer sem aprovacao explicita):**
+10. Remover polling de 30s do realtime stats
+11. Remover query direta a tabela `events` em `CriativoDetails.tsx` (usar `last_hour` ja disponivel)
+12. Substituir `DateRangePicker` local em Criativos pelo componente compartilhado
+
+**Arquivos modificados:**
+- `src/utils/imageOptimization.ts` (deletar)
+- `src/utils/performance.ts` (deletar)
+- `src/components/LazyImage.tsx` (deletar)
+- `src/pages/CriativoDetails.tsx` (remover funcao morta, aria-label)
+- `src/pages/Criativos.tsx` (remover import React, simplificar callback)
+- `src/pages/Campanhas.tsx` (remover import React)
+- `src/pages/InsertionOrders.tsx` (remover import React)
+- `src/hooks/useCampaigns.tsx` (remover fetchCampaigns wrapper)
+- `src/hooks/useCampaignGroups.tsx` (remover fetchCampaignGroups wrapper)
+- `src/hooks/useInsertionOrders.tsx` (remover fetchInsertionOrders wrapper)
+- `src/main.tsx` (alinhar staleTime global)
 
