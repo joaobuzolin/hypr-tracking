@@ -119,7 +119,7 @@ export const EditCampaignDialog = ({ campaign, open, onOpenChange }: EditCampaig
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Criativo</DialogTitle>
           <DialogDescription>
