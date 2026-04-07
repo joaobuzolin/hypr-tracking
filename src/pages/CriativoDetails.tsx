@@ -44,7 +44,7 @@ const CampaignDetails = () => {
   const { createTag, deleteTag } = useCampaigns();
   const { data: campaign, isLoading: loading } = useCampaignDetailsQuery(id);
   const { insertionOrders } = useInsertionOrders();
-  const { campaignGroups } = useCampaigns(); // reuse hook for groups context
+  
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetric[]>([]);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [isActive, setIsActive] = useState(false);
