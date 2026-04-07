@@ -410,60 +410,60 @@ const CampaignDetails = () => {
           </div>
           
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="border shadow-sm">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 rounded">
-                  <MousePointer className="w-5 h-5 text-blue-600" />
+                <div className="p-2 bg-blue-500/10 rounded">
+                  <MousePointer className="w-5 h-5 text-blue-500" />
                 </div>
                 <div>
                   <div className="text-2xl font-semibold">{campaign.metrics.cta_clicks}</div>
-                  <div className="text-sm text-neutral-600">Click Button</div>
+                  <div className="text-sm text-muted-foreground">Click Button</div>
                   <div className="text-xs text-muted-foreground">CTR: {ctaCTR}%</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-50 rounded">
-                  <Eye className="w-5 h-5 text-green-600" />
+                <div className="p-2 bg-green-500/10 rounded">
+                  <Eye className="w-5 h-5 text-green-500" />
                 </div>
                 <div>
                   <div className="text-2xl font-semibold">{campaign.metrics.pin_clicks}</div>
-                  <div className="text-sm text-neutral-600">PIN Clicks</div>
+                  <div className="text-sm text-muted-foreground">PIN Clicks</div>
                   <div className="text-xs text-muted-foreground">CTR: {pinCTR}%</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-50 rounded">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                <div className="p-2 bg-purple-500/10 rounded">
+                  <TrendingUp className="w-5 h-5 text-purple-500" />
                 </div>
                 <div>
                   <div className="text-2xl font-semibold">{totalClicks}</div>
-                  <div className="text-sm text-neutral-600">Total Clicks</div>
+                  <div className="text-sm text-muted-foreground">Total Clicks</div>
                   <div className="text-xs text-muted-foreground">CTR: {overallCTR}%</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-50 rounded">
-                  <Eye className="w-5 h-5 text-orange-600" />
+                <div className="p-2 bg-orange-500/10 rounded">
+                  <Eye className="w-5 h-5 text-orange-500" />
                 </div>
                 <div>
                   <div className="text-2xl font-semibold">{campaign.metrics.page_views?.toLocaleString()}</div>
-                  <div className="text-sm text-neutral-600">Page Views</div>
+                  <div className="text-sm text-muted-foreground">Page Views</div>
                   <div className="text-xs text-muted-foreground">Base para CTR</div>
                 </div>
               </div>
@@ -473,7 +473,7 @@ const CampaignDetails = () => {
 
         {/* Real-time stats widget */}
         {Object.keys(realtimeStats).length > 0 && (
-          <Card className="border shadow-sm mb-6 section-surface">
+          <Card className="mb-6 section-surface">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -504,9 +504,9 @@ const CampaignDetails = () => {
                       <Badge 
                         variant="outline" 
                         className={
-                          stat.tag.type === 'click-button' ? "bg-blue-50 text-blue-700 border-blue-200" : 
-                          stat.tag.type === 'pin' ? "bg-green-50 text-green-700 border-green-200" :
-                          "bg-purple-50 text-purple-700 border-purple-200"
+                          stat.tag.type === 'click-button' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : 
+                          stat.tag.type === 'pin' ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                          "bg-purple-500/10 text-purple-500 border-purple-500/20"
                         }
                       >
                         {stat.tag.type}
@@ -514,15 +514,15 @@ const CampaignDetails = () => {
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div>
-                        <div className="text-lg font-semibold text-purple-600">{stat.page_views}</div>
+                        <div className="text-lg font-semibold text-purple-500">{stat.page_views}</div>
                         <div className="text-xs text-muted-foreground">Views</div>
                       </div>
                       <div>
-                        <div className="text-lg font-semibold text-blue-600">{stat.clicks}</div>
+                        <div className="text-lg font-semibold text-blue-500">{stat.clicks}</div>
                         <div className="text-xs text-muted-foreground">Clicks</div>
                       </div>
                       <div>
-                        <div className="text-lg font-semibold text-green-600">{stat.pin_clicks}</div>
+                        <div className="text-lg font-semibold text-green-500">{stat.pin_clicks}</div>
                         <div className="text-xs text-muted-foreground">Pins</div>
                       </div>
                     </div>
@@ -538,7 +538,7 @@ const CampaignDetails = () => {
           </Card>
         )}
 
-        <Card className="border shadow-sm mb-6 section-surface">
+        <Card className="mb-6 section-surface">
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
@@ -569,12 +569,12 @@ const CampaignDetails = () => {
                   <div key={tag.id} className="border rounded-lg p-4 bg-background">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <Badge 
+                         <Badge 
                           variant="outline" 
                           className={
-                            tag.type === 'click-button' ? "bg-blue-50 text-blue-700 border-blue-200" : 
-                            tag.type === 'pin' ? "bg-green-50 text-green-700 border-green-200" :
-                            "bg-purple-50 text-purple-700 border-purple-200"
+                            tag.type === 'click-button' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : 
+                            tag.type === 'pin' ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                            "bg-purple-500/10 text-purple-500 border-purple-500/20"
                           }
                         >
                           {tag.type.toUpperCase()}
@@ -685,7 +685,7 @@ const CampaignDetails = () => {
         </Card>
 
 
-        <Card className="border shadow-sm section-surface">
+        <Card className="section-surface">
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>

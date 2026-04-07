@@ -16,7 +16,7 @@ export const MetricsCard = memo(({ icon: Icon, value, label, className, iconColo
   const fullValue = typeof value === 'number' ? value.toLocaleString() : value;
   
   return (
-    <Card className="border shadow-sm hover:shadow-md transition-shadow duration-200">
+    <Card className="hover:shadow-md transition-shadow duration-200">
       <CardContent className="p-3 md:p-4">
         <div className="flex items-center gap-2 md:gap-3">
           <div className={`p-1.5 md:p-2 rounded-md ${className || 'bg-muted'}`}>

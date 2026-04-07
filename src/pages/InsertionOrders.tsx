@@ -114,7 +114,7 @@ const InsertionOrders = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="border shadow-sm">
+                <Card key={i}>
                   <CardContent className="p-4">
                     <Skeleton className="h-16 w-full" />
                   </CardContent>
@@ -123,8 +123,8 @@ const InsertionOrders = () => {
             ) : (
               <>
                 <MetricsCard icon={Building} value={totalOrders} label="Insertion Orders" />
-                <MetricsCard icon={Activity} value={activeOrders} label="Ativas" className="bg-muted" iconColor="text-green-600" />
-                <MetricsCard icon={FolderOpen} value={totalCampaigns} label="Total de Criativos" className="bg-muted" iconColor="text-blue-600" />
+                <MetricsCard icon={Activity} value={activeOrders} label="Ativas" className="bg-green-500/10" iconColor="text-green-500" />
+                <MetricsCard icon={FolderOpen} value={totalCampaigns} label="Total de Criativos" className="bg-blue-500/10" iconColor="text-blue-500" />
               </>
             )}
           </div>
@@ -191,7 +191,7 @@ const InsertionOrders = () => {
             {loading ? (
               <div className="space-y-4">
                 {Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i} className="border shadow-sm">
+                  <Card key={i}>
                     <CardContent className="p-6">
                       <Skeleton className="h-48 w-full" />
                     </CardContent>
@@ -199,7 +199,7 @@ const InsertionOrders = () => {
                 ))}
               </div>
             ) : filteredInsertionOrders.length === 0 ? (
-              <Card className="border shadow-sm">
+              <Card>
                 <CardContent className="p-8 text-center">
                   <div className="text-muted-foreground mb-4">
                     {searchTerm || creatorFilter !== "all" || statusFilter !== "all" ? (

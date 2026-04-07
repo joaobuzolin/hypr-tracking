@@ -36,7 +36,7 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
   
   return (
     <Card 
-      className="border shadow-sm hover:shadow-lg transition-all duration-200 h-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 section-surface"
+      className="hover:shadow-lg transition-all duration-200 h-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 section-surface"
       onClick={handleCardClick}
       onKeyDown={handleKeyDown}
       role="button"
@@ -133,30 +133,30 @@ export const CampaignGroupCard = memo(({ campaignGroup }: CampaignGroupCardProps
               </div>
               <div className="hidden sm:block text-xs text-muted-foreground">Criativos</div>
             </div>
-            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-blue-50 rounded border">
-              <div className="sm:hidden text-xs text-blue-600">Total Clicks</div>
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-blue-500/10 rounded border">
+              <div className="sm:hidden text-xs text-blue-500">Total Clicks</div>
               <div 
                 className="text-sm md:text-lg font-semibold"
                 title={(campaignGroup.total_clicks || 0).toLocaleString()}
               >
                 {formatCompactNumber(campaignGroup.total_clicks || 0)}
               </div>
-              <div className="hidden sm:block text-xs text-blue-600">Total Clicks</div>
+              <div className="hidden sm:block text-xs text-blue-500">Total Clicks</div>
             </div>
-            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-purple-50 rounded border">
-              <div className="sm:hidden text-xs text-purple-600">Page Views</div>
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-purple-500/10 rounded border">
+              <div className="sm:hidden text-xs text-purple-500">Page Views</div>
               <div 
                 className="text-sm md:text-lg font-semibold"
                 title={(campaignGroup.total_page_views || 0).toLocaleString()}
               >
                 {formatCompactNumber(campaignGroup.total_page_views || 0)}
               </div>
-              <div className="hidden sm:block text-xs text-purple-600">Page Views</div>
+              <div className="hidden sm:block text-xs text-purple-500">Page Views</div>
             </div>
-            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-green-50 rounded border">
-              <div className="sm:hidden text-xs text-green-600">CTR</div>
+            <div className="flex justify-between items-center sm:flex-col sm:text-center p-2 md:p-3 bg-green-500/10 rounded border">
+              <div className="sm:hidden text-xs text-green-500">CTR</div>
               <div className="text-sm md:text-lg font-semibold">{ctr}%</div>
-              <div className="hidden sm:block text-xs text-green-600">CTR</div>
+              <div className="hidden sm:block text-xs text-green-500">CTR</div>
             </div>
           </div>
 
