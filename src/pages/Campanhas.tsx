@@ -132,7 +132,7 @@ const Campanhas = () => {
         <SelectTrigger className="w-auto border-none shadow-none p-0 h-auto text-lg font-semibold bg-transparent hover:bg-muted/50 focus:ring-0">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="z-50 bg-background border shadow-md">
+        <SelectContent>
           {insertionOrders.map((io) => (
             <SelectItem key={io.id} value={io.id}>
               {io.client_name}
@@ -158,7 +158,7 @@ const Campanhas = () => {
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <Card key={i} className="border shadow-sm">
+                <Card key={i}>
                   <CardContent className="p-3 md:p-4">
                     <Skeleton className="h-12 md:h-16 w-full" />
                   </CardContent>
@@ -172,28 +172,28 @@ const Campanhas = () => {
                   label="Total de Campanhas"
                 />
                 
-                <MetricsCard
+                 <MetricsCard
                   icon={Users}
                   value={activeCampaignGroups}
                   label="Campanhas Ativas"
-                  className="bg-green-50 dark:bg-green-950"
-                  iconColor="text-green-600 dark:text-green-400"
+                  className="bg-green-500/10"
+                  iconColor="text-green-500"
                 />
                 
                 <MetricsCard
                   icon={BarChart3}
                   value={totalCriativos}
                   label="Total de Criativos"
-                  className="bg-blue-50 dark:bg-blue-950"
-                  iconColor="text-blue-600 dark:text-blue-400"
+                  className="bg-blue-500/10"
+                  iconColor="text-blue-500"
                 />
                 
                 <MetricsCard
                   icon={MousePointer}
                   value={totalClicks}
                   label="Total de Clicks"
-                  className="bg-purple-50 dark:bg-purple-950"
-                  iconColor="text-purple-600 dark:text-purple-400"
+                  className="bg-purple-500/10"
+                  iconColor="text-purple-500"
                 />
               </>
             )}
@@ -221,7 +221,7 @@ const Campanhas = () => {
                       <Building className="w-4 h-4 mr-2 shrink-0" />
                       <SelectValue placeholder="Insertion Order" />
                     </SelectTrigger>
-                    <SelectContent className="z-50 bg-background border shadow-md">
+                    <SelectContent>
                       <SelectItem value="all">Todas as IOs</SelectItem>
                       {uniqueInsertionOrders.map((io) => (
                         <SelectItem key={io.id} value={io.id}>
@@ -236,7 +236,7 @@ const Campanhas = () => {
                   <SelectTrigger className="w-full sm:w-[150px] h-9 md:h-10">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent className="z-50 bg-background border shadow-md">
+                   <SelectContent>
                     <SelectItem value="all">Todos os status</SelectItem>
                     <SelectItem value="active">Ativas</SelectItem>
                     <SelectItem value="paused">Pausadas</SelectItem>
@@ -280,7 +280,7 @@ const Campanhas = () => {
             {loading ? (
               <div className="space-y-3 md:space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="border shadow-sm">
+                  <Card key={i}>
                     <CardContent className="p-4 md:p-6">
                       <Skeleton className="h-24 md:h-32 w-full" />
                     </CardContent>
@@ -288,7 +288,7 @@ const Campanhas = () => {
                 ))}
               </div>
             ) : filteredCampaignGroups.length === 0 ? (
-              <Card className="border shadow-sm">
+              <Card>
                 <CardContent className="p-6 md:p-8 text-center">
                   <div className="text-muted-foreground mb-4">
                     {searchTerm || statusFilter !== "all" ? (

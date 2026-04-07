@@ -56,7 +56,7 @@ export const InsertionOrderCard = memo(({ insertionOrder, onEdit, onDelete }: In
 
   return (
     <Card 
-      className="border shadow-sm hover:shadow-lg transition-all duration-200 h-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 section-surface"
+      className="hover:shadow-lg transition-all duration-200 h-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 section-surface"
       onClick={handleCardClick}
       onKeyDown={handleKeyDown}
       role="button"

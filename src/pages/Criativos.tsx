@@ -341,7 +341,7 @@ const Criativos = () => {
           <SelectTrigger className="w-[250px]">
             <SelectValue placeholder="Selecione uma campanha" />
           </SelectTrigger>
-          <SelectContent className="bg-background border shadow-md z-50">
+           <SelectContent>
             <SelectItem value="all">Todas as campanhas</SelectItem>
             {campaignGroups
               .filter(cg => !insertionOrderId || cg.insertion_order_id === insertionOrderId)
@@ -457,7 +457,7 @@ const Criativos = () => {
                     <Building className="w-4 h-4 mr-2 shrink-0" />
                     <SelectValue placeholder="Insertion Order" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background border shadow-md z-50">
+                   <SelectContent>
                     <SelectItem value="all">Todas as IOs</SelectItem>
                     {uniqueInsertionOrders.map((io) => (
                       <SelectItem key={io.id} value={io.id}>
@@ -473,7 +473,7 @@ const Criativos = () => {
                   <User className="w-4 h-4 mr-2 shrink-0" />
                   <SelectValue placeholder="Responsável" />
                 </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md z-50">
+                 <SelectContent>
                   <SelectItem value="all">Todos os criadores</SelectItem>
                   {uniqueCreators.map((creator) => (
                     <SelectItem key={creator} value={creator}>
@@ -489,7 +489,7 @@ const Criativos = () => {
                     <Users className="w-4 h-4 mr-2 shrink-0" />
                     <SelectValue placeholder="Campanha" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background border shadow-md z-50">
+                   <SelectContent>
                     <SelectItem value="all">Todas as campanhas</SelectItem>
                     {uniqueCampaigns.map((campaign) => (
                       <SelectItem key={campaign.id} value={campaign.id}>
@@ -505,7 +505,7 @@ const Criativos = () => {
                   <Activity className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md z-50">
+                 <SelectContent>
                   <SelectItem value="all">Todos os status</SelectItem>
                   <SelectItem value="active">Ativas</SelectItem>
                   <SelectItem value="paused">Pausadas</SelectItem>

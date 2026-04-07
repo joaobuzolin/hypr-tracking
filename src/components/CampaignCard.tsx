@@ -31,7 +31,7 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
 
   return (
     <Link to={`/criativos/${campaign.id}`} className="block group">
-      <Card className="border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer h-full group-hover:scale-[1.02] gpu-accelerated section-surface">
+      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer h-full group-hover:scale-[1.02] gpu-accelerated section-surface">
         <CardHeader className="pb-2 px-3 md:px-4 py-3 md:py-4">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-2 lg:gap-3">
             <div className="flex-1 min-w-0">
@@ -54,7 +54,7 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
                   )}
                 </div>
               )}
-              <CardTitle className="text-sm md:text-base lg:text-lg font-semibold hover:text-blue-600 transition-colors break-words leading-tight">
+              <CardTitle className="text-sm md:text-base lg:text-lg font-semibold hover:text-primary transition-colors break-words leading-tight">
                 {campaign.name}
               </CardTitle>
               {campaign.description && (
@@ -84,8 +84,8 @@ export const CampaignCard = memo(({ campaign }: CampaignCardProps) => {
                 variant="outline" 
                 className={`text-xs shrink-0 ${
                   campaign.metrics.last_hour > 0 
-                    ? 'bg-green-50 text-green-700 border-green-200' 
-                    : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                    ? 'bg-green-500/10 text-green-500 border-green-500/20' 
+                    : 'bg-orange-500/10 text-orange-500 border-orange-500/20'
                 }`}
               >
                 Últ. hora: {campaign.metrics.last_hour}
