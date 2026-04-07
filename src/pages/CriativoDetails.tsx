@@ -193,8 +193,7 @@ const CampaignDetails = () => {
   // Real-time stats monitoring
   useEffect(() => {
     loadRealtimeStats();
-    const interval = setInterval(loadRealtimeStats, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
+    // Polling removed — use manual reload button instead
   }, [campaign]);
   
   if (loading) {

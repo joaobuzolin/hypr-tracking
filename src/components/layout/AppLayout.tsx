@@ -45,7 +45,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                   <img 
                     src="/lovable-uploads/0fcddc38-83cc-4638-b362-1485d244ceb3.png" 
                     alt="HYPR TRACKING" 
-                    className="h-5 md:h-7 object-contain"
+                    width="120"
+                    height="28"
+                    className="h-5 md:h-7 w-auto object-contain"
                   />
                 </div>
               </div>

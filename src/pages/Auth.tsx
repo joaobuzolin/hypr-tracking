@@ -90,12 +90,12 @@ const Auth = () => {
   };
   return <div className="min-h-screen relative flex">
       {/* Background image covering full screen - optimized loading */}
-      <img src="/lovable-uploads/d177fad6-08ba-4f61-b459-0f35fe3e81f4.png" alt="Background" className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchPriority="high" sizes="100vw" />
+      <img src="/lovable-uploads/d177fad6-08ba-4f61-b459-0f35fe3e81f4.png" alt="" className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchPriority="high" width="1920" height="1080" />
       <div className="absolute inset-0 bg-black/30"></div>
 
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 relative z-10">
-        <img src="/lovable-uploads/6bbb35ef-f702-4718-b5c3-d8180d317be4.png" alt="HYPR TRACKING" className="h-8 object-contain" />
+        <img src="/lovable-uploads/6bbb35ef-f702-4718-b5c3-d8180d317be4.png" alt="HYPR TRACKING" width="160" height="32" className="h-8 w-auto object-contain" />
       </div>
 
       {/* Right side - Auth Forms with Glass Effect */}
@@ -103,7 +103,7 @@ const Auth = () => {
         <div className="w-full max-w-md space-y-6">
           <div className="text-center space-y-2 lg:hidden">
             
-            <img src="/lovable-uploads/34701aad-d67f-460e-9f6a-5c12858d6725.png" alt="HYPR Tracking" className="h-8 object-contain mx-auto" />
+            <img src="/lovable-uploads/34701aad-d67f-460e-9f6a-5c12858d6725.png" alt="HYPR Tracking" width="160" height="32" className="h-8 w-auto object-contain mx-auto" />
             <p className="text-sm text-white/90">
               Acesse sua conta para gerenciar campanhas
             </p>
