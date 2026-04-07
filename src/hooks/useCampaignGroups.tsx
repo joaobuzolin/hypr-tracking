@@ -77,7 +77,7 @@ export const useCampaignGroups = () => {
       console.error('Error creating campaign group:', error);
       return { error: 'Failed to create campaign group' };
     }
-  }, [user, fetchCampaignGroups]);
+  }, [user, queryClient]);
 
   const updateCampaignGroup = useCallback(async (id: string, data: UpdateCampaignGroupData) => {
     try {
@@ -122,7 +122,6 @@ export const useCampaignGroups = () => {
   return {
     campaignGroups,
     loading,
-    fetchCampaignGroups,
     createCampaignGroup,
     updateCampaignGroup,
     deleteCampaignGroup

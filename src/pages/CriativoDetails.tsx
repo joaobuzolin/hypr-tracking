@@ -26,113 +26,6 @@ interface DailyMetric {
 }
 
 
-// Função utilitária para classificar eventos baseado no tipo da tag
-const classifyEventByTagType = (event: any, tagType: string) => {
-  // Se o event_type já está correto, use ele
-  if (event.event_type === 'page_view' || event.event_type === 'pin_click' || event.event_type === 'click') {
-    return event.event_type;
-  }
-  
-  // Para eventos antigos ou inconsistentes, classifique baseado no tipo da tag
-  if (event.event_type === 'view') {
-    switch (tagType) {
-      case 'page-view':
-        return 'page_view';
-      case 'pin':
-        return 'pin_click';
-      case 'click-button':
-        return 'click';
-      default:
-        return event.event_type;
-    }
-  }
-  
-  // Fallback para outros casos
-  return event.event_type;
-};
-
-const formatDate = (dateString: string) => {
-  // If it's already in YYYY-MM-DD format, convert directly to pt-BR format
-  if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    const [year, month, day] = dateString.split('-');
-    return `${day}/${month}/${year}`;
-  }
-  // Fallback for other formats
-  return new Date(dateString).toLocaleDateString('pt-BR');
-};
-
-const calculateCTR = (clicks: number, pageViews: number) => {
-  return pageViews > 0 ? ((clicks / pageViews) * 100).toFixed(2) : "0.00";
-};
-
-const CampaignDetails = () => {
-  const { id } = useParams();
-  const { toast } = useToast();
-  const { createTag, deleteTag } = useCampaigns();
-  const { data: campaign, isLoading: loading } = useCampaignDetailsQuery(id);
-  const { insertionOrders } = useInsertionOrders();
-  const { generateBreadcrumbs } = useBreadcrumbs();
-  const [dailyMetrics, setDailyMetrics] = useState<DailyMetric[]>([]);
-  const [loadingMetrics, setLoadingMetrics] = useState(false);
-  const [isActive, setIsActive] = useState(false);
-  
-  // Real-time monitoring states
-  const [realtimeStats, setRealtimeStats] = useState<any>({});
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
-  
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const currentInsertionOrder = useMemo(() => {
-    if (!campaign?.insertion_order_id) return null;
-    return insertionOrders.find(io => io.id === campaign.insertion_order_id);
-  }, [campaign, insertionOrders]);
-
-  // Define functions before useEffect calls to avoid temporal dead zone
-  const loadRealtimeStats = async () => {
-    if (!campaign) return;
-    
-    setIsLoadingStats(true);
-    try {
-      const fifteenMinutesAgo = new Date();
-      fifteenMinutesAgo.setMinutes(fifteenMinutesAgo.getMinutes() - 15);
-
-      const tagIds = campaign.tags.map(tag => tag.id);
-      if (tagIds.length === 0) {
-        setRealtimeStats({});
-        return;
-      }
-
-      // Use RPC function to get aggregated counts without 1000-row limit
-      const { data: realtimeData, error } = await supabase.rpc('get_realtime_event_counts', {
-        p_tag_ids: tagIds,
-        p_since: fifteenMinutesAgo.toISOString()
-      });
-
-      if (error) {
-        console.error('Error fetching realtime stats:', error);
-        return;
-      }
-
-      // Build stats object from RPC results
-      const stats: any = {};
-      campaign.tags.forEach(tag => {
-        const tagData = realtimeData?.find(d => d.tag_id === tag.id);
-        stats[tag.id] = {
-          tag: tag,
-          total: (tagData?.page_views || 0) + (tagData?.clicks || 0) + (tagData?.pin_clicks || 0),
-          page_views: tagData?.page_views || 0,
-          clicks: tagData?.clicks || 0,
-          pin_clicks: tagData?.pin_clicks || 0,
-          last_event: tagData?.last_event || null
-        };
-      });
-
-      setRealtimeStats(stats);
-    } catch (error) {
-      console.error('Error loading realtime stats:', error);
-    } finally {
-      setIsLoadingStats(false);
-    }
-  };
 
 
   useEffect(() => {
@@ -621,7 +514,7 @@ const CampaignDetails = () => {
                         </div>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" aria-label="Deletar tag">
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>

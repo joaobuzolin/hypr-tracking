@@ -272,9 +272,7 @@ const Criativos = () => {
     setInsertionOrderFilter("all");
   };
 
-  const handleCriativoCreated = useCallback(() => {
-    // Campaigns will be refreshed automatically by the hook
-  }, []);
+  const handleCriativoCreated = useCallback(() => {}, []);
 
   const breadcrumbItems = generateBreadcrumbs();
 

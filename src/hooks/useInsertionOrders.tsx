@@ -120,7 +120,6 @@ export const useInsertionOrders = () => {
   return {
     insertionOrders,
     loading,
-    fetchInsertionOrders,
     createInsertionOrder,
     updateInsertionOrder,
     deleteInsertionOrder
