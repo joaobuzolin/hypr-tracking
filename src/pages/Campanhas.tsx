@@ -148,6 +148,7 @@ const Campanhas = () => {
 
   return (
     <AppLayout 
+      title="Campanhas"
       subtitle="Gerencie suas campanhas e organize seus criativos"
       breadcrumbs={breadcrumbItems}
       actions={<CreateCampaignGroupDialog insertionOrderId={insertionOrderId} />}

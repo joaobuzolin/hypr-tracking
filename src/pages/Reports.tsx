@@ -498,6 +498,7 @@ const Reports = () => {
 
   return (
     <AppLayout 
+      title="Relatórios"
       showReportsButton={false}
       backButton={{ href: "/criativos", label: "← Voltar" }}
     >

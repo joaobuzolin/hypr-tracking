@@ -107,6 +107,7 @@ const InsertionOrders = () => {
 
   return (
     <AppLayout 
+      title="Insertion Orders"
       subtitle="Gerencie suas insertion orders e organize criativos por cliente"
       breadcrumbs={breadcrumbs}
       actions={<CreateInsertionOrderDialog onCreated={handleCreated} />}
