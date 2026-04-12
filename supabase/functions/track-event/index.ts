@@ -13,424 +13,239 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 const dedupeCache = new Map<string, number>();
 const DEDUPE_TTL = 5 * 1000; // 5 seconds
 
-// Rate limiting simples por IP (configurável via env vars)
+// Rate limiting simples por IP
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = parseInt(Deno.env.get('TRACK_EVENT_RATE_LIMIT') || '2000'); // requests por minuto por IP
-const RATE_WINDOW = parseInt(Deno.env.get('TRACK_EVENT_RATE_WINDOW') || '60000'); // 1 minuto
+const RATE_LIMIT = parseInt(Deno.env.get('TRACK_EVENT_RATE_LIMIT') || '2000');
+const RATE_WINDOW = parseInt(Deno.env.get('TRACK_EVENT_RATE_WINDOW') || '60000');
 
-// Função para verificar rate limit
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
-  
   const current = rateLimitMap.get(ip);
   if (!current || now > current.resetTime) {
     rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_WINDOW });
     return true;
   }
-  
-  if (current.count >= RATE_LIMIT) {
-    return false;
-  }
-  
+  if (current.count >= RATE_LIMIT) return false;
   current.count++;
   return true;
 }
 
-// Função para obter tag do cache ou banco
 async function getTagInfo(supabase: any, tagCode: string) {
-  // Verificar cache primeiro
   const cached = tagCache.get(tagCode);
-  if (cached && Date.now() < cached.expires) {
-    return cached;
-  }
+  if (cached && Date.now() < cached.expires) return cached;
   
-  // Buscar no banco
   const { data: tag, error } = await supabase
     .from('tags')
     .select('id, type')
     .eq('code', tagCode)
     .single();
     
-  if (error || !tag) {
-    return null;
-  }
+  if (error || !tag) return null;
   
-  // Adicionar ao cache
   const tagInfo = { id: tag.id, type: tag.type, expires: Date.now() + CACHE_TTL };
   tagCache.set(tagCode, tagInfo);
-  
   return tagInfo;
 }
 
-// Helper functions for deduplication
-function generateDedupeKey(tagId: string, uniqueId: string | null, ip: string, userAgent: string | null, referer: string | null): string {
-  if (uniqueId && uniqueId !== '') {
-    // Use unique_id for precise deduplication (DV360/Xandr/TTD)
-    return `page_view|${tagId}|${uniqueId}`;
-  } else {
-    // Fallback: use ip + user_agent + normalized referer
-    const normalizedReferer = referer ? new URL(referer).hostname : 'none';
-    return `page_view|${tagId}|${ip}|${userAgent || 'none'}|${normalizedReferer}`;
+// Classify user agent into simple category
+function classifyUserAgent(ua: string | null): string {
+  if (!ua) return 'unknown';
+  const lower = ua.toLowerCase();
+  if (lower.includes('bot') || lower.includes('crawler') || lower.includes('spider') || lower.includes('headless')) return 'bot';
+  if (lower.includes('mobile') || lower.includes('android') || lower.includes('iphone')) return 'mobile';
+  return 'desktop';
+}
+
+// Extract just hostname from referer
+function extractRefererHostname(referer: string | null): string | null {
+  if (!referer) return null;
+  try {
+    return new URL(referer).hostname;
+  } catch {
+    return null;
   }
+}
+
+// Filter out unresolved DV360/ad server placeholders
+const PLACEHOLDER_PATTERN = /^\{.*\}$/;
+function isPlaceholder(value: string | null | undefined): boolean {
+  if (!value) return true;
+  return PLACEHOLDER_PATTERN.test(value);
+}
+
+function generateDedupeKey(tagId: string, uniqueId: string | null, ip: string, userAgent: string | null, referer: string | null): string {
+  if (uniqueId && uniqueId !== '' && !isPlaceholder(uniqueId)) {
+    return `pv|${tagId}|${uniqueId}`;
+  }
+  const hostname = extractRefererHostname(referer) || 'none';
+  return `pv|${tagId}|${ip}|${classifyUserAgent(userAgent)}|${hostname}`;
 }
 
 function checkDedupe(dedupeKey: string): boolean {
   const now = Date.now();
   const cached = dedupeCache.get(dedupeKey);
-  
-  if (cached && now < cached + DEDUPE_TTL) {
-    console.log('Dedup hit:', dedupeKey);
-    return true; // Duplicate found
-  }
-  
-  // Add to cache
+  if (cached && now < cached + DEDUPE_TTL) return true;
   dedupeCache.set(dedupeKey, now);
-  console.log('Dedup miss:', dedupeKey);
-  return false; // Not a duplicate
+  return false;
 }
 
-// Limpeza periódica do cache e rate limiting
+// Limpeza periódica dos caches
 setInterval(() => {
   const now = Date.now();
-  
-  // Limpar cache expirado
   for (const [key, value] of tagCache.entries()) {
-    if (now > value.expires) {
-      tagCache.delete(key);
-    }
+    if (now > value.expires) tagCache.delete(key);
   }
-  
-  // Limpar rate limiting expirado
   for (const [key, value] of rateLimitMap.entries()) {
-    if (now > value.resetTime) {
-      rateLimitMap.delete(key);
-    }
+    if (now > value.resetTime) rateLimitMap.delete(key);
   }
-  
-  // Limpar cache de deduplicação expirado
   for (const [key, value] of dedupeCache.entries()) {
-    if (now > value + DEDUPE_TTL) {
-      dedupeCache.delete(key);
-    }
+    if (now > value + DEDUPE_TTL) dedupeCache.delete(key);
   }
-}, 60000); // Executar a cada minuto
+}, 60000);
 
-// 1x1 transparent GIF in base64
+// 1x1 transparent GIF
 const GIF_PIXEL = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
+function gifResponse(headers: Record<string, string> = {}) {
+  const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0));
+  return new Response(gifBuffer, {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'image/gif',
+      'Content-Length': gifBuffer.length.toString(),
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      ...headers,
+    }
+  });
+}
+
 Deno.serve(async (req) => {
-  // Health check route
   if (req.url.endsWith('/health')) {
     return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
-  // Handle CORS preflight requests
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Rate limiting
-    const rawIp = req.headers.get('x-forwarded-for') || 
-                  req.headers.get('x-real-ip') || 
-                  'unknown';
+    const rawIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     const ip = rawIp === 'unknown' ? 'unknown' : rawIp.split(',')[0].trim();
     
     if (!checkRateLimit(ip)) {
-      console.log(`Rate limit exceeded for IP: ${ip}`)
-      return new Response('Rate limit exceeded', { 
-        status: 429, 
-        headers: {
-          ...corsHeaders,
-          'X-RateLimit-Limit': RATE_LIMIT.toString(),
-          'X-RateLimit-Window': (RATE_WINDOW / 1000).toString(),
-          'X-RateLimit-Remaining': '0'
-        }
-      });
+      return new Response('Rate limit exceeded', { status: 429, headers: corsHeaders });
     }
     
-    let url: URL;
+    // Extract tag code from path or query
     let tagCode: string | null = null;
+    let url: URL | null = null;
     
-    // Try to extract tag from URL path first: /functions/v1/track-event/{tag}
     const pathMatch = req.url.match(/\/track-event\/([^/?&]+)/);
     if (pathMatch) {
-      try {
-        tagCode = decodeURIComponent(pathMatch[1]);
-        console.log('Extracted tag from path:', tagCode);
-      } catch (e) {
-        console.log('Failed to decode tag from path:', e);
-        tagCode = pathMatch[1];
-      }
+      try { tagCode = decodeURIComponent(pathMatch[1]); } catch { tagCode = pathMatch[1]; }
     }
     
-    // If no tag in path, try to parse URL query parameters
     if (!tagCode) {
       try {
         url = new URL(req.url);
-        // Try multiple parameter aliases: tag, code, t
-        tagCode = url.searchParams.get('tag') || 
-                  url.searchParams.get('code') || 
-                  url.searchParams.get('t');
-      } catch (e) {
-        console.log('URL parsing failed, attempting manual tag extraction:', e);
-        // Extract tag manually using regex if URL parsing fails
+        tagCode = url.searchParams.get('tag') || url.searchParams.get('code') || url.searchParams.get('t');
+      } catch {
         const tagMatch = req.url.match(/[?&](?:tag|code|t)=([^&]+)/);
-        if (tagMatch) {
-          tagCode = decodeURIComponent(tagMatch[1]);
-          console.log('Extracted tag manually:', tagCode);
-        }
+        if (tagMatch) tagCode = decodeURIComponent(tagMatch[1]);
       }
     }
     
-    // If tag not found in URL, try to get it from POST body
     if (!tagCode && req.method === 'POST') {
       try {
-        const body = await req.json()
+        const body = await req.json();
         tagCode = body.tag || body.code || body.t;
-      } catch (e) {
-        // If JSON parsing fails, continue with null tagCode
-        console.log('Failed to parse JSON body:', e)
-      }
+      } catch { /* ignore */ }
     }
     
     if (!tagCode) {
-      console.log('Missing tag parameter - URL:', req.url);
-      // Return 1x1 GIF even for missing tag to prevent ad server errors
-      const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
-      return new Response(gifBuffer, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'image/gif',
-          'Content-Length': gifBuffer.length.toString(),
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'X-Debug': 'missing-tag'
-        }
-      })
+      return gifResponse({ 'X-Debug': 'missing-tag' });
     }
 
-    // Create Supabase client with service role key to bypass RLS
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    // Get tag info (com cache otimizado)
     const tag = await getTagInfo(supabase, tagCode);
-    
     if (!tag) {
-      console.log('Tag not found:', tagCode)
-      // For GET requests, return 1x1 GIF instead of 404 to prevent ad server errors
-      if (req.method === 'GET') {
-        const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
-        return new Response(gifBuffer, {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'image/gif',
-            'Content-Length': gifBuffer.length.toString(),
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'X-Debug': 'tag-not-found'
-          }
-        })
-      }
-      return new Response('Tag not found', { 
-        status: 404, 
-        headers: corsHeaders 
-      })
+      if (req.method === 'GET') return gifResponse({ 'X-Debug': 'tag-not-found' });
+      return new Response('Tag not found', { status: 404, headers: corsHeaders });
     }
 
-    // Get user agent (IP já foi processado acima)
-    const userAgent = req.headers.get('user-agent')
+    const userAgent = req.headers.get('user-agent');
+    const referer = req.headers.get('referer');
 
-    // Get additional metadata based on request method
-    let metadata: any = {
-      referer: req.headers.get('referer'),
-      original_url: req.url
-    };
-    
-    if (req.method === 'POST') {
-      try {
-        const body = await req.json()
-        metadata = { ...metadata, ...body }
-      } catch (e) {
-        // If JSON parsing fails, continue with existing metadata
-        console.log('Failed to parse POST body for metadata:', e)
-      }
-    } else if (req.method === 'GET') {
-      // For GET requests, try to include query parameters in metadata
-      try {
-        if (url && url.searchParams) {
-          const params = Object.fromEntries(url.searchParams.entries())
-          // Remove tag parameter aliases as they're already processed
-          delete params.tag;
-          delete params.code;
-          delete params.t;
-          if (Object.keys(params).length > 0) {
-            metadata.query_params = params;
-          }
-        }
-      } catch (e) {
-        // If we can't parse query params properly, try to extract cb manually
-        console.log('Failed to parse query params, attempting manual extraction:', e)
-        const cbMatch = req.url.match(/[?&]cb=([^&]*)/);
-        if (cbMatch) {
-          try {
-            metadata.query_params = { cb: decodeURIComponent(cbMatch[1]) };
-          } catch (decodeError) {
-            // If decoding fails, store the raw value
-            metadata.query_params = { cb: cbMatch[1] };
-          }
-        }
+    // Build LEAN metadata — only essential fields
+    const refererHostname = extractRefererHostname(referer);
+    const metadata: Record<string, any> = {};
+    if (refererHostname) metadata.referer = refererHostname;
+
+    // Extract cb3 (unique_id) from query params if present
+    let uniqueId: string | null = null;
+    if (url?.searchParams) {
+      const cb3 = url.searchParams.get('cb3');
+      if (cb3 && !isPlaceholder(cb3)) {
+        metadata.cb3 = cb3;
+        uniqueId = cb3;
       }
     }
 
-    // Map tag type to event type (aligned with frontend expectations)
-    const eventTypeMapping = {
+    // Map tag type to event type
+    const eventTypeMapping: Record<string, string> = {
       'click-button': 'click',
-      'pin': 'pin_click', 
+      'pin': 'pin_click',
       'page-view': 'page_view'
-    }
-    
-    const eventType = eventTypeMapping[tag.type as keyof typeof eventTypeMapping] || tag.type
-    
-    console.log(`Processing event: tag_type=${tag.type}, mapped_event_type=${eventType}, ip=${ip}`)
+    };
+    const eventType = eventTypeMapping[tag.type] || tag.type;
 
-    // Check for page view deduplication ONLY
+    // Page view deduplication
     if (eventType === 'page_view') {
-      // Extract unique_id from metadata for DV360/Xandr/TTD
-      let uniqueId = metadata.unique_id;
-      if (!uniqueId && metadata.query_params) {
-        uniqueId = metadata.query_params.cb3; // From DV360_UNIQUE_ID, adgroup_id, etc.
-      }
-      
-      const dedupeKey = generateDedupeKey(tag.id, uniqueId, ip, userAgent, metadata.referer);
-      
+      const dedupeKey = generateDedupeKey(tag.id, uniqueId, ip, userAgent, referer);
       if (checkDedupe(dedupeKey)) {
-        // Duplicate found - return GIF with dedup header
-        console.log(`Duplicate page_view blocked: ${dedupeKey}`);
-        
-        if (req.method === 'GET') {
-          const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
-          return new Response(gifBuffer, {
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'image/gif',
-              'Content-Length': gifBuffer.length.toString(),
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'X-Dedup': 'hit',
-              'X-Debug': 'page-view-duplicate'
-            }
-          })
-        } else {
-          return new Response(
-            JSON.stringify({ success: true, event_type: eventType, deduped: true }),
-            {
-              headers: {
-                ...corsHeaders,
-                'Content-Type': 'application/json',
-                'X-Dedup': 'hit'
-              }
-            }
-          )
-        }
+        if (req.method === 'GET') return gifResponse({ 'X-Dedup': 'hit' });
+        return new Response(JSON.stringify({ success: true, deduped: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
     }
 
-    // Insert event record
-    const eventData = {
-      tag_id: tag.id,
-      event_type: eventType,
-      user_agent: userAgent,
-      ip_address: ip === 'unknown' ? null : ip, // Store null instead of 'unknown' for inet type
-      metadata: metadata
-    }
-    
-    console.log('Inserting event data:', eventData)
-    
+    // Insert event — store classified UA instead of full string
+    const uaClass = classifyUserAgent(userAgent);
     const { error: insertError } = await supabase
       .from('events')
-      .insert(eventData)
+      .insert({
+        tag_id: tag.id,
+        event_type: eventType,
+        user_agent: uaClass,
+        ip_address: ip === 'unknown' ? null : ip,
+        metadata: Object.keys(metadata).length > 0 ? metadata : null
+      });
 
     if (insertError) {
-      console.error('Error inserting event:', insertError)
-      // For GET requests, still return 1x1 GIF to prevent ad server errors
-      if (req.method === 'GET') {
-        const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
-        return new Response(gifBuffer, {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'image/gif',
-            'Content-Length': gifBuffer.length.toString(),
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'X-Debug': 'insert-error'
-          }
-        })
-      }
-      return new Response('Error recording event', { 
-        status: 500, 
-        headers: corsHeaders 
-      })
+      console.error('Error inserting event:', insertError);
+      if (req.method === 'GET') return gifResponse({ 'X-Debug': 'insert-error' });
+      return new Response('Error recording event', { status: 500, headers: corsHeaders });
     }
 
-    console.log(`Event recorded: ${eventType} for tag ${tagCode}`)
-
-    // Return appropriate response based on request method
     if (req.method === 'GET') {
-      // Return 1x1 pixel GIF for GET requests
-      const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
-      const currentLimit = rateLimitMap.get(ip)
-      const remaining = currentLimit ? Math.max(0, RATE_LIMIT - currentLimit.count) : RATE_LIMIT - 1
-      
-      return new Response(gifBuffer, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'image/gif',
-          'Content-Length': gifBuffer.length.toString(),
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'X-RateLimit-Limit': RATE_LIMIT.toString(),
-          'X-RateLimit-Remaining': remaining.toString(),
-          'X-RateLimit-Window': (RATE_WINDOW / 1000).toString(),
-          'X-Dedup': eventType === 'page_view' ? 'miss' : 'none'
-        }
-      })
-    } else {
-      // Return JSON response for POST requests
-      const currentLimit = rateLimitMap.get(ip)
-      const remaining = currentLimit ? Math.max(0, RATE_LIMIT - currentLimit.count) : RATE_LIMIT - 1
-      
-      return new Response(
-        JSON.stringify({ success: true, event_type: eventType }),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-            'X-RateLimit-Limit': RATE_LIMIT.toString(),
-            'X-RateLimit-Remaining': remaining.toString(),
-            'X-RateLimit-Window': (RATE_WINDOW / 1000).toString()
-          }
-        }
-      )
+      return gifResponse({ 'X-Dedup': eventType === 'page_view' ? 'miss' : 'none' });
     }
+
+    return new Response(
+      JSON.stringify({ success: true, event_type: eventType }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error('Unexpected error:', error)
-    // For GET requests, return 1x1 GIF even on unexpected errors to prevent ad server issues
-    if (req.method === 'GET') {
-      const gifBuffer = Uint8Array.from(atob(GIF_PIXEL), c => c.charCodeAt(0))
-      return new Response(gifBuffer, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'image/gif',
-          'Content-Length': gifBuffer.length.toString(),
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'X-Debug': 'unexpected-error'
-        }
-      })
-    }
-    return new Response('Internal server error', { 
-      status: 500, 
-      headers: corsHeaders 
-    })
+    console.error('Unexpected error:', error);
+    if (req.method === 'GET') return gifResponse({ 'X-Debug': 'unexpected-error' });
+    return new Response('Internal server error', { status: 500, headers: corsHeaders });
   }
-})
+});
