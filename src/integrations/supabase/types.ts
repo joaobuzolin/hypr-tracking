@@ -261,6 +261,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tag_metrics_backfill_state: {
+        Row: {
+          completed_at: string | null
+          current_day: string
+          end_day: string
+          job_name: string
+          last_error: string | null
+          last_processed_at: string | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          current_day: string
+          end_day: string
+          job_name: string
+          last_error?: string | null
+          last_processed_at?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          current_day?: string
+          end_day?: string
+          job_name?: string
+          last_error?: string | null
+          last_processed_at?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       tag_metrics_daily: {
         Row: {
           campaign_id: string
@@ -367,6 +400,10 @@ export type Database = {
         Returns: string
       }
       backfill_tag_metrics_daily: { Args: never; Returns: undefined }
+      backfill_tag_metrics_single_day: {
+        Args: { p_day: string }
+        Returns: number
+      }
       cleanup_old_events: { Args: never; Returns: undefined }
       get_aggregated_metrics_for_campaigns: {
         Args: {
@@ -491,6 +528,7 @@ export type Database = {
         Args: never
         Returns: undefined
       }
+      run_tag_metrics_backfill_step: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
