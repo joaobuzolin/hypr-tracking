@@ -261,6 +261,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tag_metrics_daily: {
+        Row: {
+          campaign_id: string
+          cta_clicks: number
+          metric_date: string
+          page_views: number
+          pin_clicks: number
+          tag_id: string
+          total_events: number
+        }
+        Insert: {
+          campaign_id: string
+          cta_clicks?: number
+          metric_date: string
+          page_views?: number
+          pin_clicks?: number
+          tag_id: string
+          total_events?: number
+        }
+        Update: {
+          campaign_id?: string
+          cta_clicks?: number
+          metric_date?: string
+          page_views?: number
+          pin_clicks?: number
+          tag_id?: string
+          total_events?: number
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           campaign_id: string
