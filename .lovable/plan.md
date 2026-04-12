@@ -1,86 +1,63 @@
 
 
-# Plano: Otimizacao Completa do Banco + Edge Function
+# Plano: Reducao Drastica do Banco de 52 GB para ~3-5 GB
 
-## Diagnostico Final
+## A Descoberta Chave
 
-O banco esta com **57 GB** e sobrecarregado por 4 causas raiz:
+A tabela `campaign_metrics_daily` ja tem **todos os dados historicos agregados** -- 34 milhoes de eventos resumidos em apenas **2,056 linhas (440 KB)**. Toda funcao do frontend (contadores, relatorios, graficos) usa essa tabela, NAO a `events`.
 
-| Causa | Impacto | Tamanho |
-|-------|---------|---------|
-| **Trigger `refresh_metrics_on_event`** tenta refresh da materialized view em 0.1% dos inserts (~270 refreshes/dia de uma view de 70M linhas) | CRITICO - satura conexoes | - |
-| **Cron `refresh-metrics-summary`** roda a cada 30min, full scan da tabela events | CRITICO - timeout constante | - |
-| **`idx_events_type_created_at`** quase nao usado (40 scans) | 4.9 GB desperdicado | 4.9 GB |
-| **Metadata bloated** - `original_url` redundante + `user_agent` verbatim | ~28 GB em dados inuteis | 28 GB |
-| **37M+ linhas antigas** - cleanup nunca executou com sucesso | ~25 GB de lixo | 25 GB |
-| **Trigger duplicado** `prevent_duplicate_page_views` - existe 2x na tabela | Overhead desnecessario | - |
+A tabela `events` (52 GB) e um **log descartavel**. Ela so e consultada para:
+1. Contagem da "ultima hora" (`get_campaign_counters` -> last_hour)
+2. Breakdown por tag nos relatorios (quando usuario clica em detalhes)
+3. Trigger de deduplicacao (janela de 5 segundos)
 
-## Acoes
+**Nenhuma dessas funcoes precisa de mais de 7 dias de dados brutos.**
 
-### 1. Migration: Limpar infraestrutura morta e perigosa
+## O Problema Real
+
+Voce guarda 90 dias de dados brutos (~270k eventos/dia = ~24M linhas por 90 dias) quando so precisa de 7 dias (~1.9M linhas). Os dados historicos ja estao salvos na `campaign_metrics_daily`.
+
+## Acao Proposta
+
+### 1. Reduzir retencao de 90 dias para 7 dias
+
+A funcao `cleanup_old_events` passa a deletar eventos com mais de 7 dias em vez de 90.
 
 ```sql
--- A) Remover trigger que tenta refresh na materialized view a cada insert
-DROP TRIGGER IF EXISTS refresh_metrics_on_event ON events;
-DROP FUNCTION IF EXISTS public.trigger_refresh_campaign_metrics();
-
--- B) Desativar cron que faz full scan a cada 30 min
-SELECT cron.unschedule('refresh-metrics-summary');
-
--- C) Dropar materialized view nao usada pelo frontend
-DROP MATERIALIZED VIEW IF EXISTS campaign_metrics_summary;
-DROP FUNCTION IF EXISTS public.refresh_campaign_metrics_summary();
-DROP FUNCTION IF EXISTS public.refresh_campaign_metrics();
-
--- D) Dropar indice quase nao usado (4.9 GB, 40 scans)
-DROP INDEX IF EXISTS idx_events_type_created_at;
-
--- E) Remover trigger duplicado (existe prevent_duplicate_page_views_trigger E trg_prevent_duplicate_page_views)
-DROP TRIGGER IF EXISTS prevent_duplicate_page_views_trigger ON events;
-
--- F) Aumentar timeout do refresh daily (falhou com 60s)
-CREATE OR REPLACE FUNCTION public.refresh_campaign_metrics_daily_incremental()
-... SET statement_timeout TO '120s' ...
-(mesmo corpo atual, so muda o timeout)
+-- Antes: WHERE created_at < NOW() - INTERVAL '90 days'
+-- Depois: WHERE created_at < NOW() - INTERVAL '7 days'
 ```
 
-### 2. Atualizar edge function `track-event` para guardar menos dados
+Isso e seguro porque:
+- `campaign_metrics_daily` ja tem os totais diarios de TODAS as campanhas desde janeiro/2026
+- O refresh incremental processa os ultimos 3 dias, entao 7 dias da margem de sobra
+- Nenhuma query do frontend consulta `events` para dados com mais de 1 hora
 
-Mudancas no metadata:
-- **Remover** `original_url` (redundante - tag_id ja identifica a tag)
-- **Guardar apenas hostname** do referer (em vez da URL completa)
-- **Filtrar placeholders** DV360 nao resolvidos (`{dclid}`, `{click_id}`)
-- **Nao guardar** `user_agent` completo - guardar apenas classificacao (`bot`, `mobile`, `desktop`)
+### 2. Aumentar batch do cleanup para processar mais rapido
 
-Reducao estimada: de ~260 bytes/evento para ~40 bytes/evento (85% menor)
+De 50k/batch com 10 iteracoes (500k max) para 100k/batch com 20 iteracoes (2M max), para limpar o backlog mais rapido.
 
-### 3. Funcoes que referenciam a view dropada
+### 3. Resultado esperado
 
-As seguintes funcoes usam `campaign_metrics_summary` e precisam ser atualizadas ou removidas:
-- `get_report_from_materialized_view` - usa `campaign_metrics_daily` (NAO a view), nome confuso mas funciona. **Manter sem alteracao.**
+| Metrica | Atual | Depois (2-3 semanas) |
+|---------|-------|---------------------|
+| Linhas em `events` | ~70M | ~1.9M |
+| Tamanho `events` (dados) | ~37 GB | ~1.5 GB |
+| Tamanho indices | ~14.7 GB | ~1.5 GB |
+| **Total banco** | **52 GB** | **~3-5 GB** |
 
-A funcao `trigger_refresh_campaign_metrics` referencia a view mas sera dropada no passo 1.
+### 4. Para o futuro: crescimento controlado
 
-## O que NAO vamos mexer (seguranca)
+Com retencao de 7 dias e ~270k eventos/dia, a tabela `events` se estabiliza em ~1.9M linhas permanentemente. O banco nunca mais passa de 5 GB.
 
-- `events_pkey` - e a primary key, obrigatoria
-- `idx_events_tag_type_date` (7.1 GB, 21M scans) - ESSENCIAL
-- `idx_events_page_view_tag_date` (4.5 GB, 142M scans) - ESSENCIAL
-- `idx_events_click_tag_date` e `idx_events_pin_click_tag_date` - usados pelo `get_campaign_counters`
-- `trg_prevent_duplicate_page_views` - manter (remover apenas o duplicado)
-- `trg_events_normalize` - manter
-- `cleanup_old_events` e seu cron - ja foram corrigidos na migration anterior
-- `refresh-metrics-daily` cron - funciona bem, so aumentar timeout
+## Seguranca
 
-## Resultado esperado
-
-- **Imediato**: Site volta a funcionar rapido (sem mais scans de 70M linhas a cada 30min)
-- **Curto prazo**: -4.9 GB (indice removido)
-- **Medio prazo (2-3 semanas)**: -25 GB (cleanup das linhas antigas + autovacuum)
-- **Longo prazo**: Novos eventos 85% menores, banco cresce ~5x mais devagar
+- **Dados historicos NAO se perdem** -- ja estao em `campaign_metrics_daily` (440 KB, desde janeiro)
+- O refresh diario continua alimentando `campaign_metrics_daily` com os ultimos 3 dias
+- Todas as funcoes do frontend (`get_campaign_counters`, `get_report_aggregated`, etc.) continuam funcionando identicamente
+- A unica funcionalidade que muda: breakdown por tag em relatorios so mostra ultimos 7 dias (em vez de 90) -- mas isso ja e raro e lento hoje
 
 ## Arquivos alterados
 
-1. `supabase/migrations/[timestamp]_optimize_events_infra.sql` - Migration com todas as mudancas de schema
-2. `supabase/functions/track-event/index.ts` - Metadata otimizado
+1. `supabase/migrations/[timestamp]_reduce_retention_7_days.sql` -- Atualiza `cleanup_old_events` para 7 dias com batches maiores
 
