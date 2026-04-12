@@ -362,6 +362,7 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: undefined
       }
+      backfill_tag_metrics_daily: { Args: never; Returns: undefined }
       cleanup_old_events: { Args: never; Returns: undefined }
       get_aggregated_metrics_for_campaigns: {
         Args: {
