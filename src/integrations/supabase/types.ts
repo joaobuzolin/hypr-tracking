@@ -291,13 +291,6 @@ export type Database = {
             foreignKeyName: "tags_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: false
-            referencedRelation: "campaign_metrics_summary"
-            referencedColumns: ["campaign_id"]
-          },
-          {
-            foreignKeyName: "tags_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
             referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
@@ -305,19 +298,6 @@ export type Database = {
       }
     }
     Views: {
-      campaign_metrics_summary: {
-        Row: {
-          campaign_id: string | null
-          cta_clicks: number | null
-          last_event_at: string | null
-          last_hour: number | null
-          page_views: number | null
-          pin_clicks: number | null
-          total_7d: number | null
-          total_tags: number | null
-        }
-        Relationships: []
-      }
       events_with_tags: {
         Row: {
           campaign_id: string | null
@@ -336,13 +316,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tags"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tags_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_metrics_summary"
-            referencedColumns: ["campaign_id"]
           },
           {
             foreignKeyName: "tags_campaign_id_fkey"
@@ -478,13 +451,11 @@ export type Database = {
         Args: { provided_type: string; tag_id: string }
         Returns: string
       }
-      refresh_campaign_metrics: { Args: never; Returns: undefined }
       refresh_campaign_metrics_daily: { Args: never; Returns: undefined }
       refresh_campaign_metrics_daily_incremental: {
         Args: never
         Returns: undefined
       }
-      refresh_campaign_metrics_summary: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
