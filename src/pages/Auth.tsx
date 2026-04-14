@@ -1,208 +1,108 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { LogIn, UserPlus, Target, BarChart3, MousePointer, MapPin } from 'lucide-react';
+
 const Auth = () => {
-  const {
-    signIn,
-    signUp,
-    user
-  } = useAuth();
+  const { signInWithGoogle, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resetSent, setResetSent] = useState(false);
 
-  // Redirect if already logged in
   if (user) {
     window.location.href = '/';
     return null;
   }
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const formData = new FormData(e.target as HTMLFormElement);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    const {
-      error
-    } = await signIn(email, password);
-    if (error) {
-      setError('Não foi possível entrar. Verifique suas credenciais.');
-    }
-    setLoading(false);
-  };
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const formData = new FormData(e.target as HTMLFormElement);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    const confirmPassword = formData.get('confirmPassword') as string;
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem');
-      setLoading(false);
-      return;
-    }
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
-      setLoading(false);
-      return;
-    }
-    const {
-      error
-    } = await signUp(email, password);
-    if (error) {
-      setError('Não foi possível criar a conta. Tente novamente.');
-    }
-    setLoading(false);
-  };
-  const handleForgotPassword = async (email: string) => {
-    if (!email) {
-      setError('Digite seu email para redefinir a senha');
-      return;
-    }
 
+  const handleGoogleSignIn = async () => {
     setError(null);
     setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
-      });
-      if (error) {
-        setError('Não foi possível enviar o email de redefinição');
-      } else {
-        setResetSent(true);
-        setError(null);
-      }
-    } catch (err) {
-      setError('Não foi possível enviar o email de redefinição');
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setError('Não foi possível iniciar o login com Google. Tente novamente.');
     }
     setLoading(false);
   };
-  return <div className="min-h-screen relative flex">
-      {/* Background image covering full screen - optimized loading */}
-      <img src="/lovable-uploads/d177fad6-08ba-4f61-b459-0f35fe3e81f4.png" alt="" className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchPriority="high" width="1920" height="1080" />
-      <div className="absolute inset-0 bg-black/30"></div>
+
+  return (
+    <div className="min-h-screen relative flex">
+      <img
+        src="/lovable-uploads/d177fad6-08ba-4f61-b459-0f35fe3e81f4.png"
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
+        width="1920"
+        height="1080"
+      />
+      <div className="absolute inset-0 bg-black/30" />
 
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 relative z-10">
-        <img src="/lovable-uploads/6bbb35ef-f702-4718-b5c3-d8180d317be4.png" alt="HYPR TRACKING" width="160" height="32" className="h-8 w-auto object-contain" />
+        <img
+          src="/lovable-uploads/6bbb35ef-f702-4718-b5c3-d8180d317be4.png"
+          alt="HYPR TRACKING"
+          width="160"
+          height="32"
+          className="h-8 w-auto object-contain"
+        />
       </div>
 
-      {/* Right side - Auth Forms with Glass Effect */}
+      {/* Right side - Google Sign In */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative z-10 backdrop-blur-sm bg-background/5 border-l border-white/5 shadow-2xl">
-        <div className="w-full max-w-md space-y-6">
-          <div className="text-center space-y-2 lg:hidden">
-            
-            <img src="/lovable-uploads/34701aad-d67f-460e-9f6a-5c12858d6725.png" alt="HYPR Tracking" width="160" height="32" className="h-8 w-auto object-contain mx-auto" />
-            <p className="text-sm text-white/90">
-              Acesse sua conta para gerenciar campanhas
+        <div className="w-full max-w-sm space-y-8">
+          <div className="text-center space-y-3">
+            <img
+              src="/lovable-uploads/34701aad-d67f-460e-9f6a-5c12858d6725.png"
+              alt="HYPR Tracking"
+              width="160"
+              height="32"
+              className="h-8 w-auto object-contain mx-auto"
+            />
+            <p className="text-sm text-white/80">
+              Acesse com sua conta Google @hypr.mobi
             </p>
           </div>
 
-          {error && <Alert variant="destructive">
+          {error && (
+            <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
-            </Alert>}
+            </Alert>
+          )}
 
-          <Tabs defaultValue="signin" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2 bg-transparent border border-white/20 backdrop-blur-sm h-11">
-              <TabsTrigger value="signin" className="flex items-center gap-2 text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                <LogIn className="w-4 h-4" />
-                Entrar
-              </TabsTrigger>
-              <TabsTrigger value="signup" className="flex items-center gap-2 text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                <UserPlus className="w-4 h-4" />
-                Cadastrar
-              </TabsTrigger>
-            </TabsList>
+          <Button
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full h-12 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-lg flex items-center justify-center gap-3 transition-colors"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                fill="#4285F4"
+              />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
+              />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"
+              />
+            </svg>
+            {loading ? 'Conectando...' : 'Entrar com Google'}
+          </Button>
 
-            <TabsContent value="signin">
-              <Card className="bg-transparent border border-white/20 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-white">Fazer Login</CardTitle>
-                  <CardDescription className="text-white/80">
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSignIn} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-email" className="text-white">Email</Label>
-                      <Input id="signin-email" name="email" type="email" placeholder="seu-email@hypr.mobi" required disabled={loading} className="bg-transparent border-white/20 text-white placeholder:text-white/60" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-password" className="text-white">Senha</Label>
-                      <Input id="signin-password" name="password" type="password" placeholder="Digite sua senha" required disabled={loading} className="bg-transparent border-white/20 text-white placeholder:text-white/60" />
-                    </div>
-                    <Button type="submit" className="w-full bg-transparent hover:bg-white/20 text-white border border-white/30" disabled={loading}>
-                      {loading ? 'Entrando...' : 'Entrar'}
-                    </Button>
-                  </form>
-                  
-                  {resetSent ? <div className="text-center p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
-                      <p className="text-sm text-green-100">
-                        Email de redefinição de senha enviado! Verifique sua caixa de entrada.
-                      </p>
-                    </div> : <div className="text-center">
-                      <button type="button" onClick={() => {
-                    const emailInput = document.getElementById('signin-email') as HTMLInputElement;
-                    const email = emailInput?.value;
-                    handleForgotPassword(email);
-                  }} disabled={loading} className="text-sm text-white/90 hover:text-white underline transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none rounded-sm">
-                        Esqueci minha senha
-                      </button>
-                    </div>}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <Card className="bg-transparent border border-white/20 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-white">Criar Conta</CardTitle>
-                  <CardDescription className="text-white/80">
-                    Cadastre-se com seu email @hypr.mobi
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSignUp} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email" className="text-white">Email</Label>
-                      <Input id="signup-email" name="email" type="email" placeholder="seu-email@hypr.mobi" required disabled={loading} className="bg-transparent border-white/20 text-white placeholder:text-white/60" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password" className="text-white">Senha</Label>
-                      <Input id="signup-password" name="password" type="password" placeholder="Digite sua senha (min. 6 caracteres)" required disabled={loading} minLength={6} className="bg-transparent border-white/20 text-white placeholder:text-white/60" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-confirm-password" className="text-white">Confirmar Senha</Label>
-                      <Input id="signup-confirm-password" name="confirmPassword" type="password" placeholder="Confirme sua senha" required disabled={loading} minLength={6} className="bg-transparent border-white/20 text-white placeholder:text-white/60" />
-                    </div>
-                    <Button type="submit" className="w-full bg-transparent hover:bg-white/20 text-white border border-white/30" disabled={loading}>
-                      {loading ? 'Criando conta...' : 'Criar Conta'}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-
-          <div className="text-center space-y-2">
-            <Separator className="mb-4 bg-white/20" />
-            <p className="text-xs text-white/80">
-              Apenas colaboradores HYPR com email @hypr.mobi podem acessar o sistema
-            </p>
-          </div>
+          <p className="text-xs text-white/60 text-center">
+            Apenas colaboradores HYPR com email @hypr.mobi
+          </p>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Auth;

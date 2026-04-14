@@ -1,67 +1,59 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
+    const handleCallback = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-    if (error) {
-      setStatus('error');
-      setMessage('Houve um problema ao confirmar sua conta. Tente novamente.');
-    } else {
-      setStatus('success');
-      setMessage('Conta confirmada com sucesso! Redirecionando...');
-    }
+        if (error) {
+          setError('Erro ao autenticar. Tente novamente.');
+          setTimeout(() => navigate('/auth'), 3000);
+          return;
+        }
 
-    // Redirect after 2 seconds
-    const timer = setTimeout(() => {
-      navigate('/');
-    }, 2000);
+        if (session?.user) {
+          const email = session.user.email || '';
+          if (!email.toLowerCase().endsWith('@hypr.mobi')) {
+            await supabase.auth.signOut();
+            setError('Apenas contas @hypr.mobi podem acessar o sistema.');
+            setTimeout(() => navigate('/auth'), 3000);
+            return;
+          }
+          window.location.href = '/';
+        } else {
+          navigate('/auth');
+        }
+      } catch (err) {
+        setError('Erro inesperado. Redirecionando...');
+        setTimeout(() => navigate('/auth'), 3000);
+      }
+    };
 
-    return () => clearTimeout(timer);
-  }, [searchParams, navigate]);
+    handleCallback();
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            {status === 'loading' && (
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            )}
-            {status === 'success' && (
-              <CheckCircle className="h-12 w-12 text-green-500" />
-            )}
-            {status === 'error' && (
-              <XCircle className="h-12 w-12 text-destructive" />
-            )}
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="text-center space-y-4">
+        {error ? (
+          <div className="space-y-2">
+            <p className="text-destructive font-medium">{error}</p>
+            <p className="text-sm text-muted-foreground">Redirecionando...</p>
           </div>
-          <CardTitle>
-            {status === 'loading' && 'Confirmando conta...'}
-            {status === 'success' && 'Sucesso!'}
-            {status === 'error' && 'Erro'}
-          </CardTitle>
-          <CardDescription>
-            {status === 'loading' && 'Aguarde enquanto confirmamos sua conta.'}
-            {status === 'success' && 'Redirecionando em instantes...'}
-            {status === 'error' && 'Houve um problema ao confirmar sua conta.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant={status === 'error' ? 'destructive' : 'default'}>
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+        ) : (
+          <>
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+            <p className="text-sm text-muted-foreground">Autenticando...</p>
+          </>
+        )}
+      </div>
     </div>
   );
 };
