@@ -25,7 +25,6 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center">
-      {/* Background */}
       <img
         src="/lovable-uploads/d177fad6-08ba-4f61-b459-0f35fe3e81f4.png"
         alt=""
@@ -36,45 +35,39 @@ const Auth = () => {
         width="1920"
         height="1080"
       />
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-black/30" />
 
-      {/* Glass card */}
-      <div className="relative z-10 w-full max-w-[380px] mx-4">
+      <div className="relative z-10 w-full max-w-[340px] mx-4">
         <div
-          className="rounded-2xl border border-white/[0.08] px-10 py-12 flex flex-col items-center"
+          className="rounded-2xl border border-white/[0.12] px-8 py-10"
           style={{
-            background: 'rgba(12, 12, 14, 0.72)',
-            backdropFilter: 'blur(32px)',
-            WebkitBackdropFilter: 'blur(32px)',
+            background: 'rgba(30, 30, 34, 0.45)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
           }}
         >
-          {/* Logo */}
-          <div className="mb-10">
-            <HyprAdTrackLogo height={34} variant="light" />
+          <div className="flex justify-center mb-8">
+            <HyprAdTrackLogo height={28} variant="light" />
           </div>
 
-          {/* Subtitle */}
-          <div className="text-center mb-10">
-            <p className="text-[13px] text-white/45 leading-relaxed">
-              Acesso exclusivo para o time HYPR.
-              <br />
-              Faça login com sua conta @hypr.mobi
-            </p>
-          </div>
+          <p className="text-center text-[13px] text-white/50 leading-relaxed mb-8">
+            Acesso exclusivo para o time HYPR.
+            <br />
+            Faça login com sua conta @hypr.mobi
+          </p>
 
           {error && (
-            <div className="w-full mb-8">
+            <div className="mb-6">
               <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
                 <AlertDescription className="text-red-200 text-sm">{error}</AlertDescription>
               </Alert>
             </div>
           )}
 
-          {/* Google button */}
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full h-12 bg-white/[0.07] hover:bg-white/[0.12] active:bg-white/[0.05] border border-white/[0.10] rounded-xl flex items-center justify-center gap-2.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-10"
+            className="w-full h-11 bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.06] border border-white/[0.12] rounded-xl flex items-center justify-center gap-2.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
           >
             <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -87,8 +80,7 @@ const Auth = () => {
             </span>
           </button>
 
-          {/* Footer */}
-          <p className="text-[11px] text-white/25">
+          <p className="text-center text-[11px] text-white/25">
             Apenas contas @hypr.mobi são permitidas.
           </p>
         </div>
