@@ -4,6 +4,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { Link } from "react-router-dom";
+import { HyprAdTrackLogo } from "@/components/HyprAdTrackLogo";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -42,13 +43,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               )}
               <div className="flex-1 min-w-0 flex items-center">
                 <div className="mr-4">
-                  <img 
-                    src="/lovable-uploads/0fcddc38-83cc-4638-b362-1485d244ceb3.png" 
-                    alt="HYPR TRACKING" 
-                    width="120"
-                    height="28"
-                    className="h-5 md:h-7 w-auto object-contain"
-                  />
+                  <Link to="/">
+                    <HyprAdTrackLogo height={24} variant="dark" />
+                  </Link>
                 </div>
               </div>
             </div>

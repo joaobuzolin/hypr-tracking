@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
+import { HyprAdTrackLogo } from '@/components/HyprAdTrackLogo';
 
 const Auth = () => {
   const { signInWithGoogle, user } = useAuth();
@@ -39,26 +40,16 @@ const Auth = () => {
 
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 relative z-10">
-        <img
-          src="/lovable-uploads/6bbb35ef-f702-4718-b5c3-d8180d317be4.png"
-          alt="HYPR TRACKING"
-          width="160"
-          height="32"
-          className="h-8 w-auto object-contain"
-        />
+        <HyprAdTrackLogo height={40} variant="light" />
       </div>
 
       {/* Right side - Google Sign In */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative z-10 backdrop-blur-sm bg-background/5 border-l border-white/5 shadow-2xl">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center space-y-3">
-            <img
-              src="/lovable-uploads/34701aad-d67f-460e-9f6a-5c12858d6725.png"
-              alt="HYPR Tracking"
-              width="160"
-              height="32"
-              className="h-8 w-auto object-contain mx-auto"
-            />
+            <div className="flex justify-center">
+              <HyprAdTrackLogo height={32} variant="light" />
+            </div>
             <p className="text-sm text-white/80">
               Acesse com sua conta Google @hypr.mobi
             </p>
